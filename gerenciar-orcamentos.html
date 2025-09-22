@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Orçamentos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-secondary: #A5D6A7;
+      --bs-body-bg: #F8F9FA;
+    }
+    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
+    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
+    #sidebar.collapsed { width: 88px; }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
+    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
+    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
+    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
+    #sidebar-toggle:hover { color: white; }
+    #content { width: 100%; transition: margin-left 0.3s; }
+    .text-primary, .text-secondary { color: var(--bs-primary) !important; }
+    .table-primary { --bs-table-bg: #C8E6C9; --bs-table-border-color: var(--bs-secondary); color: #1B5E20; }
+    .btn-info { background-color: #66BB6A; border-color: #66BB6A; }
+    .btn-info:hover { background-color: #4CAF50; border-color: #4CAF50; }
+    .page-item.active .page-link { background-color: var(--bs-primary); border-color: var(--bs-primary); }
+    .page-link { color: var(--bs-primary); }
+    #sidebar .sidebar-footer {
+        font-family: 'Lato', sans-serif;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+    }
+
+    #sidebar.collapsed .sidebar-footer {
+        display: none;
+    }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+<div class="d-flex">
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+        <div class="sidebar-header">
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+      <a href="index.html" class="navbar-brand">
+        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+      </a>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+  <main id="content" class="container-fluid py-4">
+    <div class="container py-4">
+      <div class="d-flex justify-content-between align-items-center mb-4"><h2 class="text-primary">Gerenciar Orçamentos</h2></div>
+      <h4 class="text-secondary mb-3 mt-5">Buscar Orçamentos</h4>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4 form-floating"><select class="form-select" id="campoBusca"><option value="">Buscar em...</option><option value="clienteNome">Cliente</option><option value="placaVeiculo">Veículo</option><option value="status">Status</option></select><label for="campoBusca">Buscar em...</label></div>
+        <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBusca" placeholder="Termo de busca"><label for="inputBusca">Termo de busca</label></div>
+        <div class="col-md-4"><button type="button" class="btn btn-info" onclick="realizarBusca()">Buscar</button><button type="button" class="btn btn-secondary ms-2" onclick="limparBusca()">Limpar</button></div>
+      </div>
+      <table class="table table-hover table-bordered">
+        <thead class="table-primary">
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Veículo</th>
+            <th>Data</th>
+            <th>Valor (R$)</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="lista-orcamentos"></tbody>
+      </table>
+      <nav><ul class="pagination" id="paginacao-orcamentos"></ul></nav>
+    </div>
+    <!-- Modal de Visualização de Itens -->
+    <div class="modal fade" id="modalVerItens" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Itens do Orçamento - #<span id="orcamento-id-modal"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Problema Relatado:</strong> <span id="problema-relatado-modal"></span></p>
+            <hr>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Quantidade</th>
+                  <th>Valor Unit. (R$)</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="itens-orcamento-modal-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="corpoModalConfirmacao">
+            <!-- Mensagem de confirmação será inserida aqui -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+        <!-- Modal de Edição de Orçamento -->
+    <div class="modal fade" id="modalEditarOrcamento" tabindex="-1" aria-labelledby="modalEditarOrcamentoLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalEditarOrcamentoLabel">Editar Orçamento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="form-editar-orcamento">
+              <input type="hidden" id="editOrcamentoId">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="editClienteNome" class="form-label">Cliente</label>
+                  <input type="text" class="form-control" id="editClienteNome" readonly>
+                </div>
+                <div class="col-md-6">
+                  <label for="editPlacaVeiculo" class="form-label">Veículo (Placa)</label>
+                  <input type="text" class="form-control" id="editPlacaVeiculo" readonly>
+                </div>
+                <div class="col-12">
+                  <label for="editProblemaRelatado" class="form-label">Problema Relatado</label>
+                  <textarea class="form-control" id="editProblemaRelatado" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="editStatus" class="form-label">Status</label>
+                    <select class="form-select" id="editStatus">
+                      <option value="Pendente">Pendente</option>
+                      <!--<option value="Aprovado">Aprovado</option>-->
+                      <option value="Recusado">Recusado</option>
+                      <option value="Concluído">Concluído</option>
+                    </select>
+                </div>
+
+                <hr class="my-4">
+                <h5>Itens do Orçamento</h5>
+                <div id="edit-itens-orcamento-container">
+                  <!-- Itens do orçamento serão inseridos aqui dinamicamente -->
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-outline-success" id="btnAdicionarItem">Adicionar Item</button>
+                </div>
+                <hr class="my-4">
+                <div class="row justify-content-end">
+                    <div class="col-md-5">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="h5">Subtotal:</span>
+                            <span id="edit-subtotal-orcamento" class="h5">R$ 0,00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="edit-desconto-percentual" class="form-label h5 me-2">Desconto (%):</label>
+                            <input type="number" class="form-control" id="edit-desconto-percentual" style="width: 100px;" value="0" min="0" max="100">
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="h5 text-danger">Valor do Desconto:</span>
+                            <span id="edit-valor-desconto" class="h5 text-danger">- R$ 0,00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h4">Total Final:</span>
+                            <span id="edit-total-final-orcamento" class="total-display">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <button type="button" class="btn btn-success" id="btnSalvarServico" disabled>Salvar Serviço</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="renderer.js"></script>
+<script>
+  const listaOrcamentosTable = document.getElementById('lista-orcamentos');
+  const inputBusca = document.getElementById('inputBusca');
+  const campoBusca = document.getElementById('campoBusca');
+  const itensOrcamentoModalBody = document.getElementById('itens-orcamento-modal-body');
+  const orcamentoIdModal = document.getElementById('orcamento-id-modal');
+  const problemaRelatadoModal = document.getElementById('problema-relatado-modal');
+
+  let todosOrcamentos = [];
+  let orcamentosFiltrados = [];
+  let todosClientes = [];
+  let todosVeiculos = [];
+  let paginaAtual = 1;
+  const itensPorPagina = 10;
+  let confirmacaoCallback = () => {};
+
+  const modalConfirmacaoEl = document.getElementById('modalConfirmarExclusao');
+  const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
+  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
+  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+
+  btnConfirmarExclusao.addEventListener('click', () => {
+    if(confirmacaoCallback) confirmacaoCallback();
+    modalConfirmacao.hide();
+  });
+
+  function showConfirm(message, callback) {
+    corpoModalConfirmacao.textContent = message;
+    confirmacaoCallback = callback;
+    modalConfirmacao.show();
+  }
+
+  function formatarValor(valor) {
+    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  async function carregarDados() {
+    [todosOrcamentos, todosClientes, todosVeiculos] = await Promise.all([
+        lerDados('orcamentos.json'),
+        lerDados('clientes.json'),
+        lerDados('veiculos.json')
+    ]);
+    orcamentosFiltrados = todosOrcamentos.sort((a, b) => b.id - a.id);
+    renderizarPagina();
+  }
+
+  function renderizarPagina() {
+    renderizarOrcamentos();
+    renderizarPaginacao();
+  }
+
+  function renderizarOrcamentos() {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const orcamentosPagina = orcamentosFiltrados.slice(inicio, fim);
+
+    listaOrcamentosTable.innerHTML = orcamentosPagina.map(o => `
+      <tr>
+        <td>${String(o.id).padStart(6, '0')}</td>
+        <td>${o.clienteNome}</td>
+        <td>${o.placaVeiculo}</td>
+        <td>${o.data}</td>
+        <td>R$ ${formatarValor(o.valor)}</td>
+        <td><span class="badge bg-warning text-dark">${o.status}</span></td>
+        <td>
+          <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${o.id})"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-primary" onclick="abrirModalEditarOrcamento(${o.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-secondary" onclick="imprimirOrcamento(${o.id})"><i class="bi bi-printer"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="excluirOrcamento(${o.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderizarPaginacao() {
+    const totalPaginas = Math.ceil(orcamentosFiltrados.length / itensPorPagina);
+    const paginacaoEl = document.getElementById('paginacao-orcamentos');
+    if (!paginacaoEl) return;
+
+    paginacaoEl.innerHTML = '';
+
+    if (totalPaginas <= 1) {
+        paginacaoEl.style.display = 'none';
+        return;
+    }
+
+    paginacaoEl.style.display = 'flex';
+
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous" onclick="mudarPagina(${paginaAtual - 1})"><span aria-hidden="true">&laquo;</span></a>`;
+    paginacaoEl.appendChild(prevLi);
+
+    for (let i = 1; i <= totalPaginas; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
+        paginacaoEl.appendChild(li);
+    }
+
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next" onclick="mudarPagina(${paginaAtual + 1})"><span aria-hidden="true">&raquo;</span></a>`;
+    paginacaoEl.appendChild(nextLi);
+  }
+
+  function mudarPagina(pagina) {
+    const totalPaginas = Math.ceil(orcamentosFiltrados.length / itensPorPagina);
+    if (pagina < 1 || pagina > totalPaginas) return;
+    paginaAtual = pagina;
+    renderizarPagina();
+  }
+
+  function realizarBusca() {
+    const termo = inputBusca.value.toLowerCase();
+    const campo = campoBusca.value;
+    if (!termo || !campo) {
+      orcamentosFiltrados = todosOrcamentos;
+    } else {
+      orcamentosFiltrados = todosOrcamentos.filter(o => {
+        const valorCampo = o[campo] ? String(o[campo]).toLowerCase() : '';
+        return valorCampo.includes(termo);
+      });
+    }
+    paginaAtual = 1;
+    renderizarPagina();
+  }
+
+  function limparBusca() {
+    inputBusca.value = '';
+    campoBusca.value = '';
+    orcamentosFiltrados = todosOrcamentos;
+    paginaAtual = 1;
+    renderizarPagina();
+  }
+
+  function abrirModalVerItens(id) {
+    const orcamento = todosOrcamentos.find(o => o.id === id);
+    if (orcamento) {
+      orcamentoIdModal.textContent = String(id).padStart(6, '0');
+      problemaRelatadoModal.textContent = orcamento.problemaRelatado;
+      itensOrcamentoModalBody.innerHTML = orcamento.itens.map(item => `
+        <tr>
+          <td>${item.descricao}</td>
+          <td>${item.quantidade}</td>
+          <td>R$ ${formatarValor(item.valor)}</td>
+          <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
+        </tr>
+      `).join('');
+      new bootstrap.Modal(document.getElementById('modalVerItens')).show();
+    }
+  }
+
+  async function imprimirOrcamento(id) {
+    const orcamento = todosOrcamentos.find(o => o.id === id);
+    if (!orcamento) {
+        showAlert('Orçamento não encontrado!', 'danger');
+        return;
+    }
+
+    const cliente = todosClientes.find(c => c.nome === orcamento.clienteNome);
+    const veiculo = todosVeiculos.find(v => v.placa === orcamento.placaVeiculo);
+    const config = await lerDados('configuracao.json');
+    const templateHtml = await fetch('template-orcamento.html').then(res => res.text());
+
+    if(!cliente || !veiculo) {
+        showAlert('Dados do cliente ou veículo não encontrados para este orçamento!', 'danger');
+        return;
+    }
+
+    const subtotal = orcamento.itens.reduce((acc, item) => acc + (item.quantidade * item.valor), 0);
+    const descontoValor = orcamento.descontoValor || 0;
+    const totalFinal = orcamento.valor;
+
+    const imagemAssinaturaHtml = config.assinaturaPath ? `<img src="${config.assinaturaPath}?t=${new Date().getTime()}" alt="Assinatura" class="signature-image">` : '';
+    let htmlFinal = templateHtml;
+    const replacements = {
+        '{{LOGO_PATH}}': config.logoPath ? `${config.logoPath}?t=${new Date().getTime()}` : '',
+        '{{IMAGEM_ASSINATURA}}': imagemAssinaturaHtml,
+        '{{NOME_OFICINA}}': config.nomeOficina || 'Nome da Oficina',
+        '{{NOME_RESPONSAVEL}}': config.nomeResponsavel || ' ',
+        '{{ENDERECO}}': config.endereco || 'Endereço da Oficina',
+        '{{TELEFONE}}': config.telefone || 'Telefone da Oficina',
+        '{{EMAIL}}': config.email || 'Email da Oficina',
+        '{{CNPJ}}': config.cnpj || 'CNPJ da Oficina',
+        '{{OS_ID}}': String(orcamento.id).padStart(6, '0'),
+        '{{DATA_EMISSAO}}': orcamento.data,
+        '{{DATA_VALIDADE}}': new Date(new Date(orcamento.data.split('/').reverse().join('-') + 'T00:00:00').getTime() + 10 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        '{{NOME_CLIENTE}}': cliente.nome,
+        '{{TELEFONE_CLIENTE}}': cliente.telefone,
+        '{{EMAIL_CLIENTE}}': cliente.email,
+        '{{ENDERECO_CLIENTE}}': cliente.endereco,
+        '{{MODELO_VEICULO}}': `${veiculo.marca} ${veiculo.modelo}`,
+        '{{PLACA_VEICULO}}': veiculo.placa,
+        '{{ANO_VEICULO}}': veiculo.ano,
+        '{{KM_VEICULO}}': veiculo.quilometragem || 'N/A',
+        '{{OBS_INICIAIS}}': orcamento.problemaRelatado,
+        '{{SUBTOTAL}}': formatarValor(subtotal),
+        '{{DESCONTO}}': formatarValor(descontoValor),
+        '{{TOTAL}}': formatarValor(totalFinal)
+    };
+
+    let itensHtml = '';
+    orcamento.itens.forEach(item => {
+        itensHtml += `
+            <tr>
+              <td>${item.descricao}</td>
+              <td>${item.quantidade}</td>
+              <td>R$ ${formatarValor(item.valor)}</td>
+              <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
+            </tr>
+        `;
+    });
+    replacements['{{LISTA_SERVICOS}}'] = itensHtml;
+
+    for (const [key, value] of Object.entries(replacements)) {
+        htmlFinal = htmlFinal.replace(new RegExp(key, 'g'), value);
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.open();
+    printWindow.document.write(htmlFinal);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  }
+
+  async function excluirOrcamento(id) {
+    const orcamento = todosOrcamentos.find(o => o.id === id);
+    showConfirm(`Tem certeza que deseja excluir o orçamento #${String(id).padStart(6, '0')} do cliente "${orcamento.clienteNome}"?`, async () => {
+      const orcamentosAtualizados = todosOrcamentos.filter(o => o.id !== id);
+      await salvarDados('orcamentos.json', orcamentosAtualizados);
+      showAlert('✅ Orçamento excluído com sucesso!');
+      await carregarDados();
+    });
+  }
+
+  async function abrirModalEditarOrcamento(id) {
+    const orcamento = todosOrcamentos.find(o => o.id === id);
+    if (!orcamento) {
+      showAlert('Orçamento não encontrado!', 'danger');
+      return;
+    }
+
+    document.getElementById('editOrcamentoId').value = orcamento.id;
+    document.getElementById('editClienteNome').value = orcamento.clienteNome;
+    document.getElementById('editPlacaVeiculo').value = orcamento.placaVeiculo;
+    document.getElementById('editProblemaRelatado').value = orcamento.problemaRelatado;
+    document.getElementById('editStatus').value = orcamento.status;
+    document.getElementById('edit-desconto-percentual').value = orcamento.descontoPercentual || 0;
+
+    const itensContainer = document.getElementById('edit-itens-orcamento-container');
+    itensContainer.innerHTML = '';
+    orcamento.itens.forEach((item, index) => {
+      adicionarLinhaItem(item, index);
+    });
+    
+    atualizarValorTotalModal();
+    document.getElementById('edit-desconto-percentual').addEventListener('input', atualizarValorTotalModal);
+
+    const statusSelect = document.getElementById('editStatus');
+    const btnSalvarServico = document.getElementById('btnSalvarServico');
+    btnSalvarServico.disabled = statusSelect.value !== 'Concluído';
+
+    statusSelect.onchange = () => {
+      btnSalvarServico.disabled = statusSelect.value !== 'Concluído';
+    };
+
+    const modal = new bootstrap.Modal(document.getElementById('modalEditarOrcamento'));
+    modal.show();
+  }
+
+  function adicionarLinhaItem(item = { descricao: '', quantidade: 1, valor: 0 }, index) {
+      const itensContainer = document.getElementById('edit-itens-orcamento-container');
+      const div = document.createElement('div');
+      div.className = 'row g-3 mb-2 align-items-center item-row';
+      div.innerHTML = `
+          <div class="col-md-5">
+              <input type="text" class="form-control" placeholder="Descrição" value="${item.descricao}" oninput="atualizarValorTotalModal()">
+          </div>
+          <div class="col-md-2">
+              <input type="number" class="form-control" placeholder="Qtd" value="${item.quantidade}" min="1" oninput="atualizarValorTotalModal()">
+          </div>
+          <div class="col-md-3">
+              <input type="number" class="form-control" placeholder="Valor Unit." value="${item.valor}" step="0.01" min="0" oninput="atualizarValorTotalModal()">
+          </div>
+          <div class="col-md-2">
+              <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.item-row').remove(); atualizarValorTotalModal();">Remover</button>
+          </div>
+      `;
+      itensContainer.appendChild(div);
+  }
+  
+  function atualizarValorTotalModal() {
+      let subtotal = 0;
+      document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
+          const quantidade = parseFloat(row.querySelector('input[placeholder="Qtd"]').value) || 0;
+          const valor = parseFloat(row.querySelector('input[placeholder="Valor Unit."]').value) || 0;
+          subtotal += quantidade * valor;
+      });
+
+      const descontoPercentual = parseFloat(document.getElementById('edit-desconto-percentual').value) || 0;
+      const descontoValor = subtotal * (descontoPercentual / 100);
+      const totalFinal = subtotal - descontoValor;
+
+      document.getElementById('edit-subtotal-orcamento').textContent = `R$ ${formatarValor(subtotal)}`;
+      document.getElementById('edit-valor-desconto').textContent = `- R$ ${formatarValor(descontoValor)}`;
+      document.getElementById('edit-total-final-orcamento').textContent = `R$ ${formatarValor(totalFinal)}`;
+  }
+
+  document.getElementById('btnAdicionarItem').addEventListener('click', () => {
+      adicionarLinhaItem();
+  });
+
+  document.getElementById('form-editar-orcamento').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('editOrcamentoId').value);
+    const orcamentoIndex = todosOrcamentos.findIndex(o => o.id === id);
+    if (orcamentoIndex === -1) {
+      showAlert('Erro ao encontrar orçamento para atualizar.', 'danger');
+      return;
+    }
+
+    const itens = [];
+    let subtotal = 0;
+    document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
+        const descricao = row.children[0].children[0].value;
+        const quantidade = parseFloat(row.children[1].children[0].value) || 0;
+        const valor = parseFloat(row.children[2].children[0].value) || 0;
+        if (descricao && quantidade > 0 && valor >= 0) {
+            itens.push({ descricao, quantidade, valor });
+            subtotal += quantidade * valor;
+        }
+    });
+
+    const descontoPercentual = parseFloat(document.getElementById('edit-desconto-percentual').value) || 0;
+    const descontoValor = subtotal * (descontoPercentual / 100);
+    const totalFinal = subtotal - descontoValor;
+
+    const orcamentoAtualizado = {
+      ...todosOrcamentos[orcamentoIndex],
+      problemaRelatado: document.getElementById('editProblemaRelatado').value,
+      status: document.getElementById('editStatus').value,
+      itens: itens,
+      valor: totalFinal,
+      descontoPercentual: descontoPercentual,
+      descontoValor: descontoValor
+    };
+
+    todosOrcamentos[orcamentoIndex] = orcamentoAtualizado;
+    await salvarDados('orcamentos.json', todosOrcamentos);
+    
+    showAlert('✅ Orçamento atualizado com sucesso!');
+    bootstrap.Modal.getInstance(document.getElementById('modalEditarOrcamento')).hide();
+    await carregarDados();
+  });
+
+  document.getElementById('btnSalvarServico').addEventListener('click', async () => {
+      const id = parseInt(document.getElementById('editOrcamentoId').value);
+      const orcamentoIndex = todosOrcamentos.findIndex(o => o.id === id);
+      if (orcamentoIndex === -1) {
+          showAlert('Orçamento não encontrado!', 'danger');
+          return;
+      }
+
+      const orcamento = todosOrcamentos[orcamentoIndex];
+
+      // 1. Coletar dados atualizados do modal
+      const itens = [];
+      document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
+          const descricao = row.querySelector('input[placeholder="Descrição"]').value;
+          const quantidade = parseFloat(row.querySelector('input[placeholder="Qtd"]').value) || 0;
+          const valor = parseFloat(row.querySelector('input[placeholder="Valor Unit."]').value) || 0;
+          if (descricao && quantidade > 0 && valor >= 0) {
+              itens.push({ descricao, quantidade, valor });
+          }
+      });
+      const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.valor), 0);
+
+      // 2. Buscar dados adicionais
+      const cliente = todosClientes.find(c => c.nome === orcamento.clienteNome);
+      const veiculo = todosVeiculos.find(v => v.placa === orcamento.placaVeiculo);
+
+      // 3. Criar novo objeto de serviço
+      const novoServico = {
+          id: Date.now(),
+          clienteNome: orcamento.clienteNome,
+          clienteDoc: cliente ? cliente.documento : 'N/A',
+          placaVeiculo: orcamento.placaVeiculo,
+          dataEntrada: getLocalDateAsString('yyyy-mm-dd'), // Data de hoje
+          problemaRelatado: document.getElementById('editProblemaRelatado').value,
+          mecanico: '', // Mecânico pode ser definido depois
+          status: 'Em andamento',
+          itens: itens,
+          valorTotal: valorTotal,
+          quilometragem: veiculo ? veiculo.quilometragem : 'N/A'
+      };
+
+      // 4. Salvar o novo serviço
+      const todosServicos = await lerDados('servicos.json') || [];
+      todosServicos.push(novoServico);
+      await salvarDados('servicos.json', todosServicos);
+
+      // 5. Atualizar o orçamento
+      orcamento.status = 'Faturado';
+      todosOrcamentos[orcamentoIndex] = orcamento;
+      await salvarDados('orcamentos.json', todosOrcamentos);
+
+      // 6. Feedback e atualização da UI
+      showAlert('✅ Serviço gerado com sucesso a partir do orçamento!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarOrcamento')).hide();
+      await carregarDados();
+  });
+
+  window.addEventListener('DOMContentLoaded', carregarDados);
+</script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+
+  function updateSidebar() {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    updateSidebar();
+  });
+
+  navbarBrand.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('collapsed')) {
+      e.preventDefault();
+      sidebar.classList.remove('collapsed');
+      updateSidebar();
+    }
+  });
+
+  // Set initial state in case it starts collapsed
+  updateSidebar();
+</script>
+</body>
+</html>

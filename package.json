@@ -1,0 +1,40 @@
+{
+  "name": "oficina-adm",
+  "description": "Sistema de gerenciamento para oficinas mecânicas",
+  "author": "Peterson W. do Amaral",
+  "license": "MIT",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "test": "jest",
+    "cypress:open": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "^15.2.0",
+    "electron": "^29.0.0",
+    "electron-builder": "^26.0.12",
+    "jest": "^30.1.3"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "build": {
+    "appId": "com.suaempresa.oficinamecanica",
+    "productName": "Oficina Mecânica",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules",
+      "node_modules/jspdf",
+      "node_modules/jspdf-autotable"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.ico"
+    }
+  }
+}

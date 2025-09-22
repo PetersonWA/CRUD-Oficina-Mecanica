@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurações - Sistema Oficina</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-secondary: #A5D6A7;
+      --bs-body-bg: #F8F9FA;
+    }
+    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
+    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
+    #sidebar.collapsed { width: 88px; }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
+    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
+    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
+    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
+    #sidebar-toggle:hover { color: white; }
+    #content { width: 100%; transition: margin-left 0.3s; }
+    .text-primary { color: var(--bs-primary) !important; }
+    .btn-primary { --bs-btn-bg: var(--bs-primary); --bs-btn-border-color: var(--bs-primary); --bs-btn-hover-bg: #1B5E20; --bs-btn-hover-border-color: #1B5E20; }
+    #sidebar .sidebar-footer {
+        font-family: 'Lato', sans-serif;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+    }
+
+    #sidebar.collapsed .sidebar-footer {
+        display: none;
+    }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+
+<div class="d-flex">
+  <!-- Sidebar -->
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand">
+        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+      </a>
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+    </div>
+    
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main id="content" class="container-fluid py-4">
+    <div class="container">
+      <h2 class="text-primary mb-4">Configurações da Oficina</h2>
+
+      <div class="card p-4">
+        <form id="config-form">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="nomeOficina" class="form-label">Nome da Oficina</label>
+                <input type="text" class="form-control" id="nomeOficina" required>
+              </div>
+              <div class="mb-3">
+                <label for="endereco" class="form-label">Endereço</label>
+                <input type="text" class="form-control" id="endereco">
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="telefone" class="form-label">Telefone / WhatsApp</label>
+                  <input type="text" class="form-control" id="telefone">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="email" class="form-label">Email</label>
+                  <input type="email" class="form-control" id="email">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="cnpj" class="form-label">CNPJ / CPF</label>
+                <input type="text" class="form-control" id="cnpj">
+              </div>
+              <div class="mb-3">
+                <label for="nomeResponsavel" class="form-label">Nome do Responsável Técnico</label>
+                <input type="text" class="form-control" id="nomeResponsavel">
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-6">
+
+          <div class="row text-center">
+            <div class="col-md-6 mb-6">
+              <label class="form-label fw-bold">Logotipo</label>
+              <br></br>
+              <img id="logo-preview" src="https://via.placeholder.com/200x150.png?text=Logo" class="img-thumbnail mb-3" alt="Preview do Logo" style="max-height: 150px;">
+              <div class="d-flex justify-content-center">
+                <label for="logo" class="btn btn-sm btn-outline-primary me-2">
+                    <i class="bi bi-upload"></i> Enviar Nova Imagem
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="delete-logo">
+                    <i class="bi bi-trash"></i> Excluir
+                </button>
+                <input type="file" id="logo" accept="image/*" class="d-none">
+              </div>
+              <div class="form-text mt-1">Selecione uma imagem para o logotipo.</div>
+            </div>
+            <div class="col-md-6 mb-6">
+              <label class="form-label fw-bold">Assinatura Digitalizada</label>
+              <br></br>
+              <img id="assinatura-preview" src="https://via.placeholder.com/200x80.png?text=Assinatura" class="img-thumbnail mb-3" alt="Preview da Assinatura" style="max-height: 80px;">
+               <div class="d-flex justify-content-center">
+                <label for="assinatura" class="btn btn-sm btn-outline-primary me-2">
+                    <i class="bi bi-upload"></i> Enviar Nova Imagem
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="delete-assinatura">
+                    <i class="bi bi-trash"></i> Excluir
+                </button>
+                <input type="file" id="assinatura" accept="image/*" class="d-none">
+              </div>
+              <div class="form-text mt-1">Fundo transparente é recomendado.</div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-center mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="corpoModalConfirmacao">
+            <!-- Mensagem de confirmação será inserida aqui -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="renderer.js"></script>
+<script>
+  const form = document.getElementById('config-form');
+  const logoPreview = document.getElementById('logo-preview');
+  const logoInput = document.getElementById('logo');
+  const deleteLogoBtn = document.getElementById('delete-logo');
+  const assinaturaPreview = document.getElementById('assinatura-preview');
+  const assinaturaInput = document.getElementById('assinatura');
+  const deleteAssinaturaBtn = document.getElementById('delete-assinatura');
+
+  const placeholderLogo = 'https://via.placeholder.com/200x150.png?text=Logo';
+  const placeholderAssinatura = 'https://via.placeholder.com/200x80.png?text=Assinatura';
+  
+  let confirmacaoCallback = () => {};
+
+  const modalConfirmacaoEl = document.getElementById('modalConfirmarExclusao');
+  const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
+  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
+  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+
+  btnConfirmarExclusao.addEventListener('click', () => {
+    if(confirmacaoCallback) confirmacaoCallback();
+    modalConfirmacao.hide();
+  });
+
+  function showConfirm(message, callback) {
+    corpoModalConfirmacao.textContent = message;
+    confirmacaoCallback = callback;
+    modalConfirmacao.show();
+  }
+
+  // Carregar dados existentes ao abrir a página
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const config = await lerDados('configuracao.json');
+      if (config) {
+        document.getElementById('nomeOficina').value = config.nomeOficina || '';
+        document.getElementById('endereco').value = config.endereco || '';
+        document.getElementById('telefone').value = config.telefone || '';
+        document.getElementById('email').value = config.email || '';
+        document.getElementById('cnpj').value = config.cnpj || '';
+        document.getElementById('nomeResponsavel').value = config.nomeResponsavel || '';
+        if (config.logoPath) {
+          logoPreview.src = config.logoPath + '?t=' + new Date().getTime();
+        } else {
+          logoPreview.src = placeholderLogo;
+        }
+        if (config.assinaturaPath) {
+          assinaturaPreview.src = config.assinaturaPath + '?t=' + new Date().getTime();
+        } else {
+          assinaturaPreview.src = placeholderAssinatura;
+        }
+      }
+    } catch (error) {
+      console.warn('Arquivo de configuração ainda não existe. Será criado ao salvar.');
+    }
+  });
+
+  // Preview da imagem do logo
+  logoInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        logoPreview.src = e.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Preview da imagem da assinatura
+  assinaturaInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        assinaturaPreview.src = e.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Botão de excluir logo
+  deleteLogoBtn.addEventListener('click', () => {
+    showConfirm('Tem certeza que deseja excluir a imagem do logotipo?', () => {
+      logoPreview.src = placeholderLogo;
+      logoInput.value = null; // Limpa o campo de seleção de arquivo
+    });
+  });
+
+  // Botão de excluir assinatura
+  deleteAssinaturaBtn.addEventListener('click', () => {
+    showConfirm('Tem certeza que deseja excluir a imagem da assinatura?', () => {
+      assinaturaPreview.src = placeholderAssinatura;
+      assinaturaInput.value = null; // Limpa o campo de seleção de arquivo
+    });
+  });
+
+  // Salvar formulário
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    
+    const configData = {
+      nomeOficina: document.getElementById('nomeOficina').value,
+      endereco: document.getElementById('endereco').value,
+      telefone: document.getElementById('telefone').value,
+      email: document.getElementById('email').value,
+      cnpj: document.getElementById('cnpj').value,
+      nomeResponsavel: document.getElementById('nomeResponsavel').value,
+    };
+
+    const logoFile = logoInput.files[0];
+    const assinaturaFile = assinaturaInput.files[0];
+    
+    try {
+      const oldConfig = await lerDados('configuracao.json').catch(() => ({}));
+
+      // Lógica para salvar/excluir logo
+      if (logoFile) {
+        const fileBuffer = await logoFile.arrayBuffer();
+        const logoPath = await window.api.saveFile(fileBuffer, 'logo.' + logoFile.name.split('.').pop());
+        if (!logoPath) throw new Error('O caminho do logo não foi retornado.');
+        configData.logoPath = logoPath;
+      } else if (logoPreview.src.includes('placeholder')) {
+        configData.logoPath = ''; // Imagem foi excluída
+      } else if (oldConfig.logoPath) {
+        configData.logoPath = oldConfig.logoPath; // Mantém a antiga se nenhuma nova foi enviada
+      }
+
+      // Lógica para salvar/excluir assinatura
+      if (assinaturaFile) {
+        const fileBuffer = await assinaturaFile.arrayBuffer();
+        const assinaturaPath = await window.api.saveFile(fileBuffer, 'assinatura.' + assinaturaFile.name.split('.').pop());
+        if (!assinaturaPath) throw new Error('O caminho da assinatura não foi retornado.');
+        configData.assinaturaPath = assinaturaPath;
+      } else if (assinaturaPreview.src.includes('placeholder')) {
+        configData.assinaturaPath = ''; // Imagem foi excluída
+      } else if (oldConfig.assinaturaPath) {
+        configData.assinaturaPath = oldConfig.assinaturaPath; // Mantém a antiga se nenhuma nova foi enviada
+      }
+
+      await salvarDados('configuracao.json', configData);
+      showAlert('✅ Configurações salvas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      showAlert('Erro ao salvar configurações. Verifique o console para mais detalhes (Ctrl+Shift+I).', 'danger');
+    }
+  });
+</script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+
+  function updateSidebar() {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    updateSidebar();
+  });
+
+  navbarBrand.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('collapsed')) {
+      e.preventDefault();
+      sidebar.classList.remove('collapsed');
+      updateSidebar();
+    }
+  });
+
+  // Set initial state in case it starts collapsed
+  updateSidebar();
+</script>
+</body>
+</html>

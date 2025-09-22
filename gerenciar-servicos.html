@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Serviços</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-secondary: #A5D6A7;
+      --bs-body-bg: #F8F9FA;
+    }
+    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
+    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
+    #sidebar.collapsed { width: 88px; }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
+    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
+    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
+    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
+    #sidebar-toggle:hover { color: white; }
+    #content { width: 100%; transition: margin-left 0.3s; }
+    .text-primary, .text-secondary { color: var(--bs-primary) !important; }
+    .table-primary { --bs-table-bg: #C8E6C9; --bs-table-border-color: var(--bs-secondary); color: #1B5E20; }
+    .btn-primary { --bs-btn-bg: var(--bs-primary); --bs-btn-border-color: var(--bs-primary); --bs-btn-hover-bg: #1B5E20; --bs-btn-hover-border-color: #1B5E20; }
+    .btn-info { background-color: #66BB6A; border-color: #66BB6A; }
+    .btn-info:hover { background-color: #4CAF50; border-color: #4CAF50; }
+    .form-floating > .form-control:not(:placeholder-shown) ~ label, .form-floating > .form-control:focus ~ label, .form-floating > .form-select ~ label, .form-floating > textarea:not(:placeholder-shown) ~ label, .form-floating > textarea:focus ~ label { background-color: var(--bs-body-bg); padding: 0 5px; height: auto; border-radius: 5px; }
+    .page-item.active .page-link { background-color: var(--bs-primary); border-color: var(--bs-primary); }
+    .page-link { color: var(--bs-primary); }
+    #sidebar .sidebar-footer {
+        font-family: 'Lato', sans-serif;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+    }
+
+    #sidebar.collapsed .sidebar-footer {
+        display: none;
+    }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+<div class="d-flex">
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+        <div class="sidebar-header">
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+      <a href="index.html" class="navbar-brand">
+        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+      </a>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      
+    <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+  <main id="content" class="container-fluid py-4">
+    <div class="container py-4">
+      <div class="d-flex justify-content-between align-items-center mb-4"><h2 class="text-primary">Gerenciar Serviços</h2></div>
+      <h4 class="text-secondary mb-3 mt-5">Buscar Serviços</h4>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4 form-floating"><select class="form-select" id="campoBuscaServico"><option value="">Buscar em...</option><option value="clienteNome">Cliente</option><option value="placaVeiculo">Veículo</option><option value="mecanico">Mecânico</option><option value="status">Status</option></select><label>Buscar em...</label></div>
+        <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBuscaServico" placeholder="Termo de busca"><label>Termo de busca</label></div>
+        <div class="col-md-4"><button type="button" class="btn btn-info" onclick="realizarBuscaServico()">Buscar</button><button type="button" class="btn btn-secondary ms-2" onclick="limparBuscaServico()">Limpar</button></div>
+      </div>
+      <table class="table table-hover table-bordered"><thead class="table-primary"><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Data Entrada</th><th>Data Conclusão</th><th>Valor Total (R$)</th><th>Mecânico</th><th>Status</th><th>Ações</th></tr></thead><tbody id="lista-servicos"></tbody></table>
+      <nav><ul class="pagination" id="paginacao-servicos"></ul></nav>
+    </div>
+    <!-- Modal de Visualização de Itens -->
+    <div class="modal fade" id="modalVerItens" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Itens do Serviço - OS #<span id="os-id-modal"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Quantidade</th>
+                  <th>Valor Unit. (R$)</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="itens-servico-modal-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalEditarServico" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Editar Serviço - OS #<span id="edit-os-id"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="form-editar-servico">
+              <input type="hidden" id="editServicoId">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Cliente</label>
+                  <input type="text" class="form-control" id="editServicoCliente" readonly>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Veículo</label>
+                  <input type="text" class="form-control" id="editServicoVeiculo" readonly>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Data de Entrada</label>
+                  <input type="date" class="form-control" id="editServicoDataEntrada" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Mecânico Responsável</label>
+                  <input type="text" class="form-control" id="editServicoMecanico" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Status</label>
+                  <select class="form-select" id="editServicoStatus" required>
+                    <option value="Em andamento">Em andamento</option>
+                    <option value="Aguardando peças">Aguardando peças</option>
+                    <option value="Concluído">Concluído</option>
+                    <option value="Aguardando aprovação">Aguardando aprovação</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr>
+
+              <h5 class="text-primary">Itens do Serviço</h5>
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Descrição</th>
+                    <th style="width: 15%;">Quantidade</th>
+                    <th style="width: 20%;">Valor Unit. (R$)</th>
+                    <th style="width: 10%;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="edit-itens-servico-body"></tbody>
+              </table>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="edit-adicionar-item"><i class="bi bi-plus-circle"></i> Adicionar Item</button>
+
+              <hr>
+
+              <div class="d-flex justify-content-end align-items-center">
+                <span class="me-3 h5">Total:</span>
+                <span id="edit-total-servico" class="h5 text-primary">R$ 0,00</span>
+              </div>
+
+              <div class="modal-footer mt-4">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  <!-- Modal de Confirmação de Exclusão -->
+  <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="corpoModalConfirmacao">
+          <!-- Mensagem de confirmação será inserida aqui -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="renderer.js"></script>
+<script>
+  const listaServicosTable = document.getElementById('lista-servicos');
+  const inputBuscaServico = document.getElementById('inputBuscaServico');
+  const campoBuscaServico = document.getElementById('campoBuscaServico');
+  const itensServicoModalBody = document.getElementById('itens-servico-modal-body');
+  const osIdModal = document.getElementById('os-id-modal');
+  
+  // Elementos do Modal de Edição
+  const formEditar = document.getElementById('form-editar-servico');
+  const editOsId = document.getElementById('edit-os-id');
+  const editServicoId = document.getElementById('editServicoId');
+  const editServicoCliente = document.getElementById('editServicoCliente');
+  const editServicoVeiculo = document.getElementById('editServicoVeiculo');
+  const editServicoDataEntrada = document.getElementById('editServicoDataEntrada');
+  const editServicoMecanico = document.getElementById('editServicoMecanico');
+  const editServicoStatus = document.getElementById('editServicoStatus');
+  const editItensBody = document.getElementById('edit-itens-servico-body');
+  const editTotalServico = document.getElementById('edit-total-servico');
+  const btnEditAdicionarItem = document.getElementById('edit-adicionar-item');
+
+  let todosServicos = [];
+  let servicosFiltrados = [];
+  let paginaAtual = 1;
+  const itensPorPagina = 10;
+  let confirmacaoCallback = () => {};
+
+  const modalConfirmacaoEl = document.getElementById('modalConfirmarExclusao');
+  const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
+  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
+  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+
+  btnConfirmarExclusao.addEventListener('click', () => {
+    if(confirmacaoCallback) confirmacaoCallback();
+    modalConfirmacao.hide();
+  });
+
+  function showConfirm(message, callback) {
+    corpoModalConfirmacao.textContent = message;
+    confirmacaoCallback = callback;
+    modalConfirmacao.show();
+  }
+
+  function formatarValor(valor) {
+    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  async function carregarServicos() {
+    todosServicos = await lerDados('servicos.json') || [];
+    servicosFiltrados = todosServicos;
+    renderizarPagina();
+  }
+
+  function renderizarPagina() {
+    renderizarServicos();
+    renderizarPaginacao();
+  }
+
+  function renderizarServicos() {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const servicosPagina = servicosFiltrados.slice(inicio, fim);
+
+    listaServicosTable.innerHTML = servicosPagina.map(s => `
+      <tr>
+        <td>${String(s.id).padStart(6, '0')}</td>
+        <td>${s.clienteNome}</td>
+        <td>${s.placaVeiculo}</td>
+        <td>${new Date(s.dataEntrada + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+        <td>${s.dataConclusao ? new Date(s.dataConclusao + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
+        <td>R$ ${formatarValor(s.valorTotal)}</td>
+        <td>${s.mecanico}</td>
+        <td>${s.status}</td>
+        <td>
+          <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${s.id})"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-warning" onclick="abrirModalEditarServico(${s.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="excluirServico(${s.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderizarPaginacao() {
+    const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
+    const paginacaoEl = document.getElementById('paginacao-servicos');
+    if (!paginacaoEl) return;
+
+    paginacaoEl.innerHTML = '';
+
+    if (totalPaginas <= 1) {
+        paginacaoEl.style.display = 'none';
+        return;
+    }
+
+    paginacaoEl.style.display = 'flex';
+
+    // Botão Previous
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous" onclick="mudarPagina(${paginaAtual - 1})"><span aria-hidden="true">&laquo;</span></a>`;
+    paginacaoEl.appendChild(prevLi);
+
+    // Botões de número da página
+    for (let i = 1; i <= totalPaginas; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
+        paginacaoEl.appendChild(li);
+    }
+
+    // Botão Next
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next" onclick="mudarPagina(${paginaAtual + 1})"><span aria-hidden="true">&raquo;</span></a>`;
+    paginacaoEl.appendChild(nextLi);
+  }
+
+  function mudarPagina(pagina) {
+    const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
+    if (pagina < 1 || pagina > totalPaginas) return;
+    paginaAtual = pagina;
+    renderizarPagina();
+  }
+
+  function realizarBuscaServico() {
+    const termo = inputBuscaServico.value.toLowerCase();
+    const campo = campoBuscaServico.value;
+    if (!termo || !campo) {
+      servicosFiltrados = todosServicos;
+    } else {
+      servicosFiltrados = todosServicos.filter(s => {
+        let valorCampo = '';
+        switch (campo) {
+          case 'clienteNome':
+            valorCampo = s.clienteNome;
+            break;
+          case 'placaVeiculo':
+            valorCampo = s.placaVeiculo;
+            break;
+          case 'mecanico':
+            valorCampo = s.mecanico;
+            break;
+          case 'status':
+            valorCampo = s.status;
+            break;
+        }
+        return valorCampo.toLowerCase().includes(termo);
+      });
+    }
+    paginaAtual = 1;
+    renderizarPagina();
+  }
+
+  function limparBuscaServico() {
+    inputBuscaServico.value = '';
+    campoBuscaServico.value = '';
+    servicosFiltrados = todosServicos;
+    paginaAtual = 1;
+    renderizarPagina();
+  }
+
+  function abrirModalVerItens(id) {
+    const servico = todosServicos.find(s => s.id === id);
+    if (servico) {
+      osIdModal.textContent = String(id).padStart(6, '0');
+      itensServicoModalBody.innerHTML = servico.itens.map(item => `
+        <tr>
+          <td>${item.descricao}</td>
+          <td>${item.quantidade}</td>
+          <td>R$ ${formatarValor(item.valor)}</td>
+          <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
+        </tr>
+      `).join('');
+      new bootstrap.Modal(document.getElementById('modalVerItens')).show();
+    }
+  }
+
+  // --- Lógica do Modal de Edição ---
+
+  function abrirModalEditarServico(id) {
+    const servico = todosServicos.find(s => s.id === id);
+    if (servico) {
+      editOsId.textContent = String(id).padStart(6, '0');
+      editServicoId.value = servico.id;
+      editServicoCliente.value = servico.clienteNome;
+      editServicoVeiculo.value = servico.placaVeiculo;
+      editServicoDataEntrada.value = servico.dataEntrada;
+      editServicoMecanico.value = servico.mecanico;
+      editServicoStatus.value = servico.status;
+
+      editItensBody.innerHTML = '';
+      servico.itens.forEach(item => editAdicionarItem(item));
+      editCalcularTotal();
+
+      new bootstrap.Modal(document.getElementById('modalEditarServico')).show();
+    }
+  }
+
+  function editAdicionarItem(item = null) {
+    const row = document.createElement('tr');
+    row.classList.add('item-row');
+    row.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição do item" value="${item ? item.descricao : ''}" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="quantidade" value="${item ? item.quantidade : 1}" min="1" step="1" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="valor" placeholder="0.00" value="${item ? item.valor.toFixed(2) : '0.00'}" min="0" step="0.01" required></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="editRemoverItem(this)"><i class="bi bi-trash"></i></button></td>
+    `;
+    editItensBody.appendChild(row);
+    row.querySelectorAll('input').forEach(input => input.addEventListener('input', editCalcularTotal));
+    editCalcularTotal();
+  }
+
+  function editRemoverItem(button) {
+    if (editItensBody.querySelectorAll('tr').length > 1) {
+      button.closest('tr').remove();
+      editCalcularTotal();
+    } else {
+      alert('É necessário pelo menos um item no serviço.');
+    }
+  }
+
+  function editCalcularTotal() {
+    let total = 0;
+    editItensBody.querySelectorAll('.item-row').forEach(row => {
+      const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
+      const valor = parseFloat(row.querySelector('[name=valor]').value.replace(',', '.')) || 0;
+      total += quantidade * valor;
+    });
+    editTotalServico.textContent = `R$ ${formatarValor(total)}`;
+  }
+
+  btnEditAdicionarItem.addEventListener('click', () => editAdicionarItem());
+
+  formEditar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = parseInt(editServicoId.value);
+
+    const itens = [];
+    let valorTotal = 0;
+    editItensBody.querySelectorAll('.item-row').forEach(row => {
+      const descricao = row.querySelector('[name=descricao]').value;
+      const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
+      const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
+      if (descricao && quantidade > 0 && valor >= 0) {
+        itens.push({ descricao, quantidade, valor });
+        valorTotal += quantidade * valor;
+      }
+    });
+
+    if (itens.length === 0) {
+      alert('Adicione pelo menos um item válido ao serviço.');
+      return;
+    }
+
+    const servicoOriginal = todosServicos.find(s => s.id === id);
+
+    const servicoAtualizado = {
+      ...servicoOriginal,
+      dataEntrada: editServicoDataEntrada.value,
+      mecanico: editServicoMecanico.value,
+      status: editServicoStatus.value,
+      itens: itens,
+      valorTotal: valorTotal
+    };
+
+    // Adiciona a data de conclusão se o status for 'Concluído' e a data ainda não existir
+    if (servicoAtualizado.status === 'Concluído' && !servicoOriginal.dataConclusao) {
+      servicoAtualizado.dataConclusao = getLocalDateAsString('yyyy-mm-dd'); // Formato YYYY-MM-DD
+    }
+
+    const index = todosServicos.findIndex(s => s.id === id);
+    if (index !== -1) {
+      todosServicos[index] = servicoAtualizado;
+      await salvarDados('servicos.json', todosServicos);
+      showAlert('✅ Serviço atualizado com sucesso!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarServico')).hide();
+      await carregarServicos();
+    }
+  });
+
+  async function excluirServico(id) {
+    const servico = todosServicos.find(s => s.id === id);
+    showConfirm(`Tem certeza que deseja excluir o serviço #${String(id).padStart(6, '0')} do cliente "${servico.clienteNome}"?`, async () => {
+      const servicosAtualizados = todosServicos.filter(s => s.id !== id);
+      await salvarDados('servicos.json', servicosAtualizados);
+      showAlert('✅ Serviço excluído com sucesso!', 'success');
+      await carregarServicos();
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', carregarServicos);
+</script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+
+  function updateSidebar() {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    updateSidebar();
+  });
+
+  navbarBrand.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('collapsed')) {
+      e.preventDefault();
+      sidebar.classList.remove('collapsed');
+      updateSidebar();
+    }
+  });
+
+  // Set initial state in case it starts collapsed
+  updateSidebar();
+</script>
+</body>
+</html>

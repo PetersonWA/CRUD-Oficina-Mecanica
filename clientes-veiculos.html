@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Clientes e Veículos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-secondary: #A5D6A7;
+      --bs-secondary-rgb: 165, 214, 167;
+      --bs-body-bg: #F8F9FA;
+    }
+    body {
+      background-color: var(--bs-body-bg);
+      overflow-x: hidden;
+    }
+    #sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      width: 280px;
+      background-color: var(--bs-primary);
+      transition: all 0.3s;
+    }
+    #sidebar.collapsed {
+      width: 88px;
+    }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span {
+      display: inline;
+      transition: opacity 0.2s;
+    }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span {
+      display: none;
+    }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi {
+      transition: font-size 0.2s;
+    }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand {
+      justify-content: center;
+    }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi {
+      font-size: 1.75rem;
+      margin-right: 0 !important;
+    }
+    #sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active {
+      background-color: #1B5E20;
+      color: white;
+    }
+    #sidebar .navbar-brand {
+      color: white;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar-header {
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #sidebar-toggle {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.8);
+      font-size: 1.5rem;
+    }
+    #sidebar-toggle:hover {
+      color: white;
+    }
+    #content {
+      width: 100%;
+      transition: margin-left 0.3s;
+    }
+    .text-primary, .text-secondary {
+      color: var(--bs-primary) !important;
+    }
+    .table-primary {
+        --bs-table-bg: #C8E6C9;
+        --bs-table-border-color: var(--bs-secondary);
+        color: #1B5E20;
+    }
+    .page-item.active .page-link {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+    .page-link {
+        color: var(--bs-primary);
+    }
+    .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .form-floating > .form-control:focus ~ label {
+        background-color: var(--bs-body-bg);
+        padding: 0 5px;
+        height: auto;
+        border-radius: 5px;
+    }
+    #sidebar .sidebar-footer {
+        font-family: 'Lato', sans-serif;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+    }
+
+    #sidebar.collapsed .sidebar-footer {
+        display: none;
+    }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+
+<div class="d-flex">
+  <!-- Sidebar -->
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand">
+        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+      </a>
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      
+      <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main id="content" class="container-fluid py-4">
+    <div class="container py-4">
+      <h2 class="text-primary mb-4">Clientes e Veículos Cadastrados</h2>
+      
+      <!-- Formulário de Cadastro de Cliente -->
+      <h4 class="text-secondary mb-3">Cadastrar Novo Cliente</h4>
+      <form class="mb-4" id="form-cliente">
+        <div class="row g-3">
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="nomeCliente" placeholder="Nome completo do cliente" required>
+            <label for="nomeCliente">Nome completo do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="telefoneCliente" placeholder="Telefone do cliente" required>
+            <label for="telefoneCliente">Telefone do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="email" class="form-control" id="emailCliente" placeholder="Email do cliente" required>
+            <label for="emailCliente">Email do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="documentoCliente" placeholder="CPF ou CNPJ do cliente" required>
+            <label for="documentoCliente">CPF ou CNPJ do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="enderecoCliente" placeholder="Endereço do cliente" required>
+            <label for="enderecoCliente">Endereço do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="cidadeCliente" placeholder="Cidade do Cliente" >
+            <label for="cidadeCliente">Cidade do Cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="bairroCliente" placeholder="Bairro do cliente" >
+            <label for="bairroCliente">Bairro do cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="cepCliente" placeholder="CEP do cliente" >
+            <label for="cepCliente">CEP do cliente</label>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">Salvar Cliente</button>
+          </div>
+        </div>
+      </form>
+  
+      <!-- Formulário de Cadastro de Veículo -->
+      <h4 class="text-secondary mb-3 mt-5">Cadastrar Novo Veículo</h4>
+      <form class="mb-4" id="form-veiculo">
+        <div class="row g-3">
+          <div class="col-md-6 form-floating">
+            <select class="form-select" id="selectClienteVeiculo" required>
+              <option value="">Selecione o cliente...</option>
+            </select>
+            <label for="selectClienteVeiculo">Selecione o cliente</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="marcaVeiculo" placeholder="Marca do veículo" required>
+            <label for="marcaVeiculo">Marca do veículo</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="modeloVeiculo" placeholder="Modelo do veículo" required>
+            <label for="modeloVeiculo">Modelo do veículo</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="anoVeiculo" placeholder="Ano do veículo" required>
+            <label for="anoVeiculo">Ano do veículo</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="placaVeiculo" placeholder="Placa do veículo" required>
+            <label for="placaVeiculo">Placa do veículo</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="text" class="form-control" id="corVeiculo" placeholder="Cor do veículo" required>
+            <label for="corVeiculo">Cor do veículo</label>
+          </div>
+          <div class="col-md-6 form-floating">
+            <input type="number" class="form-control" id="quilometragemVeiculo" placeholder="Quilometragem" required>
+            <label for="quilometragemVeiculo">Quilometragem</label>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-success">Salvar Veículo</button>
+          </div>
+        </div>
+      </form>
+  
+      <!-- Seção de Busca -->
+      <h4 class="text-secondary mb-3 mt-5">Buscar Clientes/Veículos</h4>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4 form-floating">
+          <input type="text" class="form-control" id="inputBusca" placeholder="Termo de busca">
+          <label for="inputBusca">Termo de busca</label>
+        </div>
+        <div class="col-md-4 form-floating">
+          <select class="form-select" id="campoBusca">
+            <option value="">Buscar em...</option>
+            <option value="nome">Cliente: Nome</option>
+            <option value="documento">Cliente: CPF/CNPJ</option>
+            <option value="placa">Veículo: Placa</option>
+            <option value="modelo">Veículo: Modelo</option>
+          </select>
+          <label for="campoBusca">Buscar em...</label>
+        </div>
+        <div class="col-md-4">
+          <button type="button" class="btn btn-info" onclick="realizarBusca()">Buscar</button>
+          <button type="button" class="btn btn-secondary ms-2" onclick="limparBusca()">Limpar</button>
+        </div>
+      </div>
+  
+      <!-- Tabela de Clientes -->
+      <h4 class="text-secondary mb-3 mt-5">Lista de Clientes</h4>
+      <table class="table table-hover table-bordered">
+        <thead class="table-primary">
+          <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Email</th>
+            <th>CPF/CNPJ</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="lista-clientes"></tbody>
+      </table>
+      <nav><ul class="pagination" id="paginacao-clientes"></ul></nav>
+  
+      <!-- Tabela de Veículos -->
+      <h4 class="text-secondary mb-3 mt-5">Lista de Veículos</h4>
+      <table class="table table-hover table-bordered">
+        <thead class="table-primary">
+          <tr>
+            <th>Cliente</th>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Ano</th>
+            <th>Placa</th>
+            <th>Cor</th>
+            <th>KM</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="lista-veiculos"></tbody>
+      </table>
+      <nav><ul class="pagination" id="paginacao-veiculos"></ul></nav>
+    </div>
+  <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+
+  <!-- Modal de Edição de Cliente -->
+  <div class="modal fade" id="modalEditarCliente" tabindex="-1" aria-labelledby="modalEditarClienteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditarClienteLabel">Editar Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-editar-cliente">
+            <input type="hidden" id="editClienteDocumento">
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editNomeCliente" placeholder="Nome" required>
+              <label for="editNomeCliente">Nome</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editTelefoneCliente" placeholder="Telefone" required>
+              <label for="editTelefoneCliente">Telefone</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="email" class="form-control" id="editEmailCliente" placeholder="Email" required>
+              <label for="editEmailCliente">Email</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editEnderecoCliente" placeholder="Endereço" required>
+              <label for="editEnderecoCliente">Endereço</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editCidadeCliente" placeholder="Cidade" required>
+              <label for="editCidadeCliente">Cidade</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editBairroCliente" placeholder="Bairro" required>
+              <label for="editBairroCliente">Bairro</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editCepCliente" placeholder="CEP" required>
+              <label for="editCepCliente">CEP</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Edição de Veículo -->
+  <div class="modal fade" id="modalEditarVeiculo" tabindex="-1" aria-labelledby="modalEditarVeiculoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditarVeiculoLabel">Editar Veículo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-editar-veiculo">
+            <input type="hidden" id="editVeiculoPlacaOriginal">
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editVeiculoCliente" placeholder="Cliente" readonly>
+              <label for="editVeiculoCliente">Cliente</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editMarcaVeiculo" placeholder="Marca" required>
+              <label for="editMarcaVeiculo">Marca</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editModeloVeiculo" placeholder="Modelo" required>
+              <label for="editModeloVeiculo">Modelo</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editAnoVeiculo" placeholder="Ano" required>
+              <label for="editAnoVeiculo">Ano</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editPlacaVeiculo" placeholder="Placa" required>
+              <label for="editPlacaVeiculo">Placa</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="editCorVeiculo" placeholder="Cor" required>
+              <label for="editCorVeiculo">Cor</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="number" class="form-control" id="editQuilometragemVeiculo" placeholder="Quilometragem" required>
+              <label for="editQuilometragemVeiculo">Quilometragem</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de Exclusão -->
+  <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="corpoModalConfirmacao">
+          <!-- Mensagem de confirmação será inserida aqui -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="renderer.js"></script>
+<script src="public/js/validation.js"></script>
+<script>
+  // Aplica as máscaras aos campos de input quando o DOM estiver carregado
+  document.addEventListener('DOMContentLoaded', () => {
+      addInputMask('telefoneCliente', maskPhone);
+      addInputMask('documentoCliente', maskCpfCnpj);
+      addInputMask('cepCliente', maskCep);
+      addInputMask('placaVeiculo', maskPlate);
+
+      // Também para os modais de edição
+      addInputMask('editTelefoneCliente', maskPhone);
+      addInputMask('editCepCliente', maskCep);
+      addInputMask('editPlacaVeiculo', maskPlate);
+      addInputMask('editAnoVeiculo', (v) => v.replace(/\D/g, '')); // Apenas números para o ano
+  });
+
+  const formCliente = document.getElementById('form-cliente');
+  const formVeiculo = document.getElementById('form-veiculo');
+  const listaClientesTable = document.getElementById('lista-clientes');
+  const listaVeiculosTable = document.getElementById('lista-veiculos');
+  const selectClienteVeiculo = document.getElementById('selectClienteVeiculo');
+  const inputBusca = document.getElementById('inputBusca');
+  const campoBusca = document.getElementById('campoBusca');
+
+  let todosClientes = [];
+  let todosVeiculos = [];
+  let paginaAtualClientes = 1;
+  let paginaAtualVeiculos = 1;
+  const itensPorPagina = 10;
+  let confirmacaoCallback = () => {};
+
+  const modalConfirmacao = new bootstrap.Modal(document.getElementById('modalConfirmarExclusao'));
+  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
+  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+
+  btnConfirmarExclusao.addEventListener('click', () => {
+    confirmacaoCallback();
+    modalConfirmacao.hide();
+  });
+
+  function showConfirm(message, callback) {
+    corpoModalConfirmacao.textContent = message;
+    confirmacaoCallback = callback;
+    modalConfirmacao.show();
+  }
+
+  function renderizarPaginacao(totalItens, paginaAtual, callback, idPaginacao) {
+    const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+    const paginacaoEl = document.getElementById(idPaginacao);
+    paginacaoEl.innerHTML = '';
+
+    if (totalPaginas <= 1) {
+        paginacaoEl.style.display = 'none';
+        return;
+    }
+
+    paginacaoEl.style.display = 'flex';
+
+    // Botão Previous
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
+    const prevA = document.createElement('a');
+    prevA.className = 'page-link';
+    prevA.href = '#';
+    prevA.setAttribute('aria-label', 'Previous');
+    prevA.innerHTML = '<span aria-hidden="true">&laquo;</span>';
+    prevA.onclick = (e) => {
+        e.preventDefault();
+        if (paginaAtual > 1) {
+            callback(paginaAtual - 1);
+        }
+    };
+    prevLi.appendChild(prevA);
+    paginacaoEl.appendChild(prevLi);
+
+    // Botões de número da página
+    for (let i = 1; i <= totalPaginas; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
+        const a = document.createElement('a');
+        a.className = 'page-link';
+        a.href = '#';
+        a.textContent = i;
+        a.onclick = (e) => {
+            e.preventDefault();
+            callback(i);
+        };
+        li.appendChild(a);
+        paginacaoEl.appendChild(li);
+    }
+
+    // Botão Next
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
+    const nextA = document.createElement('a');
+    nextA.className = 'page-link';
+    nextA.href = '#';
+    nextA.setAttribute('aria-label', 'Next');
+    nextA.innerHTML = '<span aria-hidden="true">&raquo;</span>';
+    nextA.onclick = (e) => {
+        e.preventDefault();
+        if (paginaAtual < totalPaginas) {
+            callback(paginaAtual + 1);
+        }
+    };
+    nextLi.appendChild(nextA);
+    paginacaoEl.appendChild(nextLi);
+  }
+
+
+  async function carregarClientesEVeiculos(termo = '', campo = '') {
+    todosClientes = await buscarDados('clientes.json', termo, campo === 'nome' || campo === 'documento' ? campo : '');
+    todosVeiculos = await buscarDados('veiculos.json', termo, campo === 'placa' || campo === 'modelo' ? campo : '');
+
+    const inicioClientes = (paginaAtualClientes - 1) * itensPorPagina;
+    const clientesPagina = todosClientes.slice(inicioClientes, inicioClientes + itensPorPagina);
+
+    listaClientesTable.innerHTML = clientesPagina.map(c => `
+      <tr>
+        <td>${c.nome}</td>
+        <td>${c.telefone}</td>
+        <td>${c.email}</td>
+        <td>${c.documento}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="abrirModalEditarCliente('${c.documento}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="excluirCliente('${c.documento}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+
+    renderizarPaginacao(
+      todosClientes.length,
+      paginaAtualClientes,
+      (pagina) => { paginaAtualClientes = pagina; carregarClientesEVeiculos(termo, campo); },
+      'paginacao-clientes'
+    );
+
+    const inicioVeiculos = (paginaAtualVeiculos - 1) * itensPorPagina;
+    const veiculosPagina = todosVeiculos.slice(inicioVeiculos, inicioVeiculos + itensPorPagina);
+
+    listaVeiculosTable.innerHTML = veiculosPagina.map(v => `
+      <tr>
+        <td>${v.cliente}</td>
+        <td>${v.marca}</td>
+        <td>${v.modelo}</td>
+        <td>${v.ano}</td>
+        <td>${v.placa}</td>
+        <td>${v.cor}</td>
+        <td>${v.quilometragem}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="abrirModalEditarVeiculo('${v.placa}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="excluirVeiculo('${v.placa}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+
+    renderizarPaginacao(
+      todosVeiculos.length,
+      paginaAtualVeiculos,
+      (pagina) => { paginaAtualVeiculos = pagina; carregarClientesEVeiculos(termo, campo); },
+      'paginacao-veiculos'
+    );
+
+    const clientesParaSelect = await lerDados('clientes.json');
+    selectClienteVeiculo.innerHTML = '<option value="">Selecione o cliente...</option>';
+    clientesParaSelect.forEach(cliente => {
+      const option = document.createElement('option');
+      option.value = cliente.nome;
+      option.textContent = cliente.nome;
+      selectClienteVeiculo.appendChild(option);
+    });
+  }
+
+  function realizarBusca() {
+    paginaAtualClientes = 1;
+    paginaAtualVeiculos = 1;
+    const termo = inputBusca.value;
+    const campo = campoBusca.value;
+    carregarClientesEVeiculos(termo, campo);
+  }
+
+  function limparBusca() {
+    inputBusca.value = '';
+    campoBusca.value = '';
+    paginaAtualClientes = 1;
+    paginaAtualVeiculos = 1;
+    carregarClientesEVeiculos();
+  }
+
+  formCliente.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nome = document.getElementById('nomeCliente').value;
+    const telefone = document.getElementById('telefoneCliente').value;
+    const email = document.getElementById('emailCliente').value;
+    const documento = document.getElementById('documentoCliente').value;
+    const endereco = document.getElementById('enderecoCliente').value;
+    const cidade = document.getElementById('cidadeCliente').value;
+    const bairro = document.getElementById('bairroCliente').value;
+    const cep = document.getElementById('cepCliente').value;
+
+    // Validação
+    if (!validateDocument(documento)) {
+        showAlert('CPF ou CNPJ inválido. Verifique o número digitado.', 'danger');
+        return;
+    }
+    if (!validatePhone(telefone)) {
+        showAlert('Telefone inválido. Deve conter DDD + 8 ou 9 dígitos.', 'danger');
+        return;
+    }
+
+    const cliente = {
+      id: Date.now().toString(),
+      nome: nome,
+      telefone: telefone,
+      email: email,
+      documento: documento,
+      endereco: endereco,
+      cidade: cidade,
+      bairro: bairro,
+      cep: cep
+    };
+    const clientesExistentes = await lerDados('clientes.json');
+    const clienteJaExiste = clientesExistentes.some(c => c.documento === cliente.documento);
+    if (clienteJaExiste) {
+      showAlert('Um cliente com este CPF/CNPJ já está cadastrado!', 'danger');
+      return;
+    }
+    clientesExistentes.push(cliente);
+    await salvarDados('clientes.json', clientesExistentes);
+    showAlert('✅ Cliente salvo com sucesso!');
+    formCliente.reset();
+    await carregarClientesEVeiculos();
+  });
+
+  formVeiculo.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const ano = document.getElementById('anoVeiculo').value;
+    const placa = document.getElementById('placaVeiculo').value;
+
+    // Validação
+    if (!validateVehicleYear(ano)) {
+        showAlert('Ano do veículo inválido. Use 4 dígitos (ex: 2023) e um ano realista.', 'danger');
+        return;
+    }
+    if (!validateVehiclePlate(placa)) {
+        showAlert('Placa do veículo inválida. Use o formato AAA-1234 ou AAA-1B23.', 'danger');
+        return;
+    }
+
+    if (selectClienteVeiculo.value === '') {
+      showAlert('Selecione um cliente para o veículo!', 'warning');
+      return;
+    }
+    const veiculo = {
+      cliente: selectClienteVeiculo.value,
+      id: Date.now().toString(),
+      marca: document.getElementById('marcaVeiculo').value,
+      modelo: document.getElementById('modeloVeiculo').value,
+      ano: ano,
+      placa: placa,
+      cor: document.getElementById('corVeiculo').value,
+      quilometragem: document.getElementById('quilometragemVeiculo').value
+    };
+    const veiculosExistentes = await lerDados('veiculos.json');
+    const veiculoJaExiste = veiculosExistentes.some(v => v.placa === veiculo.placa);
+    if (veiculoJaExiste) {
+      showAlert('Um veículo com esta placa já está cadastrado!', 'danger');
+      return;
+    }
+    veiculosExistentes.push(veiculo);
+    await salvarDados('veiculos.json', veiculosExistentes);
+    showAlert('✅ Veículo salvo com sucesso!');
+    formVeiculo.reset();
+    selectClienteVeiculo.value = '';
+    await carregarClientesEVeiculos();
+  });
+
+  async function abrirModalEditarCliente(documentoCliente) {
+    const clienteParaEditar = todosClientes.find(c => c.documento === documentoCliente);
+    if (clienteParaEditar) {
+      document.getElementById('editClienteDocumento').value = clienteParaEditar.documento;
+      document.getElementById('editNomeCliente').value = clienteParaEditar.nome;
+      document.getElementById('editTelefoneCliente').value = clienteParaEditar.telefone;
+      document.getElementById('editEmailCliente').value = clienteParaEditar.email;
+      document.getElementById('editEnderecoCliente').value = clienteParaEditar.endereco;
+      document.getElementById('editCidadeCliente').value = clienteParaEditar.cidade;
+      document.getElementById('editBairroCliente').value = clienteParaEditar.bairro;
+      document.getElementById('editCepCliente').value = clienteParaEditar.cep;
+      const modal = new bootstrap.Modal(document.getElementById('modalEditarCliente'));
+      modal.show();
+    }
+  }
+
+  document.getElementById('form-editar-cliente').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const telefone = document.getElementById('editTelefoneCliente').value;
+    if (!validatePhone(telefone)) {
+        showAlert('Telefone inválido. Deve conter DDD + 8 ou 9 dígitos.', 'danger');
+        return;
+    }
+
+    const documentoOriginal = document.getElementById('editClienteDocumento').value;
+    const novosDadosCliente = {
+      nome: document.getElementById('editNomeCliente').value,
+      telefone: document.getElementById('editTelefoneCliente').value,
+      email: document.getElementById('editEmailCliente').value,
+      endereco: document.getElementById('editEnderecoCliente').value,
+      cidade: document.getElementById('editCidadeCliente').value,
+      bairro: document.getElementById('editBairroCliente').value,
+      cep: document.getElementById('editCepCliente').value
+    };
+    const sucesso = await editarDados('clientes.json', 'documento', documentoOriginal, novosDadosCliente);
+    if (sucesso) {
+      showAlert('✅ Cliente atualizado com sucesso!');
+      const clienteAntigo = todosClientes.find(c => c.documento === documentoOriginal);
+      if (clienteAntigo && clienteAntigo.nome !== novosDadosCliente.nome) {
+        const veiculosDoCliente = todosVeiculos.filter(v => v.cliente === clienteAntigo.nome);
+        for (const veiculo of veiculosDoCliente) {
+          await editarDados('veiculos.json', 'placa', veiculo.placa, { cliente: novosDadosCliente.nome });
+        }
+      }
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarCliente')).hide();
+      await carregarClientesEVeiculos();
+    } else {
+      showAlert('❌ Erro ao atualizar cliente.', 'danger');
+    }
+  });
+
+  async function abrirModalEditarVeiculo(placaVeiculo) {
+    const veiculoParaEditar = todosVeiculos.find(v => v.placa === placaVeiculo);
+    if (veiculoParaEditar) {
+      document.getElementById('editVeiculoPlacaOriginal').value = veiculoParaEditar.placa;
+      document.getElementById('editVeiculoCliente').value = veiculoParaEditar.cliente;
+      document.getElementById('editMarcaVeiculo').value = veiculoParaEditar.marca;
+      document.getElementById('editModeloVeiculo').value = veiculoParaEditar.modelo;
+      document.getElementById('editAnoVeiculo').value = veiculoParaEditar.ano;
+      document.getElementById('editPlacaVeiculo').value = veiculoParaEditar.placa;
+      document.getElementById('editCorVeiculo').value = veiculoParaEditar.cor;
+      document.getElementById('editQuilometragemVeiculo').value = veiculoParaEditar.quilometragem;
+      const modal = new bootstrap.Modal(document.getElementById('modalEditarVeiculo'));
+      modal.show();
+    }
+  }
+
+  document.getElementById('form-editar-veiculo').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const ano = document.getElementById('editAnoVeiculo').value;
+    const placa = document.getElementById('editPlacaVeiculo').value;
+
+    // Validação
+    if (!validateVehicleYear(ano)) {
+        showAlert('Ano do veículo inválido. Use 4 dígitos (ex: 2023) e um ano realista.', 'danger');
+        return;
+    }
+    if (!validateVehiclePlate(placa)) {
+        showAlert('Placa do veículo inválida. Use o formato AAA-1234 ou AAA-1B23.', 'danger');
+        return;
+    }
+
+    const placaOriginal = document.getElementById('editVeiculoPlacaOriginal').value;
+    const novosDadosVeiculo = {
+      marca: document.getElementById('editMarcaVeiculo').value,
+      modelo: document.getElementById('editModeloVeiculo').value,
+      ano: document.getElementById('editAnoVeiculo').value,
+      placa: document.getElementById('editPlacaVeiculo').value,
+      cor: document.getElementById('editCorVeiculo').value,
+      quilometragem: document.getElementById('editQuilometragemVeiculo').value
+    };
+    if (placaOriginal !== novosDadosVeiculo.placa) {
+      const veiculosExistentes = await lerDados('veiculos.json');
+      const placaJaExiste = veiculosExistentes.some(v => v.placa === novosDadosVeiculo.placa && v.placa !== placaOriginal);
+      if (placaJaExiste) {
+        showAlert('❌ Já existe um veículo com a nova placa informada!', 'danger');
+        return;
+      }
+    }
+    const sucesso = await editarDados('veiculos.json', 'placa', placaOriginal, novosDadosVeiculo);
+    if (sucesso) {
+      showAlert('✅ Veículo atualizado com sucesso!');
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarVeiculo')).hide();
+      await carregarClientesEVeiculos();
+    } else {
+      showAlert('❌ Erro ao atualizar veículo.', 'danger');
+    }
+  });
+
+  async function excluirCliente(documentoCliente) {
+    showConfirm(`Tem certeza que deseja excluir o cliente com CPF/CNPJ: ${documentoCliente}? Isso também removerá todos os veículos associados a ele.`, async () => {
+      const clienteParaExcluir = todosClientes.find(c => c.documento === documentoCliente);
+      if (clienteParaExcluir) {
+        const nomeCliente = clienteParaExcluir.nome;
+        const veiculosDoCliente = todosVeiculos.filter(v => v.cliente === nomeCliente);
+        for (const veiculo of veiculosDoCliente) {
+          await excluirDados('veiculos.json', 'placa', veiculo.placa);
+        }
+        const servicosDoCliente = await lerDados('servicos.json');
+        const servicosAtualizados = servicosDoCliente.filter(s => s.cliente !== nomeCliente);
+        await salvarDados('servicos.json', servicosAtualizados);
+        const sucesso = await excluirDados('clientes.json', 'documento', documentoCliente);
+        if (sucesso) {
+          showAlert('✅ Cliente e seus dados associados excluídos com sucesso!');
+          await carregarClientesEVeiculos();
+        } else {
+          showAlert('❌ Erro ao excluir cliente.', 'danger');
+        }
+      }
+    });
+  }
+
+  async function excluirVeiculo(placaVeiculo) {
+    showConfirm(`Tem certeza que deseja excluir o veículo com placa: ${placaVeiculo}? Isso também removerá todos os serviços associados a ele.`, async () => {
+      const servicosExistentes = await lerDados('servicos.json');
+      const servicosAtualizados = servicosExistentes.filter(s => {
+        return !s.veiculo.includes(placaVeiculo);
+      });
+      await salvarDados('servicos.json', servicosAtualizados);
+      const sucesso = await excluirDados('veiculos.json', 'placa', placaVeiculo);
+      if (sucesso) {
+        showAlert('✅ Veículo e seus serviços associados excluídos com sucesso!');
+        await carregarClientesEVeiculos();
+      } else {
+        showAlert('❌ Erro ao excluir veículo.', 'danger');
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', carregarClientesEVeiculos);
+</script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+
+    if (sidebar.classList.contains('collapsed')) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <script src="renderer.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oficina Mecânica - Sistema</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-secondary: #A5D6A7;
+      --bs-secondary-rgb: 165, 214, 167;
+      --bs-body-bg: #F8F9FA;
+    }
+    body {
+      background-color: var(--bs-body-bg);
+      overflow-x: hidden;
+    }
+    #sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      width: 280px;
+      background-color: var(--bs-primary);
+      transition: all 0.3s;
+    }
+    #sidebar.collapsed {
+      width: 88px;
+    }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span {
+      display: inline;
+      transition: opacity 0.2s;
+    }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span {
+      display: none;
+    }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi {
+      transition: font-size 0.2s;
+    }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand {
+      justify-content: center;
+    }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi {
+      font-size: 1.75rem;
+      margin-right: 0 !important;
+    }
+    #sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active {
+      background-color: #1B5E20;
+      color: white;
+    }
+    #sidebar .navbar-brand {
+      color: white;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar-header {
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #sidebar-toggle {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.8);
+      font-size: 1.5rem;
+    }
+    #sidebar-toggle:hover {
+      color: white;
+    }
+    #content {
+      width: 100%;
+      transition: margin-left 0.3s;
+    }
+    .card {
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: 0.3s ease;
+    }
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .text-primary {
+      color: var(--bs-primary) !important;
+    }
+    #sidebar .sidebar-footer {
+        font-family: 'Lato', sans-serif;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+    }
+
+    #sidebar.collapsed .sidebar-footer {
+        display: none;
+    }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+
+<div class="d-flex">
+  <!-- Sidebar -->
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+    <div class="sidebar-header">
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+      <a href="index.html" class="navbar-brand">
+        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+      </a>
+      
+    </div>
+    
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link active" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      
+    <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main id="content" class="container-fluid py-4">
+    <div class="text-center mb-5">
+      <h1 class="fw-bold text-primary">Bem-vindo ao Sistema da Oficina</h1>
+      <h1 class="fw-bold text-primary">Engrenagem Mestra!</h1>
+      <p class="lead text-muted">Organize seus serviços, clientes, veículos e orçamentos com eficiência.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-6 col-lg-3">
+        <a href="cadastro-servico.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Novo Serviço</h5>
+            <p class="text-muted small">Cadastrar nova ordem de serviço</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="gerenciar-servicos.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Gerenciar Serviços</h5>
+            <p class="text-muted small">Visualizar e criar serviços manualmente</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="historico-servicos.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Histórico</h5>
+            <p class="text-muted small">Consultar serviços anteriores</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="clientes-veiculos.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Clientes e Veículos</h5>
+            <p class="text-muted small">Gerenciar clientes e seus veículos</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3 mt-4">
+        <a href="orcamento-mecanico.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Orçamentos</h5>
+            <p class="text-muted small">Criar e visualizar orçamentos</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3 mt-4">
+        <a href="os-manual.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">OS Manual</h5>
+            <p class="text-muted small">Criar uma OS com dados manuais</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3 mt-4">
+        <a href="configuracoes.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Configurações</h5>
+            <p class="text-muted small">Configurar dados da oficina e sistema</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3 mt-4">
+        <a href="gerenciar-orcamentos.html" class="text-decoration-none">
+          <div class="card text-center p-4 h-100">
+            <h5 class="text-primary">Gerenciar Orçamentos</h5>
+            <p class="text-muted small">Visualizar e editar orçamentos</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+
+  function updateSidebar() {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    updateSidebar();
+  });
+
+  navbarBrand.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('collapsed')) {
+      e.preventDefault();
+      sidebar.classList.remove('collapsed');
+      updateSidebar();
+    }
+  });
+
+  // Set initial state in case it starts collapsed
+  updateSidebar();
+</script>
+
+</body>
+</html>

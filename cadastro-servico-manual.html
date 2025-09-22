@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Criar Serviço Manual</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bs-primary: #2E7D32;
+      --bs-primary-rgb: 46, 125, 50;
+      --bs-body-bg: #F8F9FA;
+    }
+    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
+    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
+    #sidebar.collapsed { width: 88px; }
+    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
+    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
+    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
+    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
+    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
+    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
+    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
+    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
+    #sidebar-toggle:hover { color: white; }
+    #content { width: 100%; transition: margin-left 0.3s; }
+    .text-primary { color: var(--bs-primary) !important; }
+    .btn-primary { --bs-btn-bg: var(--bs-primary); --bs-btn-border-color: var(--bs-primary); --bs-btn-hover-bg: #1B5E20; --bs-btn-hover-border-color: #1B5E20; }
+    .form-floating > .form-control:not(:placeholder-shown) ~ label, .form-floating > .form-control:focus ~ label, .form-floating > .form-select ~ label, .form-floating > textarea:not(:placeholder-shown) ~ label, .form-floating > textarea:focus ~ label { background-color: var(--bs-body-bg); padding: 0 5px; height: auto; border-radius: 5px; }
+    #sidebar.collapsed #sidebar-toggle {
+        display: none;
+    }
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+    <div class="sidebar-header"><a href="index.html" class="navbar-brand"><i class="bi bi-tools me-2"></i> <span>Oficina</span></a><button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button></div>
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+    <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+  </nav>
+  <main id="content" class="container-fluid py-4">
+    <div class="container py-4">
+      <h2 class="text-primary mb-4">Criar Serviço Manual</h2>
+      <form id="form-servico">
+        <div class="form-floating mb-3"><input type="text" class="form-control" id="cliente" placeholder="Cliente" required><label for="cliente">Cliente</label></div>
+        <div class="form-floating mb-3"><input type="text" class="form-control" id="veiculo" placeholder="Veículo" required><label for="veiculo">Veículo (Marca, Modelo, Placa)</label></div>
+        <div class="form-floating mb-3"><input type="date" class="form-control" id="dataEntrada" placeholder="Data" required><label for="dataEntrada">Data de Entrada</label></div>
+        <div class="form-floating mb-3"><textarea class="form-control" id="descricaoServico" placeholder="Descrição" style="height: 100px" required></textarea><label for="descricaoServico">Descrição do Serviço</label></div>
+        <div class="form-floating mb-3"><input type="text" class="form-control" id="mecanico" placeholder="Mecânico" required><label for="mecanico">Mecânico Responsável</label></div>
+        <div class="form-floating mb-3"><input type="number" class="form-control" id="valor" placeholder="Valor" required><label for="valor">Valor Total (R$)</label></div>
+        <div class="form-floating mb-3"><select class="form-select" id="statusServico" required><option value="Em andamento">Em andamento</option><option value="Aguardando peças">Aguardando peças</option><option value="Concluído">Concluído</option><option value="Aguardando aprovação">Aguardando aprovação</option></select><label for="statusServico">Status do Serviço</label></div>
+        <button type="submit" class="btn btn-primary">Salvar Serviço</button>
+      </form>
+    </div>
+  <footer class="text-center text-muted mt-4 py-3">
+      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+    </footer>
+  </main>
+</div>
+<script src="renderer.js"></script>
+<script>
+  const form = document.getElementById('form-servico');
+  form.addEventListener('submit', async (e) => { e.preventDefault(); const servico = { cliente: document.getElementById('cliente').value, veiculo: document.getElementById('veiculo').value, dataEntrada: document.getElementById('dataEntrada').value, descricaoServico: document.getElementById('descricaoServico').value, mecanico: document.getElementById('mecanico').value, valor: parseFloat(document.getElementById('valor').value), status: document.getElementById('statusServico').value }; const servicos = await lerDados('servicos.json'); servicos.push(servico); await salvarDados('servicos.json', servicos); alert('✅ Serviço salvo com sucesso!'); form.reset(); });
+</script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+
+  function updateSidebar() {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      toggleIcon.classList.remove('bi-x-lg');
+      toggleIcon.classList.add('bi-list');
+    } else {
+      toggleIcon.classList.remove('bi-list');
+      toggleIcon.classList.add('bi-x-lg');
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    updateSidebar();
+  });
+
+  navbarBrand.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('collapsed')) {
+      e.preventDefault();
+      sidebar.classList.remove('collapsed');
+      updateSidebar();
+    }
+  });
+
+  // Set initial state in case it starts collapsed
+  updateSidebar();
+</script>
+</body>
+</html>
