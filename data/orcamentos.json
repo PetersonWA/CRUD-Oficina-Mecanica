@@ -1,0 +1,119 @@
+[
+  {
+    "id": 5,
+    "clienteNome": "Viviani Lima",
+    "placaVeiculo": "dsggds",
+    "data": "13/09/2025",
+    "valor": 600,
+    "status": "Faturado",
+    "itens": [
+      {
+        "descricao": "alguma peça",
+        "quantidade": 2,
+        "valor": 200
+      },
+      {
+        "descricao": "mão de obra",
+        "quantidade": 1,
+        "valor": 200
+      }
+    ],
+    "problemaRelatado": "ugvijnonokmk",
+    "descontoPercentual": 0,
+    "descontoValor": 0
+  },
+  {
+    "id": 4,
+    "clienteNome": "Viviani lima",
+    "placaVeiculo": "gdsgdgs",
+    "data": "10/09/2025",
+    "valor": 180,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "asasláopksopk",
+        "quantidade": 2,
+        "valor": 100
+      }
+    ],
+    "problemaRelatado": "aoioijaoipjoias",
+    "descontoPercentual": 10,
+    "descontoValor": 20
+  },
+  {
+    "id": 3,
+    "clienteNome": "sidnei",
+    "placaVeiculo": "bjj5j55",
+    "data": "10/09/2025",
+    "valor": 150,
+    "status": "Faturado",
+    "itens": [
+      {
+        "descricao": "lampada do farol",
+        "quantidade": 2,
+        "valor": 15
+      },
+      {
+        "descricao": "mão de obra",
+        "quantidade": 1,
+        "valor": 120
+      }
+    ],
+    "problemaRelatado": "farol não acende"
+  },
+  {
+    "id": 2,
+    "clienteNome": "Débora W do Amaral",
+    "placaVeiculo": "ggh1212",
+    "data": "09/09/2025",
+    "valor": 14491,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "qualquer coisa",
+        "quantidade": 2,
+        "valor": 6245.5
+      },
+      {
+        "descricao": "mão de obra",
+        "quantidade": 1,
+        "valor": 2000
+      }
+    ],
+    "problemaRelatado": "barulho"
+  },
+  {
+    "id": 1,
+    "clienteNome": "Viviani lima",
+    "placaVeiculo": "iii1111",
+    "data": "08/09/2025",
+    "valor": 652,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "asfasfafafasf",
+        "quantidade": 1,
+        "valor": 652
+      }
+    ],
+    "problemaRelatado": "dfafsfsfwa\natualizado"
+  },
+  {
+    "id": 6,
+    "clienteNome": "Viviani lima",
+    "placaVeiculo": "iii1111",
+    "data": "18/09/2025",
+    "valor": 900.0288000000002,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "espelho",
+        "quantidade": 6,
+        "valor": 151.52
+      }
+    ],
+    "problemaRelatado": "Nenhuma observação.",
+    "descontoPercentual": 1,
+    "descontoValor": 9.0912
+  }
+]

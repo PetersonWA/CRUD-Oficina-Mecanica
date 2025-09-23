@@ -1,0 +1,10 @@
+{
+  "nomeOficina": "Engrenagem Mestra",
+  "endereco": "Rua Manoel Marinho Cunha 245, Alvorada RS",
+  "telefone": "51 980149570",
+  "email": "engremestra@gmail.com",
+  "cnpj": "24.356.524/0001-88",
+  "nomeResponsavel": "Sidnei Anderson Oliveira da Silva",
+  "logoPath": "data/logo.jpeg",
+  "assinaturaPath": "data/assinatura.png"
+}
