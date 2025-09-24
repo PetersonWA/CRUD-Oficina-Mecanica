@@ -70,6 +70,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link active" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       
     <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
@@ -91,7 +92,7 @@
         <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBuscaServico" placeholder="Termo de busca"><label>Termo de busca</label></div>
         <div class="col-md-4"><button type="button" class="btn btn-info" onclick="realizarBuscaServico()">Buscar</button><button type="button" class="btn btn-secondary ms-2" onclick="limparBuscaServico()">Limpar</button></div>
       </div>
-      <table class="table table-hover table-bordered"><thead class="table-primary"><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Data Entrada</th><th>Data Conclusão</th><th>Valor Total (R$)</th><th>Mecânico</th><th>Status</th><th>Ações</th></tr></thead><tbody id="lista-servicos"></tbody></table>
+      <table class="table table-hover table-bordered"><thead class="table-primary"><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Data Entrada</th><th>Data Conclusão</th><th>Valor Total (R$)</th><th>Mecânico</th><th>Status</th><th>Status Pagamento</th><th>Ações</th></tr></thead><tbody id="lista-servicos"></tbody></table>
       <nav><ul class="pagination" id="paginacao-servicos"></ul></nav>
     </div>
     <!-- Modal de Visualização de Itens -->
@@ -262,6 +263,18 @@
     return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  const getStatusPagamentoBadge = (status) => {
+    switch (status) {
+        case 'Pago':
+            return '<span class="badge bg-success">Pago</span>';
+        case 'Parcialmente Pago':
+            return '<span class="badge bg-info">Parcialmente Pago</span>';
+        case 'Pendente':
+        default:
+            return '<span class="badge bg-warning text-dark">Pendente</span>';
+    }
+  };
+
   async function carregarServicos() {
     todosServicos = await lerDados('servicos.json') || [];
     servicosFiltrados = todosServicos;
@@ -278,23 +291,26 @@
     const fim = inicio + itensPorPagina;
     const servicosPagina = servicosFiltrados.slice(inicio, fim);
 
-    listaServicosTable.innerHTML = servicosPagina.map(s => `
+    listaServicosTable.innerHTML = servicosPagina.map(s => {
+      const valorServico = s.valor !== undefined ? s.valor : s.valorTotal;
+      return `
       <tr>
         <td>${String(s.id).padStart(6, '0')}</td>
         <td>${s.clienteNome}</td>
         <td>${s.placaVeiculo}</td>
         <td>${new Date(s.dataEntrada + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
         <td>${s.dataConclusao ? new Date(s.dataConclusao + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
-        <td>R$ ${formatarValor(s.valorTotal)}</td>
+        <td>R$ ${formatarValor(valorServico)}</td>
         <td>${s.mecanico}</td>
         <td>${s.status}</td>
+        <td>${getStatusPagamentoBadge(s.statusPagamento)}</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${s.id})"><i class="bi bi-eye"></i></button>
           <button class="btn btn-sm btn-warning" onclick="abrirModalEditarServico(${s.id})"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-danger" onclick="excluirServico(${s.id})"><i class="bi bi-trash"></i></button>
         </td>
       </tr>
-    `).join('');
+    `}).join('');
   }
 
   function renderizarPaginacao() {

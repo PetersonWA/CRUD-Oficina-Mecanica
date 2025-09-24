@@ -5,6 +5,10 @@
   "email": "engremestra@gmail.com",
   "cnpj": "24.356.524/0001-88",
   "nomeResponsavel": "Sidnei Anderson Oliveira da Silva",
-  "logoPath": "data/logo.jpeg",
+  "maxParcelas": "10",
+  "jurosInicial": "4.29",
+  "acrescimoParcela": "1.28",
+  "parcelasSemJuros": "3",
+  "logoPath": "data/logo.png",
   "assinaturaPath": "data/assinatura.png"
 }

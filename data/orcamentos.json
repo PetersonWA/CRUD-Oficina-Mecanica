@@ -1,119 +1,86 @@
 [
   {
-    "id": 5,
-    "clienteNome": "Viviani Lima",
-    "placaVeiculo": "dsggds",
-    "data": "13/09/2025",
-    "valor": 600,
+    "id": 3,
+    "clienteNome": "Peterson Amaral",
+    "placaVeiculo": "IJX9727",
+    "data": "24/09/2025",
+    "valor": 878,
     "status": "Faturado",
     "itens": [
       {
-        "descricao": "alguma peça",
+        "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 200
+        "valor": 55
+      },
+      {
+        "descricao": "disco de freio",
+        "quantidade": 2,
+        "valor": 234
       },
       {
         "descricao": "mão de obra",
         "quantidade": 1,
-        "valor": 200
+        "valor": 300
       }
     ],
-    "problemaRelatado": "ugvijnonokmk",
+    "problemaRelatado": "barulho no freio ",
     "descontoPercentual": 0,
     "descontoValor": 0
   },
   {
-    "id": 4,
-    "clienteNome": "Viviani lima",
-    "placaVeiculo": "gdsgdgs",
-    "data": "10/09/2025",
-    "valor": 180,
-    "status": "Pendente",
-    "itens": [
-      {
-        "descricao": "asasláopksopk",
-        "quantidade": 2,
-        "valor": 100
-      }
-    ],
-    "problemaRelatado": "aoioijaoipjoias",
-    "descontoPercentual": 10,
-    "descontoValor": 20
-  },
-  {
-    "id": 3,
-    "clienteNome": "sidnei",
-    "placaVeiculo": "bjj5j55",
-    "data": "10/09/2025",
-    "valor": 150,
-    "status": "Faturado",
-    "itens": [
-      {
-        "descricao": "lampada do farol",
-        "quantidade": 2,
-        "valor": 15
-      },
-      {
-        "descricao": "mão de obra",
-        "quantidade": 1,
-        "valor": 120
-      }
-    ],
-    "problemaRelatado": "farol não acende"
-  },
-  {
     "id": 2,
-    "clienteNome": "Débora W do Amaral",
-    "placaVeiculo": "ggh1212",
-    "data": "09/09/2025",
-    "valor": 14491,
+    "clienteNome": "Peterson Amaral",
+    "placaVeiculo": "IJX9727",
+    "data": "23/09/2025",
+    "valor": 878,
     "status": "Pendente",
     "itens": [
       {
-        "descricao": "qualquer coisa",
+        "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 6245.5
+        "valor": 55
+      },
+      {
+        "descricao": "disco de freio",
+        "quantidade": 2,
+        "valor": 234
       },
       {
         "descricao": "mão de obra",
         "quantidade": 1,
-        "valor": 2000
+        "valor": 300
       }
     ],
-    "problemaRelatado": "barulho"
+    "problemaRelatado": "barulho no freio ",
+    "descontoPercentual": 0,
+    "descontoValor": 0
   },
   {
     "id": 1,
-    "clienteNome": "Viviani lima",
-    "placaVeiculo": "iii1111",
-    "data": "08/09/2025",
-    "valor": 652,
+    "clienteNome": "Peterson Amaral",
+    "placaVeiculo": "IJX9727",
+    "data": "23/09/2025",
+    "valor": 878,
     "status": "Pendente",
     "itens": [
       {
-        "descricao": "asfasfafafasf",
+        "descricao": "pastilha de freio",
+        "quantidade": 2,
+        "valor": 55
+      },
+      {
+        "descricao": "disco de freio",
+        "quantidade": 2,
+        "valor": 234
+      },
+      {
+        "descricao": "mão de obra",
         "quantidade": 1,
-        "valor": 652
+        "valor": 300
       }
     ],
-    "problemaRelatado": "dfafsfsfwa\natualizado"
-  },
-  {
-    "id": 6,
-    "clienteNome": "Viviani lima",
-    "placaVeiculo": "iii1111",
-    "data": "18/09/2025",
-    "valor": 900.0288000000002,
-    "status": "Pendente",
-    "itens": [
-      {
-        "descricao": "espelho",
-        "quantidade": 6,
-        "valor": 151.52
-      }
-    ],
-    "problemaRelatado": "Nenhuma observação.",
-    "descontoPercentual": 1,
-    "descontoValor": 9.0912
+    "problemaRelatado": "barulho no freio ",
+    "descontoPercentual": 0,
+    "descontoValor": 0
   }
 ]

@@ -1,333 +1,152 @@
 [
   {
-    "id": 3,
-    "clienteNome": "peteson",
-    "clienteDoc": "N/A",
-    "placaVeiculo": "gol ww 159fdsa",
-    "dataEntrada": "2025-08-24",
-    "mecanico": "sidnei ",
-    "status": "Concluído",
-    "itens": [
-      {
-        "descricao": " qualquer coisa",
-        "quantidade": 1,
-        "valor": 15000
-      },
-      {
-        "descricao": "mão de obra ",
-        "quantidade": 1,
-        "valor": 0.5
-      }
-    ],
-    "valorTotal": 15000.5,
-    "dataConclusao": "2025-09-19"
-  },
-  {
-    "id": 4,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "fiat uno iii1111",
-    "dataEntrada": "2025-09-04",
-    "mecanico": "sidnei",
-    "status": "Concluído",
-    "itens": [
-      {
-        "descricao": "amortecedor",
-        "quantidade": 1,
-        "valor": 500
-      }
-    ],
-    "valorTotal": 500,
-    "dataConclusao": "2025-09-19"
-  },
-  {
     "id": 1,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "iii1111",
-    "dataEntrada": "2025-09-06",
-    "mecanico": "Sidnei",
+    "clienteNome": "Peterson Amaral",
+    "clienteDoc": "029.344.410-24",
+    "placaVeiculo": "IJX9727",
+    "dataEntrada": "2025-09-18",
+    "problemaRelatado": "barulho no freio",
+    "mecanico": "sidneihd",
     "status": "Concluído",
     "itens": [
       {
-        "descricao": "fasfafasff",
-        "quantidade": 1,
-        "valor": 1553
-      }
-    ],
-    "valorTotal": 1553,
-    "dataConclusao": "2025-09-18"
-  },
-  {
-    "id": 5,
-    "clienteNome": "Débora W do Amaral",
-    "clienteDoc": "84104434087",
-    "placaVeiculo": "ggh1212",
-    "dataEntrada": "2025-09-06",
-    "mecanico": "sidnei",
-    "status": "Aguardando peças",
-    "itens": [
-      {
-        "descricao": "rebimboca",
-        "quantidade": 3,
-        "valor": 0.03
+        "descricao": "pastilha de freio",
+        "quantidade": 2,
+        "valor": 80
       },
       {
-        "descricao": "parafuseta",
-        "quantidade": 1,
-        "valor": 120.21
-      }
-    ],
-    "valorTotal": 120.3
-  },
-  {
-    "id": 6,
-    "clienteNome": "Cliente teste 1sfsf",
-    "clienteDoc": "03111126001",
-    "placaVeiculo": "kkk1212",
-    "dataEntrada": "2025-09-25",
-    "problemaRelatado": "barulho",
-    "mecanico": "Sidnei",
-    "status": "Concluído",
-    "itens": [
-      {
-        "descricao": "rolamento",
+        "descricao": "disco de freio",
         "quantidade": 2,
+        "valor": 220
+      },
+      {
+        "descricao": "liquido de freio",
+        "quantidade": 1,
+        "valor": 25
+      },
+      {
+        "descricao": "mão de obra",
+        "quantidade": 1,
         "valor": 300
-      },
-      {
-        "descricao": "mão de obra",
-        "quantidade": 1,
-        "valor": 400
       }
     ],
-    "valorTotal": 1000,
-    "dataConclusao": "2025-09-18"
-  },
-  {
-    "id": 7,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "iii1111",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "advgdvsvv",
-    "mecanico": "eu",
-    "status": "Aguardando peças",
-    "itens": [
+    "valor": 925,
+    "descontoPercentual": 0,
+    "descontoValor": 0,
+    "quilometragem": "350000",
+    "formaPagamento": "Cartão de Crédito",
+    "parcelas": 5,
+    "pagamentos": [
       {
-        "descricao": "vdsvdsvsd",
-        "quantidade": 1,
-        "valor": 626
+        "id": 1758681246808,
+        "valor": 925,
+        "data": "2025-09-24",
+        "metodo": "Cartão de Crédito",
+        "anotacao": ""
       }
     ],
-    "valorTotal": 626
+    "valorTotal": 925,
+    "dataConclusao": "2025-09-23",
+    "statusPagamento": "Pago"
   },
   {
-    "id": 8,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "iii1111",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "gdgdsgdsg",
-    "mecanico": "eu",
-    "status": "Em andamento",
-    "itens": [
-      {
-        "descricao": "dgsgdsdgdsg",
-        "quantidade": 1,
-        "valor": 523
-      }
-    ],
-    "valorTotal": 523,
-    "quilometragem": "1"
-  },
-  {
-    "id": 9,
-    "clienteNome": "sidnei",
-    "clienteDoc": "55555555555",
-    "placaVeiculo": "bjj5j55",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "fasfafasfa",
-    "mecanico": "sidnei",
-    "status": "Concluído",
-    "itens": [
-      {
-        "descricao": "aasfdasfa",
-        "quantidade": 1,
-        "valor": 66
-      }
-    ],
-    "valorTotal": 66,
-    "quilometragem": "1",
-    "dataConclusao": "2025-09-18"
-  },
-  {
-    "id": 10,
-    "clienteNome": "sidnei",
-    "clienteDoc": "55555555555",
-    "placaVeiculo": "bjj5j55",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "frfsdgdsgs",
-    "mecanico": "sdg",
-    "status": "Aguardando peças",
-    "itens": [
-      {
-        "descricao": "sdgsdgd",
-        "quantidade": 1,
-        "valor": 251
-      }
-    ],
-    "valorTotal": 251,
-    "quilometragem": "1500"
-  },
-  {
-    "id": 11,
-    "clienteNome": "Cliente teste 1sfsf",
-    "clienteDoc": "03111126001",
-    "placaVeiculo": "kkk1212",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "fasfasfafs",
-    "mecanico": "asfasf",
-    "status": "Aguardando peças",
-    "itens": [
-      {
-        "descricao": "asfafasfa",
-        "quantidade": 1,
-        "valor": 51652
-      }
-    ],
-    "valorTotal": 51652,
-    "quilometragem": "35001"
-  },
-  {
-    "id": 12,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "iii1111",
-    "dataEntrada": "2025-09-08",
-    "problemaRelatado": "afasfasfaaf",
-    "mecanico": "asfafaf",
-    "status": "Aguardando aprovação",
-    "itens": [
-      {
-        "descricao": "asfafsf",
-        "quantidade": 1,
-        "valor": 5123
-      }
-    ],
-    "valorTotal": 5123,
-    "quilometragem": "150009"
-  },
-  {
-    "id": 13,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "gdsgdgs",
-    "dataEntrada": "2025-09-09",
-    "problemaRelatado": "gadgdssfddf",
-    "mecanico": "petsu",
-    "status": "Aguardando peças",
-    "itens": [
-      {
-        "descricao": "rolamento",
-        "quantidade": 2,
-        "valor": 100
-      },
-      {
-        "descricao": "m,ão de obra",
-        "quantidade": 1,
-        "valor": 500
-      }
-    ],
-    "valorTotal": 700,
-    "quilometragem": "415012"
-  },
-  {
-    "id": 1757557142913,
-    "clienteNome": "Débora W do Amaral",
-    "clienteDoc": "84104434087",
-    "placaVeiculo": "ggh1212",
-    "dataEntrada": "2025-09-11",
-    "problemaRelatado": "barulho",
+    "id": 2,
+    "clienteNome": "Peterson Amaral",
+    "clienteDoc": "029.344.410-24",
+    "placaVeiculo": "IJX9727",
+    "dataEntrada": "2025-09-23",
+    "problemaRelatado": "vazamento de agua",
     "mecanico": "sidnei",
     "status": "Em andamento",
     "itens": [
       {
-        "descricao": "qualquer coisa",
-        "quantidade": 2,
-        "valor": 6245.5
-      }
-    ],
-    "valorTotal": 12491,
-    "quilometragem": "100000"
-  },
-  {
-    "id": 1757560510503,
-    "clienteNome": "sidnei",
-    "clienteDoc": "55555555555",
-    "placaVeiculo": "bjj5j55",
-    "dataEntrada": "2025-09-11",
-    "problemaRelatado": "farol não acende",
-    "mecanico": "",
-    "status": "Em andamento",
-    "itens": [
-      {
-        "descricao": "lampada do farol",
-        "quantidade": 2,
-        "valor": 15
+        "descricao": "kit mangueiras de arrefecimento",
+        "quantidade": 1,
+        "valor": 243.2
       },
       {
         "descricao": "mão de obra",
         "quantidade": 1,
-        "valor": 120
+        "valor": 150
       }
     ],
-    "valorTotal": 150,
-    "quilometragem": "1500"
+    "valor": 393.2,
+    "descontoPercentual": 0,
+    "descontoValor": 0,
+    "quilometragem": "350000",
+    "formaPagamento": "Cartão de Crédito",
+    "parcelas": 8,
+    "pagamentos": [
+      {
+        "id": 1758681228063,
+        "valor": 393.2,
+        "data": "2025-09-24",
+        "metodo": "Cartão de Crédito",
+        "anotacao": ""
+      }
+    ],
+    "statusPagamento": "Pago"
   },
   {
-    "id": 1757560510504,
-    "clienteNome": "Viviani lima",
-    "clienteDoc": "95555555555",
-    "placaVeiculo": "iii1111",
-    "dataEntrada": "2025-09-13",
-    "problemaRelatado": "fdhdghfgjfgjfgj",
+    "id": 3,
+    "clienteNome": "Peterson Amaral",
+    "clienteDoc": "029.344.410-24",
+    "placaVeiculo": "IJX9727",
+    "dataEntrada": "2025-09-24",
+    "problemaRelatado": "dutfuyg",
     "mecanico": "sidnei",
-    "status": "Aguardando peças",
+    "status": "Em andamento",
+    "statusPagamento": "Pago",
     "itens": [
       {
-        "descricao": "fgjfgjfgjhgd",
+        "descricao": "f8yguh",
         "quantidade": 1,
-        "valor": 500
+        "valor": 1542
       }
     ],
-    "valorTotal": 450,
-    "descontoPercentual": 10,
-    "descontoValor": 50,
-    "quilometragem": "150009"
+    "valor": 1542,
+    "descontoPercentual": 0,
+    "descontoValor": 0,
+    "quilometragem": "350000",
+    "formaPagamento": "Cartão de Crédito",
+    "parcelas": 3,
+    "pagamentos": [
+      {
+        "id": 1758685961440,
+        "data": "2025-09-24",
+        "valor": 1542,
+        "metodo": "Cartão de Crédito",
+        "anotacao": "Pagamento em 3x"
+      }
+    ]
   },
   {
-    "id": 1757766891150,
-    "clienteNome": "Viviani Lima",
-    "clienteDoc": "4165212164",
-    "placaVeiculo": "dsggds",
-    "dataEntrada": "2025-09-13",
-    "problemaRelatado": "ugvijnonokmk",
-    "mecanico": "",
+    "id": 1758756904406,
+    "clienteNome": "Peterson Amaral",
+    "clienteDoc": "029.344.410-24",
+    "placaVeiculo": "IJX9727",
+    "dataEntrada": "2025-09-24",
+    "problemaRelatado": "barulho no freio ",
+    "mecanico": "sidnei",
     "status": "Em andamento",
     "itens": [
       {
-        "descricao": "alguma peça",
+        "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 200
+        "valor": 55
+      },
+      {
+        "descricao": "disco de freio",
+        "quantidade": 2,
+        "valor": 234
       },
       {
         "descricao": "mão de obra",
         "quantidade": 1,
-        "valor": 200
+        "valor": 300
       }
     ],
-    "valorTotal": 600,
-    "quilometragem": "263"
+    "valorTotal": 878,
+    "quilometragem": 350000
   }
 ]

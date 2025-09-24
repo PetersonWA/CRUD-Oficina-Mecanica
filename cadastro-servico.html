@@ -71,6 +71,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       
     <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
@@ -136,6 +137,41 @@
               </div>
           </div>
         </div>
+        <div class="card p-3 mb-3">
+          <h5 class="card-title text-primary mb-3">Informações de Pagamento</h5>
+          <div class="row">
+            <div class="col-md-6 form-floating mb-3">
+              <select class="form-select" id="formaPagamento">
+                <option value="N/A" selected>Não definido</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="PIX">PIX</option>
+                <option value="Transferéncia">Transferéncia</option>
+              </select>
+              <label for="formaPagamento">Forma de Pagamento</label>
+            </div>
+            <div class="col-md-6 form-floating mb-3" id="parcelas-container" style="display: none;">
+              <select class="form-select" id="numeroParcelas">
+                <option value="1" selected>1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+                <option value="7">7x</option>
+                <option value="8">8x</option>
+                <option value="9">9x</option>
+                <option value="10">10x</option>
+                <option value="11">11x</option>
+                <option value="12">12x</option>
+              </select>
+              <label for="numeroParcelas">Número de Parcelas</label>
+
+            </div>
+          </div>
+        </div>
+
         <div class="form-floating mb-3"><input type="text" class="form-control" id="mecanico" placeholder="Mecânico Responsável" required><label for="mecanico">Mecânico Responsável</label></div>
         <div class="form-floating mb-3"><select class="form-select" id="statusServico" required><option value="Em andamento">Em andamento</option><option value="Aguardando peças">Aguardando peças</option><option value="Concluído">Concluído</option><option value="Aguardando aprovação">Aguardando aprovação</option></select><label for="statusServico">Status do Serviço</label></div>
         <button type="submit" class="btn btn-primary">Salvar Serviço</button>
@@ -160,20 +196,28 @@
     const descontoInput = document.getElementById('desconto-percentual');
     const valorDescontoDisplay = document.getElementById('valor-desconto');
     const totalFinalDisplay = document.getElementById('total-final-servico');
+    const formaPagamentoSelect = document.getElementById('formaPagamento');
+    const parcelasContainer = document.getElementById('parcelas-container');
+    const numeroParcelasInput = document.getElementById('numeroParcelas');
+    const valorParcelaDisplay = document.getElementById('valor-parcela-display');
 
     let listaClientes = [];
     let listaVeiculos = [];
 
+    let config = {};
+
     // Carregar dados iniciais
     async function carregarDadosIniciais() {
         try {
-            const [clientes, veiculos] = await Promise.all([
+            const [clientes, veiculos, loadedConfig] = await Promise.all([
                 lerDados("clientes.json"),
-                lerDados("veiculos.json")
+                lerDados("veiculos.json"),
+                lerDados("configuracao.json")
             ]);
 
             listaClientes = clientes || [];
             listaVeiculos = veiculos || [];
+            config = loadedConfig || {};
 
             // Popular clientes
             listaClientes.forEach(cliente => {
@@ -182,6 +226,19 @@
                 option.textContent = cliente.nome;
                 selectCliente.appendChild(option);
             });
+
+            // Popular opções de parcelamento
+            const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
+            numeroParcelasInput.innerHTML = '';
+            for (let i = 1; i <= maxParcelas; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i}x`;
+                if (i === 1) {
+                    option.selected = true;
+                }
+                numeroParcelasInput.appendChild(option);
+            }
 
             selectVeiculo.disabled = true;
             selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
@@ -274,15 +331,89 @@
         subtotalDisplay.textContent = `R$ ${subtotal.toFixed(2)}`;
         valorDescontoDisplay.textContent = `- R$ ${descontoValor.toFixed(2)}`;
         totalFinalDisplay.textContent = `R$ ${totalFinal.toFixed(2)}`;
+        atualizarValorParcela(); // Adicionado aqui
+    }
+
+    function atualizarValorParcela() {
+        const jurosInicial = parseFloat(config.jurosInicial) || 0;
+        const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
+        const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
+        const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
+
+        if (formaPagamentoSelect.value !== 'Cartão de Crédito') {
+            for (let i = 1; i <= maxParcelas; i++) {
+                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
+                if (option) {
+                    option.textContent = `${i}x`;
+                }
+            }
+            return;
+        }
+
+        let subtotal = 0;
+        itensBody.querySelectorAll('.item-row').forEach(row => {
+            const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
+            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
+            subtotal += quantidade * valor;
+        });
+        const descontoPercentual = parseFloat(descontoInput.value) || 0;
+        const descontoValor = subtotal * (descontoPercentual / 100);
+        const totalFinal = subtotal - descontoValor;
+
+        if (totalFinal > 0) {
+            for (let i = 1; i <= maxParcelas; i++) {
+                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
+                if (option) {
+                    let valorParcela;
+                    if (i <= parcelasSemJuros) {
+                        valorParcela = totalFinal / i;
+                        option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)} (sem juros)`;
+                    } else {
+                        const taxaPercentual = jurosInicial + ((i - parcelasSemJuros -1) * acrescimoParcela);
+                        const i_juros = taxaPercentual / 100;
+
+                        if (i_juros > 0) {
+                            // Tabela Price
+                            const n_parcelas = i;
+                            const pv = totalFinal;
+                            
+                            valorParcela = pv * (i_juros * Math.pow(1 + i_juros, n_parcelas)) / (Math.pow(1 + i_juros, n_parcelas) - 1);
+                            
+                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)} `; //(${taxaPercentual.toFixed(2)}%)`;
+                        } else {
+                            valorParcela = totalFinal / i;
+                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)}`;
+                        }
+                    }
+                }
+            }
+        } else {
+            for (let i = 1; i <= maxParcelas; i++) {
+                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
+                if (option) {
+                    option.textContent = `${i}x`;
+                }
+            }
+        }
     }
 
     btnAdicionarItem.addEventListener('click', adicionarItem);
 
-    // Lógica de salvamento do formulário
+    // Listener para forma de pagamento que estava faltando no bloco anterior
+    formaPagamentoSelect.addEventListener('change', () => {
+        if (formaPagamentoSelect.value === 'Cartão de Crédito') {
+            parcelasContainer.style.display = 'block';
+        } else {
+            parcelasContainer.style.display = 'none';
+        }
+        atualizarValorParcela();
+    });
+
+
+    // L3gica de salvamento do formul3rio
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Coletar itens da tabela
         const itens = [];
         let subtotal = 0;
         itensBody.querySelectorAll('.item-row').forEach(row => {
@@ -296,7 +427,7 @@
         });
 
         if (itens.length === 0) {
-            alert('Adicione pelo menos um item válido ao serviço.');
+            showAlert('Adicione pelo menos um item válido ao serviço.', 'warning');
             return;
         }
 
@@ -304,7 +435,6 @@
         const descontoValor = subtotal * (descontoPercentual / 100);
         const totalFinal = subtotal - descontoValor;
 
-        // ATUALIZAR QUILOMETRAGEM DO VEÍCULO
         const placaVeiculo = selectVeiculo.value;
         const novaQuilometragem = quilometragemInput.value;
         if (placaVeiculo && novaQuilometragem) {
@@ -313,31 +443,42 @@
             if (veiculoIndex !== -1) {
                 const kmAntiga = parseInt(veiculosAtuais[veiculoIndex].quilometragem, 10) || 0;
                 const kmNova = parseInt(novaQuilometragem, 10);
-
-                if (kmNova < kmAntiga) {
-                    showAlert(`A quilometragem informada (${kmNova.toLocaleString('pt-BR')} km) é inferior à última registrada (${kmAntiga.toLocaleString('pt-BR')} km).<br>Por favor, insira um valor válido.`, 'danger');
-                    quilometragemInput.focus(); // Foca no campo para facilitar a correção
-                    return; // Impede o salvamento do formulário
-                }
-
-                if (kmNova > kmAntiga) {
+                if (kmNova >= kmAntiga) {
                     veiculosAtuais[veiculoIndex].quilometragem = kmNova;
                     await salvarDados('veiculos.json', veiculosAtuais);
-                    console.log(`Quilometragem do veículo ${placaVeiculo} atualizada para ${kmNova}.`);
                     listaVeiculos = veiculosAtuais;
                 }
             }
         }
 
-        // Ler serviços existentes para gerar um novo ID único
-        const servicos = await lerDados('servicos.json');
-        const maiorId = servicos.reduce((max, s) => s.id > max ? s.id : max, 0);
+        const servicos = await lerDados('servicos.json') || [];
+        const maiorId = servicos.reduce((max, s) => (s.id > max) ? s.id : max, 0);
         const novoServicoId = maiorId + 1;
 
         const clienteSelecionado = listaClientes.find(c => c.documento === selectCliente.value);
+        const formaPagamento = formaPagamentoSelect.value;
+        const numeroParcelas = parseInt(numeroParcelasInput.value, 10) || 1;
 
-        // Montar objeto do serviço
-        const servico = {
+        let valorFinalParaSalvar = totalFinal;
+        let statusPagamento = 'Pendente';
+
+        if (formaPagamento === 'Cartão de Crédito') {
+            statusPagamento = 'Pago';
+            const jurosInicial = parseFloat(config.jurosInicial) || 0;
+            const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
+            const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
+
+            if (numeroParcelas > parcelasSemJuros) {
+                const taxaPercentual = jurosInicial + ((numeroParcelas - parcelasSemJuros - 1) * acrescimoParcela);
+                const i_juros = taxaPercentual / 100;
+                if (i_juros > 0) {
+                    const valorParcela = totalFinal * (i_juros * Math.pow(1 + i_juros, numeroParcelas)) / (Math.pow(1 + i_juros, numeroParcelas) - 1);
+                    valorFinalParaSalvar = valorParcela * numeroParcelas;
+                }
+            }
+        }
+
+        const novoServico = {
             id: novoServicoId,
             clienteNome: clienteSelecionado.nome,
             clienteDoc: selectCliente.value,
@@ -346,25 +487,40 @@
             problemaRelatado: document.getElementById('problemaRelatado').value,
             mecanico: document.getElementById('mecanico').value,
             status: document.getElementById('statusServico').value,
+            statusPagamento: statusPagamento,
             itens: itens,
-            valorTotal: totalFinal,
+            valor: valorFinalParaSalvar,
             descontoPercentual: descontoPercentual,
             descontoValor: descontoValor,
-            quilometragem: novaQuilometragem // Salva a KM no serviço também
+            quilometragem: novaQuilometragem,
+            formaPagamento: formaPagamento,
+            parcelas: formaPagamento === 'Cartão de Crédito' ? numeroParcelas : null,
+            pagamentos: []
         };
 
-        // Salvar dados
-        servicos.push(servico);
+        if (formaPagamento === 'Cartão de Crédito') {
+            const pagamento = {
+                id: Date.now(),
+                data: new Date().toISOString().split('T')[0],
+                valor: valorFinalParaSalvar,
+                metodo: 'Cartão de Crédito',
+                anotacao: `Pagamento em ${numeroParcelas}x`
+            };
+            novoServico.pagamentos.push(pagamento);
+        }
+
+        servicos.push(novoServico);
         await salvarDados('servicos.json', servicos);
 
-        showAlert(`✅ Serviço #${novoServicoId} salvo com sucesso!`);
+        showAlert('✅ Serviço salvo com sucesso!');
         form.reset();
         selectCliente.value = '';
         selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
         selectVeiculo.disabled = true;
         quilometragemInput.value = '';
-        itensBody.innerHTML = ''; // Limpa a tabela
-        adicionarItem(); // Adiciona uma nova linha em branco
+        itensBody.innerHTML = '';
+        adicionarItem();
+        formaPagamentoSelect.dispatchEvent(new Event('change'));
     });
 
     window.addEventListener('DOMContentLoaded', carregarDadosIniciais);

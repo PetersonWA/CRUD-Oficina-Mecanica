@@ -68,6 +68,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link active" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
     </ul>
@@ -115,6 +116,30 @@
                 <label for="nomeResponsavel" class="form-label">Nome do Responsável Técnico</label>
                 <input type="text" class="form-control" id="nomeResponsavel">
               </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="row">
+            <div class="col-12">
+              <h5 class="text-primary mb-3">Configurações de Pagamento</h5>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="maxParcelas" class="form-label">Nº máximo de parcelas</label>
+              <input type="number" class="form-control" id="maxParcelas" min="1" value="12">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="parcelasSemJuros" class="form-label">Nº de parcelas sem juros</label>
+              <input type="number" class="form-control" id="parcelasSemJuros" min="0" value="1">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="jurosInicial" class="form-label">Taxa de Juros Inicial (%)</label>
+              <input type="number" class="form-control" id="jurosInicial" min="0" step="0.01" value="2.99">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="acrescimoParcela" class="form-label">Acréscimo por Parcela (%)</label>
+              <input type="number" class="form-control" id="acrescimoParcela" min="0" step="0.01" value="0.5">
             </div>
           </div>
 
@@ -226,6 +251,10 @@
         document.getElementById('email').value = config.email || '';
         document.getElementById('cnpj').value = config.cnpj || '';
         document.getElementById('nomeResponsavel').value = config.nomeResponsavel || '';
+        document.getElementById('maxParcelas').value = config.maxParcelas || 12;
+        document.getElementById('jurosInicial').value = config.jurosInicial || 0;
+        document.getElementById('acrescimoParcela').value = config.acrescimoParcela || 0;
+        document.getElementById('parcelasSemJuros').value = config.parcelasSemJuros || 0;
         if (config.logoPath) {
           logoPreview.src = config.logoPath + '?t=' + new Date().getTime();
         } else {
@@ -293,6 +322,10 @@
       email: document.getElementById('email').value,
       cnpj: document.getElementById('cnpj').value,
       nomeResponsavel: document.getElementById('nomeResponsavel').value,
+      maxParcelas: document.getElementById('maxParcelas').value,
+      jurosInicial: document.getElementById('jurosInicial').value,
+      acrescimoParcela: document.getElementById('acrescimoParcela').value,
+      parcelasSemJuros: document.getElementById('parcelasSemJuros').value,
     };
 
     const logoFile = logoInput.files[0];

@@ -101,6 +101,15 @@
             border-top: 2px solid #212529;
             padding-top: 0.5rem;
         }
+        .payment-methods ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .payment-methods li {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
         .footer {
             margin-top: 3rem;
             padding-top: 1rem;
@@ -143,6 +152,16 @@
             }
             .no-print {
                 display: none;
+            }
+            h3, thead {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .section, .totals, .signature-area, table, thead, tbody, tr {
+                page-break-inside: avoid !important;
+            }
+            .section {
+                page-break-before: auto;
             }
         }
     </style>
@@ -230,6 +249,11 @@
         </div>
 
         <div style="clear: both;"></div>
+
+        <div class="section payment-methods">
+            <h3>Formas de Pagamento</h3>
+            {{FORMAS_PAGAMENTO}}
+        </div>
 
         <div class="signature-area">
             <p>De acordo com os serviços e valores descritos.</p>
