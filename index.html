@@ -7,111 +7,11 @@
   <title>Oficina Mecânica - Sistema</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <style>
-    :root {
-      --bs-primary: #2E7D32;
-      --bs-primary-rgb: 46, 125, 50;
-      --bs-secondary: #A5D6A7;
-      --bs-secondary-rgb: 165, 214, 167;
-      --bs-body-bg: #F8F9FA;
-    }
-    body {
-      background-color: var(--bs-body-bg);
-      overflow-x: hidden;
-    }
-    #sidebar {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-      width: 280px;
-      background-color: var(--bs-primary);
-      transition: all 0.3s;
-    }
-    #sidebar.collapsed {
-      width: 88px;
-    }
-    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span {
-      display: inline;
-      transition: opacity 0.2s;
-    }
-    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span {
-      display: none;
-    }
-    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi {
-      transition: font-size 0.2s;
-    }
-    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand {
-      justify-content: center;
-    }
-    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi {
-      font-size: 1.75rem;
-      margin-right: 0 !important;
-    }
-    #sidebar .nav-link {
-      color: rgba(255, 255, 255, 0.8);
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      font-size: 0.95rem;
-    }
-    #sidebar .nav-link:hover, #sidebar .nav-link.active {
-      background-color: #1B5E20;
-      color: white;
-    }
-    #sidebar .navbar-brand {
-      color: white;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-    }
-    .sidebar-header {
-      padding: 0.75rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #sidebar-toggle {
-      background: none;
-      border: none;
-      color: rgba(255,255,255,0.8);
-      font-size: 1.5rem;
-    }
-    #sidebar-toggle:hover {
-      color: white;
-    }
-    #content {
-      width: 100%;
-      transition: margin-left 0.3s;
-    }
-    .card {
-      border-radius: 1rem;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      transition: 0.3s ease;
-    }
-    .card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    }
-    .text-primary {
-      color: var(--bs-primary) !important;
-    }
-    #sidebar .sidebar-footer {
-        font-family: 'Lato', sans-serif;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        display: block;
-    }
-
-    #sidebar.collapsed .sidebar-footer {
-        display: none;
-    }
-    #sidebar.collapsed #sidebar-toggle {
-        display: none;
-    }
-    #sidebar.collapsed .sidebar-header {
-        justify-content: center;
-    }
-  </style>
+  
+  <!-- Estilos Globais -->
+  <link rel="stylesheet" href="public/css/main.css">
+  <!-- Estilos Específicos da Página -->
+  <link rel="stylesheet" href="public/css/index.css">
 </head>
 <body>
 <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
@@ -230,39 +130,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  const toggleIcon = toggleBtn.querySelector('i');
-  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
 
-  function updateSidebar() {
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    if (isCollapsed) {
-      toggleIcon.classList.remove('bi-x-lg');
-      toggleIcon.classList.add('bi-list');
-    } else {
-      toggleIcon.classList.remove('bi-list');
-      toggleIcon.classList.add('bi-x-lg');
-    }
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    updateSidebar();
-  });
-
-  navbarBrand.addEventListener('click', (e) => {
-    if (sidebar.classList.contains('collapsed')) {
-      e.preventDefault();
-      sidebar.classList.remove('collapsed');
-      updateSidebar();
-    }
-  });
-
-  // Set initial state in case it starts collapsed
-  updateSidebar();
-</script>
+<!-- Scripts da Aplicação -->
+<script src="public/js/main.js" defer></script>
 
 </body>
 </html>

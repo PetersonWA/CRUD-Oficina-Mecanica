@@ -6,50 +6,11 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --bs-primary: #2E7D32;
-      --bs-primary-rgb: 46, 125, 50;
-      --bs-secondary: #A5D6A7;
-      --bs-body-bg: #F8F9FA;
-    }
-    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
-    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
-    #sidebar.collapsed { width: 88px; }
-    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
-    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
-    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
-    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
-    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
-    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
-    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
-    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
-    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
-    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
-    #sidebar-toggle:hover { color: white; }
-    #content { width: 100%; transition: margin-left 0.3s; }
-    .text-primary { color: var(--bs-primary) !important; }
-    .btn-primary { --bs-btn-bg: var(--bs-primary); --bs-btn-border-color: var(--bs-primary); --bs-btn-hover-bg: #1B5E20; --bs-btn-hover-border-color: #1B5E20; }
-    .servico-card { border-left-color: var(--bs-primary); }
-    .page-item.active .page-link { background-color: var(--bs-primary); border-color: var(--bs-primary); }
-    .page-link { color: var(--bs-primary); }
-    .chart-container { background-color: white; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    #sidebar .sidebar-footer {
-        font-family: 'Lato', sans-serif;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        display: block;
-    }
-
-    #sidebar.collapsed .sidebar-footer {
-        display: none;
-    }
-    #sidebar.collapsed #sidebar-toggle {
-        display: none;
-    }
-    #sidebar.collapsed .sidebar-header {
-        justify-content: center;
-    }
-  </style>
+  
+  <!-- Estilos Globais -->
+  <link rel="stylesheet" href="public/css/main.css">
+  <!-- Estilos Específicos da Página -->
+  <link rel="stylesheet" href="public/css/historico.css">
 </head>
 <body>
 <div class="d-flex">
@@ -133,47 +94,47 @@
       </div>
 
       <!-- KPI Cards -->
-      <div class="row mb-4">
-        <div class="col-md-3">
+      <div class="row mb-4 g-3">
+        <div class="col-lg-3 col-md-6">
             <div class="card text-white bg-primary">
                 <div class="card-body">
-                    <h6 class="card-title">Faturamento no Período</h6>
-                    <h4 class="card-text" id="kpi-faturamento">R$ 0,00</h4>
+                    <h6 class="card-title">Receita Realizada</h6>
+                    <p class="card-text fs-4" id="kpi-receita-realizada">R$ 0,00</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success">
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-dark bg-light">
                 <div class="card-body">
-                    <h6 class="card-title">Serviços Concluídos</h6>
-                    <h4 class="card-text" id="kpi-servicos-concluidos">0</h4>
+                    <h6 class="card-title">Faturamento Liquido</h6>
+                    <p class="card-text fs-4" id="kpi-faturamento-bruto">R$ 0,00</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-info">
-                <div class="card-body">
-                    <h6 class="card-title">Ticket Médio</h6>
-                    <h4 class="card-text" id="kpi-ticket-medio">R$ 0,00</h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        <div class="col-lg-3 col-md-6">
             <div class="card text-dark bg-warning">
                 <div class="card-body">
-                    <h6 class="card-title">Taxa de Conversão</h6>
-                    <h4 class="card-text" id="kpi-taxa-conversao">0%</h4>
+                    <h6 class="card-title">Pendente de Recebimento</h6>
+                    <p class="card-text fs-4" id="kpi-pendente">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h6 class="card-title">Ticket Médio (por Serviço Pago)</h6>
+                    <p class="card-text fs-4" id="kpi-ticket-medio">R$ 0,00</p>
                 </div>
             </div>
         </div>
       </div>
 
-      <div class="row mb-4">
-        <div class="col-md-8"><div class="chart-container"><canvas id="revenueChart"></canvas></div></div>
-        <div class="col-md-4"><div class="chart-container"><canvas id="statusChart"></canvas></div></div>
+      <div class="row mb-4 g-3">
+        <div class="col-md-8"><div class="chart-container h-100"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><button class="btn btn-sm btn-outline-secondary chart-type-btn" id="toggle-receita-chart-type"><i class="bi bi-graph-up"></i></button><canvas id="receitaRealizadaChart"></canvas></div></div>
+        <div class="col-md-4"><div class="chart-container h-100"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><button class="btn btn-sm btn-outline-secondary analysis-type-btn" id="toggle-tipo-chart-analysis"><i class="bi bi-arrow-repeat"></i></button><canvas id="tipoItemChart"></canvas></div></div>
       </div>
       <div class="row mb-4">
-        <div class="col-md-12"><div class="chart-container"><canvas id="servicosPopularesChart"></canvas></div></div>
+        <div class="col-md-12"><div class="chart-container"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><canvas id="topItensChart"></canvas></div></div>
       </div>
       <hr class="my-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -182,7 +143,7 @@
       </div>
       <div class="row"><div class="col-md-12"><div id="cards-servicos" class="row"></div></div></div>
     </div>
-    <div class="modal fade" id="modalDetalhesServico" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Detalhes do Serviço - OS #<span id="detalhe-os-id"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="modal-body-content"><div class="row"><div class="col-md-6"><h6>Informações do Cliente</h6><p><strong>Nome:</strong> <span id="detalhe-cliente"></span></p><p><strong>Veículo:</strong> <span id="detalhe-veiculo"></span></p></div><div class="col-md-6"><h6>Informações do Serviço</h6><p><strong>Data Entrada:</strong> <span id="detalhe-data-entrada"></span></p><p><strong>Mecânico:</strong> <span id="detalhe-mecanico"></span></p><p><strong>Status:</strong> <span id="detalhe-status"></span></p></div></div><div class="row mt-3"><div class="col-md-12"><h6>Itens do Serviço</h6><table class="table table-sm table-bordered"><thead><tr><th>Descrição</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr></thead><tbody id="detalhe-itens-servico"></tbody></table></div></div><div class="row mt-3"><div class="col-md-12 text-end"><h6>Valor Total do Serviço</h6><div class="alert alert-success d-inline-block p-2"><h4 class="alert-heading mb-0" id="detalhe-valor">R$ 0,00</h4></div></div></div></div><div class="modal-footer"><button type="button" class="btn btn-primary" onclick="imprimirDetalhesServico()"><i class="bi bi-printer"></i> Imprimir</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>
+    <div class="modal fade" id="modalDetalhesServico" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Detalhes do Serviço - OS #<span id="detalhe-os-id"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="modal-body-content"><div class="row"><div class="col-md-6"><h6>Informações do Cliente</h6><p><strong>Nome:</strong> <span id="detalhe-cliente"></span></p><p><strong>Veículo:</strong> <span id="detalhe-veiculo"></span></p></div><div class="col-md-6"><h6>Informações do Serviço</h6><p><strong>Data Entrada:</strong> <span id="detalhe-data-entrada"></span></p><p><strong>Mecânico:</strong> <span id="detalhe-mecanico"></span></p><p><strong>Status:</strong> <span id="detalhe-status"></span></p><p><strong>Status Pagamento:</strong> <span id="detalhe-status-pagamento"></span></p></div></div><div class="row mt-3"><div class="col-md-12"><h6>Itens do Serviço</h6><table class="table table-sm table-bordered"><thead><tr><th>Descrição</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr></thead><tbody id="detalhe-itens-servico"></tbody></table></div></div><div class="row mt-3"><div class="col-md-12 text-end"><h6>Valor Total do Serviço</h6><div class="alert alert-success d-inline-block p-2"><h4 class="alert-heading mb-0" id="detalhe-valor">R$ 0,00</h4></div></div></div></div><div class="modal-footer"><button type="button" class="btn btn-primary" onclick="imprimirDetalhesServico()"><i class="bi bi-printer"></i> Imprimir</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>
   <footer class="text-center text-muted mt-4 py-3">
       <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
     </footer>
@@ -190,375 +151,11 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="renderer.js"></script>
-<script>
-  let todosServicos = [];
-  let todosOrcamentos = [];
-  let servicosFiltrados = [];
-  let orcamentosFiltrados = [];
-  let paginaAtual = 1;
-  const itensPorPagina = 9;
-  let statusChart = null;
-  let revenueChart = null;
-  let servicosPopularesChart = null;
 
-  function formatarValor(valor) {
-    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
+<!-- Scripts da Aplicação -->
+<script src="public/js/utils.js"></script>
+<script src="public/js/main.js" defer></script>
+<script src="public/js/historico.js" defer></script>
 
-  function parseDate(dateString) { // DD/MM/YYYY -> YYYY-MM-DD
-      const parts = dateString.split('/');
-      if (parts.length === 3) {
-          return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-      return null;
-  }
-
-  async function carregarDados() {
-    try {
-      [todosServicos, todosOrcamentos] = await Promise.all([
-        lerDados('servicos.json') || [],
-        lerDados('orcamentos.json') || []
-      ]);
-      aplicarFiltros(); // Aplica filtros (vazios no início)
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
-  }
-
-  function aplicarFiltros() {
-    const cliente = document.getElementById('filtro-cliente').value.toLowerCase();
-    const veiculo = document.getElementById('filtro-veiculo').value.toLowerCase();
-    const status = document.getElementById('filtro-status').value;
-    const dataInicio = document.getElementById('filtro-data-inicio').value;
-    const dataFim = document.getElementById('filtro-data-fim').value;
-    const tipoData = document.querySelector('input[name="filtroTipoData"]:checked').value;
-    const groupBy = document.querySelector('input[name="groupBy"]:checked').value;
-
-    servicosFiltrados = todosServicos.filter(s => {
-      const dataAlvo = tipoData === 'dataConclusao' ? s.dataConclusao : s.dataEntrada;
-      
-      const filtroDataOk = (!dataInicio || (dataAlvo && dataAlvo >= dataInicio)) && 
-                           (!dataFim || (dataAlvo && dataAlvo <= dataFim));
-
-      // Se filtrar por data de conclusão, o serviço precisa ter essa data.
-      if (tipoData === 'dataConclusao' && !s.dataConclusao) {
-        return false;
-      }
-
-      return (!cliente || s.clienteNome.toLowerCase().includes(cliente)) &&
-             (!veiculo || s.placaVeiculo.toLowerCase().includes(veiculo)) &&
-             (!status || s.status === status) &&
-             filtroDataOk;
-    });
-
-    orcamentosFiltrados = todosOrcamentos.filter(o => {
-        const orcamentoDate = parseDate(o.data);
-        return (!dataInicio || (orcamentoDate && orcamentoDate >= dataInicio)) &&
-               (!dataFim || (orcamentoDate && orcamentoDate <= dataFim));
-    });
-
-    servicosFiltrados.sort((a, b) => new Date(b.dataEntrada) - new Date(a.dataEntrada));
-    paginaAtual = 1;
-    atualizarDashboard(groupBy);
-  }
-
-  function limparFiltros() {
-    document.getElementById('filtro-cliente').value = '';
-    document.getElementById('filtro-veiculo').value = '';
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-data-inicio').value = '';
-    document.getElementById('filtro-data-fim').value = '';
-    document.getElementById('group-month').checked = true;
-    aplicarFiltros();
-  }
-
-  function atualizarDashboard(groupBy = 'month') {
-    atualizarKpis(servicosFiltrados, orcamentosFiltrados);
-    atualizarCards();
-    atualizarPaginacao();
-    atualizarContador();
-    renderStatusChart(servicosFiltrados);
-    renderRevenueChart(servicosFiltrados, groupBy);
-    renderServicosPopularesChart(servicosFiltrados);
-  }
-
-  function atualizarKpis(servicos, orcamentos) {
-    const servicosConcluidos = servicos.filter(s => s.status === 'Concluído' || s.status === 'Concluido');
-    const faturamentoTotal = servicosConcluidos.reduce((acc, s) => acc + s.valorTotal, 0);
-    const numServicosConcluidos = servicosConcluidos.length;
-    const ticketMedio = numServicosConcluidos > 0 ? faturamentoTotal / numServicosConcluidos : 0;
-
-    const totalOrcamentos = orcamentos.length;
-    const orcamentosAprovados = orcamentos.filter(o => o.status === 'Aprovado' || o.status === 'Faturado').length;
-    const taxaConversao = totalOrcamentos > 0 ? (orcamentosAprovados / totalOrcamentos) * 100 : 0;
-
-    document.getElementById('kpi-faturamento').textContent = `R$ ${formatarValor(faturamentoTotal)}`;
-    document.getElementById('kpi-servicos-concluidos').textContent = numServicosConcluidos;
-    document.getElementById('kpi-ticket-medio').textContent = `R$ ${formatarValor(ticketMedio)}`;
-    document.getElementById('kpi-taxa-conversao').textContent = `${taxaConversao.toFixed(1)}%`;
-  }
-
-  function getStatusClass(status) {
-    const classes = {
-      'Concluído': 'success',
-      'Em andamento': 'warning',
-      'Aguardando peças': 'info',
-      'Aguardando aprovação': 'danger'
-    };
-    return classes[status] || 'secondary';
-  }
-
-  function atualizarCards() {
-    const container = document.getElementById('cards-servicos');
-    const inicio = (paginaAtual - 1) * itensPorPagina;
-    const fim = inicio + itensPorPagina;
-    const servicosPagina = servicosFiltrados.slice(inicio, fim);
-    container.innerHTML = servicosPagina.map(servico => `
-      <div class="col-md-4 mb-3">
-        <div class="card servico-card h-100">
-          <div class="card-header d-flex justify-content-between align-items-center py-2">
-            <span class="badge bg-${getStatusClass(servico.status)}">${servico.status}</span>
-            <div>
-              <small class="text-muted d-block text-end">Entrada: ${new Date(servico.dataEntrada + 'T00:00:00').toLocaleDateString('pt-BR')}</small>
-              ${servico.dataConclusao ? `<small class="text-muted d-block text-end">Conclusão: ${new Date(servico.dataConclusao + 'T00:00:00').toLocaleDateString('pt-BR')}</small>` : ''}
-            </div>
-          </div>
-          <div class="card-body py-2"><h6 class="card-title mb-1">${servico.clienteNome}</h6><p class="card-text text-muted small mb-2">${servico.placaVeiculo}</p></div>
-          <div class="card-footer bg-transparent py-2 d-flex justify-content-between align-items-center">
-            <span class="fw-bold text-primary">R$ ${formatarValor(servico.valorTotal)}</span>
-            <button class="btn btn-sm btn-outline-primary" onclick="verDetalhes(${servico.id})"><i class="bi bi-eye"></i></button>
-          </div>
-        </div>
-      </div>`).join('');
-  }
-
-  function renderStatusChart(servicos) {
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    const statusCounts = servicos.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
-    if(statusChart) statusChart.destroy();
-    statusChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(statusCounts),
-        datasets: [{
-          data: Object.values(statusCounts),
-          backgroundColor: ["#2E7D32", "#FFC107", "#0D6EFD", "#DC3545", "#6C757D"]
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Serviços por Status' } } }
-    });
-  }
-
-  function renderRevenueChart(servicos, groupBy = 'month') {
-    const ctx = document.getElementById('revenueChart').getContext('2d');
-    const revenueByTimeUnit = servicos.filter(s => (s.status === 'Concluído' || s.status === 'Concluido') && s.dataConclusao).reduce((acc, s) => {
-      let timeUnit;
-      const date = new Date(s.dataConclusao + 'T00:00:00'); // CORRIGIDO: Usar data de conclusão
-      if (groupBy === 'day') {
-        timeUnit = date.toLocaleDateString('pt-BR');
-      } else if (groupBy === 'year') {
-        timeUnit = date.getFullYear().toString();
-      } else { // month
-        timeUnit = date.toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
-      }
-      acc[timeUnit] = (acc[timeUnit] || 0) + s.valorTotal;
-      return acc;
-    }, {});
-
-    const sortedLabels = Object.keys(revenueByTimeUnit).sort((a, b) => {
-        if (groupBy === 'day') return new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-'));
-        if (groupBy === 'month') {
-            const [m1Str, y1] = a.split('/');
-            const [m2Str, y2] = b.split('/');
-            const m1 = new Date(Date.parse(m1Str +" 1, 2012")).getMonth()+1
-            const m2 = new Date(Date.parse(m2Str +" 1, 2012")).getMonth()+1
-            return new Date(`20${y1}`, m1 - 1) - new Date(`20${y2}`, m2 - 1);
-        }
-        return a.localeCompare(b);
-    });
-
-    const sortedRevenue = sortedLabels.map(label => revenueByTimeUnit[label]);
-
-    if(revenueChart) revenueChart.destroy();
-    revenueChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: sortedLabels,
-        datasets: [{
-          label: 'Faturamento Mensal',
-          data: sortedRevenue,
-          backgroundColor: 'rgba(46, 125, 50, 0.7)'
-        }]
-      },
-      options: { 
-        responsive: true, 
-        plugins: { 
-          legend: { display: false }, 
-          title: { display: true, text: 'Faturamento de Serviços Concluídos' },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                if (context.parsed.y !== null) {
-                  label += 'R$ ' + formatarValor(context.parsed.y);
-                }
-                return label;
-              }
-            }
-          }
-        }, 
-        scales: { y: { beginAtZero: true } } 
-      }
-    });
-  }
-
-  function renderServicosPopularesChart(servicos) {
-    const ctx = document.getElementById('servicosPopularesChart').getContext('2d');
-    const itemCounts = servicos.flatMap(s => s.itens).reduce((acc, item) => {
-        const desc = item.descricao.trim().toLowerCase();
-        acc[desc] = (acc[desc] || 0) + 1;
-        return acc;
-    }, {});
-
-    const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a).slice(0, 10);
-
-    if(servicosPopularesChart) servicosPopularesChart.destroy();
-    servicosPopularesChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedItems.map(item => item[0]),
-            datasets: [{
-                label: 'Nº de Vezes Realizado',
-                data: sortedItems.map(item => item[1]),
-                backgroundColor: 'rgba(75, 192, 192, 0.7)'
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                title: { display: true, text: 'Top 10 Serviços Mais Realizados' }
-            }
-        }
-    });
-  }
-
-  function atualizarPaginacao() {
-    const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
-    const paginacaoEl = document.querySelector('#paginacao .pagination');
-    if (!paginacaoEl) return;
-
-    paginacaoEl.innerHTML = '';
-
-    if (totalPaginas <= 1) {
-        document.getElementById('paginacao').style.display = 'none';
-        return;
-    }
-
-    document.getElementById('paginacao').style.display = 'block';
-
-    // Botão Previous
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous" onclick="mudarPagina(${paginaAtual - 1})"><span aria-hidden="true">&laquo;</span></a>`;
-    paginacaoEl.appendChild(prevLi);
-
-    // Botões de número da página
-    for (let i = 1; i <= totalPaginas; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
-        paginacaoEl.appendChild(li);
-    }
-
-    // Botão Next
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next" onclick="mudarPagina(${paginaAtual + 1})"><span aria-hidden="true">&raquo;</span></a>`;
-    paginacaoEl.appendChild(nextLi);
-  }
-
-  function mudarPagina(pagina) {
-    const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
-    if (pagina < 1 || pagina > totalPaginas) return;
-    paginaAtual = pagina;
-    atualizarDashboard();
-    window.scrollTo(0, 0);
-  }
-  
-  function verDetalhes(id) {
-    const servico = todosServicos.find(s => s.id === id);
-    if (servico) {
-      document.getElementById('detalhe-os-id').textContent = String(servico.id).padStart(6, '0');
-      document.getElementById('detalhe-cliente').textContent = servico.clienteNome;
-      document.getElementById('detalhe-veiculo').textContent = servico.placaVeiculo;
-      document.getElementById('detalhe-data-entrada').textContent = new Date(servico.dataEntrada + 'T00:00:00').toLocaleDateString('pt-BR');
-      document.getElementById('detalhe-mecanico').textContent = servico.mecanico;
-      document.getElementById('detalhe-status').innerHTML = `<span class="badge bg-${getStatusClass(servico.status)}">${servico.status}</span>`;
-      document.getElementById('detalhe-valor').textContent = `R$ ${formatarValor(servico.valorTotal)}`;
-      
-      const itensBody = document.getElementById('detalhe-itens-servico');
-      itensBody.innerHTML = servico.itens.map(item => `
-        <tr>
-          <td>${item.descricao}</td>
-          <td>${item.quantidade}</td>
-          <td>R$ ${formatarValor(item.valor)}</td>
-          <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
-        </tr>
-      `).join('');
-
-      new bootstrap.Modal(document.getElementById('modalDetalhesServico')).show();
-    }
-  }
-
-  function atualizarContador() { document.getElementById('contador-servicos').textContent = `${servicosFiltrados.length} serviços encontrados`; }
-  
-  function imprimirDetalhesServico() {
-    const modalContent = document.getElementById('modal-body-content').innerHTML;
-    const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write(`<html><head><title>Detalhes do Serviço</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body><div class="container p-4">${modalContent}</div></body></html>`);
-    printWindow.document.close();
-    printWindow.print();
-  }
-
-  window.addEventListener('DOMContentLoaded', carregarDados);
-</script>
-<script>
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  const toggleIcon = toggleBtn.querySelector('i');
-  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
-
-  function updateSidebar() {
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    if (isCollapsed) {
-      toggleIcon.classList.remove('bi-x-lg');
-      toggleIcon.classList.add('bi-list');
-    } else {
-      toggleIcon.classList.remove('bi-list');
-      toggleIcon.classList.add('bi-x-lg');
-    }
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    updateSidebar();
-  });
-
-  navbarBrand.addEventListener('click', (e) => {
-    if (sidebar.classList.contains('collapsed')) {
-      e.preventDefault();
-      sidebar.classList.remove('collapsed');
-      updateSidebar();
-    }
-  });
-
-  // Set initial state in case it starts collapsed
-  updateSidebar();
-</script>
 </body>
 </html>

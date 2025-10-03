@@ -1,0 +1,7 @@
+/* Estilos específicos para a página de histórico */
+.chart-container { position: relative; background-color: white; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; }
+.expand-chart-btn { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10; }
+.chart-type-btn { position: absolute; top: 0.5rem; right: 3rem; z-index: 10; }
+.analysis-type-btn { position: absolute; top: 0.5rem; right: 3rem; z-index: 10; }
+.chart-container.expanded { /* No special styles here anymore */ }
+.expanded-chart-container { height: 75vh; }

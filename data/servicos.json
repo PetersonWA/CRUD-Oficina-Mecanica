@@ -11,21 +11,25 @@
     "itens": [
       {
         "descricao": "pastilha de freio",
+        "tipo": "Peça",
         "quantidade": 2,
         "valor": 80
       },
       {
         "descricao": "disco de freio",
+        "tipo": "Peça",
         "quantidade": 2,
         "valor": 220
       },
       {
         "descricao": "liquido de freio",
+        "tipo": "Peça",
         "quantidade": 1,
         "valor": 25
       },
       {
         "descricao": "mão de obra",
+        "tipo": "Mão de Obra",
         "quantidade": 1,
         "valor": 300
       }
@@ -57,15 +61,17 @@
     "dataEntrada": "2025-09-23",
     "problemaRelatado": "vazamento de agua",
     "mecanico": "sidnei",
-    "status": "Em andamento",
+    "status": "Aguardando peças",
     "itens": [
       {
         "descricao": "kit mangueiras de arrefecimento",
+        "tipo": "Peça",
         "quantidade": 1,
         "valor": 243.2
       },
       {
         "descricao": "mão de obra",
+        "tipo": "Mão de Obra",
         "quantidade": 1,
         "valor": 150
       }
@@ -85,7 +91,8 @@
         "anotacao": ""
       }
     ],
-    "statusPagamento": "Pago"
+    "statusPagamento": "Pago",
+    "valorTotal": 393.2
   },
   {
     "id": 3,
@@ -95,11 +102,12 @@
     "dataEntrada": "2025-09-24",
     "problemaRelatado": "dutfuyg",
     "mecanico": "sidnei",
-    "status": "Em andamento",
+    "status": "Aguardando peças",
     "statusPagamento": "Pago",
     "itens": [
       {
         "descricao": "f8yguh",
+        "tipo": "Mão de Obra",
         "quantidade": 1,
         "valor": 1542
       }
@@ -108,7 +116,7 @@
     "descontoPercentual": 0,
     "descontoValor": 0,
     "quilometragem": "350000",
-    "formaPagamento": "Cartão de Crédito",
+    "formaPagamento": "Múltiplos",
     "parcelas": 3,
     "pagamentos": [
       {
@@ -117,11 +125,19 @@
         "valor": 1542,
         "metodo": "Cartão de Crédito",
         "anotacao": "Pagamento em 3x"
+      },
+      {
+        "id": 1759195190175,
+        "valor": 0.01,
+        "data": "2025-09-30",
+        "metodo": "Dinheiro",
+        "anotacao": ""
       }
-    ]
+    ],
+    "valorTotal": 1542
   },
   {
-    "id": 1758756904406,
+    "id": 1758759951765,
     "clienteNome": "Peterson Amaral",
     "clienteDoc": "029.344.410-24",
     "placaVeiculo": "IJX9727",
@@ -132,21 +148,124 @@
     "itens": [
       {
         "descricao": "pastilha de freio",
+        "tipo": "Peça",
         "quantidade": 2,
         "valor": 55
       },
       {
         "descricao": "disco de freio",
+        "tipo": "Peça",
         "quantidade": 2,
         "valor": 234
       },
       {
         "descricao": "mão de obra",
+        "tipo": "Mão de Obra",
         "quantidade": 1,
         "valor": 300
       }
     ],
+    "valor": 878,
     "valorTotal": 878,
-    "quilometragem": 350000
+    "quilometragem": 350000,
+    "statusPagamento": "Pago",
+    "pagamentos": [
+      {
+        "id": 1758760028274,
+        "valor": 878,
+        "data": "2025-09-25",
+        "metodo": "PIX",
+        "anotacao": ""
+      },
+      {
+        "id": 1758760284354,
+        "valor": 0.1,
+        "data": "2025-09-25",
+        "metodo": "PIX",
+        "anotacao": ""
+      }
+    ],
+    "formaPagamento": "PIX"
+  },
+  {
+    "id": 1759194396912,
+    "clienteNome": "Viviani Lima ",
+    "clienteDoc": "026.678.580-85",
+    "placaVeiculo": "EVL6666",
+    "dataEntrada": "2025-09-29",
+    "problemaRelatado": "barulho",
+    "mecanico": "",
+    "status": "Em andamento",
+    "itens": [
+      {
+        "descricao": "rolamento traseiro",
+        "quantidade": 2,
+        "valor": 50
+      },
+      {
+        "descricao": "pastilha de freio",
+        "quantidade": 2,
+        "valor": 39.48
+      },
+      {
+        "descricao": "Mão de Obra",
+        "quantidade": 1,
+        "valor": 200
+      }
+    ],
+    "valor": 378.96,
+    "valorTotal": 378.96,
+    "quilometragem": "20010",
+    "statusPagamento": "Parcialmente Pago",
+    "pagamentos": [
+      {
+        "id": 1759194471573,
+        "valor": 250,
+        "data": "2025-09-30",
+        "metodo": "PIX",
+        "anotacao": "Pago hj e dia 5 paga o resto."
+      }
+    ],
+    "formaPagamento": "PIX"
+  },
+  {
+    "id": 1759194396913,
+    "clienteNome": "Viviani Lima ",
+    "clienteDoc": "026.678.580-85",
+    "placaVeiculo": "EVL6666",
+    "dataEntrada": "2025-09-29",
+    "problemaRelatado": "churiço",
+    "mecanico": "sidnei",
+    "status": "Em andamento",
+    "statusPagamento": "Pago",
+    "itens": [
+      {
+        "descricao": "churiqueiz",
+        "quantidade": 3,
+        "valor": 234,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "Mão de Obra",
+        "quantidade": 1,
+        "valor": 1240,
+        "tipo": "Mão de Obra"
+      }
+    ],
+    "valorTotal": 2433.232115805299,
+    "descontoPercentual": 0,
+    "descontoValor": 0,
+    "quilometragem": "20010",
+    "formaPagamento": "Cartão de Crédito",
+    "parcelas": 6,
+    "pagamentos": [
+      {
+        "id": 1759195377247,
+        "data": "2025-09-30",
+        "valor": 2433.232115805299,
+        "metodo": "Cartão de Crédito",
+        "anotacao": "Pagamento em 6x"
+      }
+    ]
   }
 ]

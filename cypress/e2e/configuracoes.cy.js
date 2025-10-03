@@ -14,22 +14,22 @@ describe('Testes da Página de Configurações', () => {
   beforeEach(() => {
     mockApi = {
       readData: cy.stub().as('readData'),
-      salvarDados: cy.stub().as('salvarDados'),
+      writeData: cy.stub().as('writeData'), // Adicionado para simular a chamada real
       saveFile: cy.stub().as('saveFile'),
     };
 
     // Mock para carregar as configurações iniciais
     mockApi.readData.withArgs('configuracao.json').resolves(initialConfig);
     // Mock para o salvamento de dados e arquivos
-    mockApi.salvarDados.resolves(true);
+    mockApi.writeData.resolves(true); // A função real salvarDados chama writeData
     mockApi.saveFile.resolves('/novo/path/para/imagem.png');
 
     cy.visit('configuracoes.html', {
       onBeforeLoad(win) {
         win.api = mockApi;
-        // Sobrescreve a função global `lerDados` e `salvarDados` que são usadas no renderer.js
-        win.lerDados = mockApi.readData;
-        win.salvarDados = mockApi.salvarDados;
+        // Mantemos as funções globais de renderer.js e apenas mockamos a camada da API
+        win.lerDados = win.lerDados; 
+        win.salvarDados = win.salvarDados;
       },
     });
   });
@@ -55,9 +55,8 @@ describe('Testes da Página de Configurações', () => {
     cy.get('#nomeOficina').clear().type(newConfigData.nomeOficina);
     cy.get('#email').clear().type(newConfigData.email);
 
-    // Anexa um arquivo de imagem (usando um fixture do Cypress)
-    // O cypress/fixtures/example.json será tratado como um png para este teste
-    cy.get('#logo').selectFile('cypress/fixtures/example.json', { action: 'drag-drop' });
+    // Anexa um arquivo de imagem
+    cy.get('#logo').selectFile('data/logo.png', { action: 'drag-drop', force: true });
 
     // Verifica o preview da imagem
     cy.get('#logo-preview').should('have.attr', 'src').and('match', /^data:image\/.*;base64,/);
@@ -69,7 +68,7 @@ describe('Testes da Página de Configurações', () => {
     cy.get('@saveFile').should('have.been.called');
 
     // Verifica se a API para salvar os dados de configuração foi chamada com os dados corretos
-    cy.get('@salvarDados').should('have.been.calledWith', 'configuracao.json', Cypress.sinon.match({
+    cy.get('@writeData').should('have.been.calledWith', 'configuracao.json', Cypress.sinon.match({
       nomeOficina: newConfigData.nomeOficina, // Novo nome
       email: newConfigData.email,           // Novo email
       logoPath: '/novo/path/para/imagem.png', // Caminho retornado pelo mock de saveFile
@@ -81,22 +80,21 @@ describe('Testes da Página de Configurações', () => {
   });
 
   it('Deve excluir a imagem da assinatura', () => {
-    // Mock da confirmação
-    cy.window().then(win => {
-        cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
-    });
-
-    // Clica no botão de excluir assinatura
+    // Clica no botão de excluir assinatura para abrir o modal
     cy.get('#delete-assinatura').click();
 
+    // Aguarda o modal de confirmação ficar visível e clica em "Confirmar"
+    cy.get('#modalConfirmarExclusao').should('be.visible');
+    cy.get('#btnConfirmarExclusao').click();
+
     // Verifica se o preview voltou para o placeholder
-    cy.get('#assinatura-preview').should('have.attr', 'src').and('contain', 'placeholder');
+    cy.get('#assinatura-preview').should('have.attr', 'src').and('match', /^data:image\/svg\+xml,/);
 
     // Salva o formulário
     cy.get('#config-form').submit();
 
     // Verifica se os dados foram salvos sem o caminho da assinatura
-    cy.get('@salvarDados').should('have.been.calledWith', 'configuracao.json', Cypress.sinon.match({
+    cy.get('@writeData').should('have.been.calledWith', 'configuracao.json', Cypress.sinon.match({
       assinaturaPath: '' // O caminho da assinatura deve estar vazio
     }));
 

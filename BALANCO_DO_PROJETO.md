@@ -29,7 +29,7 @@ Conseguimos muitos avanços significativos no projeto até agora, tornando-o mai
 ### Desafio Atual:
 *   O único ponto que ainda estamos trabalhando é a validação de CPF e CNPJ. Apesar de várias tentativas, as funções `validateCPF` e `validateCNPJ` ainda não estão passando nos testes para documentos válidos. Este é o nosso último obstáculo para ter 100% de confiança nas validações.
 
-O projeto evoluiu muito e está muito mais robusto e confiável. O problema atual com CPF/CNPJ é um detalhe técnico que vamos resolver, mas não ofusca o grande avanço que tivemos.
+O projeto evoluiu muito e está muito mais robusto e confiável. O problema atual com CPF/CNPJ é um detalhe técnico que vamos resolver, mas não ofusca o grande avanço que tivemos.(resolvido)
 
 ---
 
@@ -62,3 +62,40 @@ Nesta sessão, realizamos uma grande refatoração e aprimoramento do fluxo de p
 *   **Melhorias na Experiência do Usuário:**
     *   O campo de número de parcelas foi transformado em um seletor (`<select>`), que agora exibe o valor final de cada parcela, incluindo os juros.
     *   O orçamento em PDF agora inclui uma seção de "Formas de Pagamento", informando ao cliente as opções disponíveis com base nas configurações do sistema.
+
+---
+
+### 6. Refatoração Arquitetural do Frontend (30/09/2025)
+
+Nesta sessão, executamos uma refatoração completa da arquitetura do frontend, aplicando o princípio de **Separação de Responsabilidades** em toda a aplicação. O objetivo foi organizar o código, eliminar duplicação e preparar o projeto para um crescimento sustentável.
+
+#### Mudanças Estruturais:
+*   **Criação de Estrutura de Diretórios:** Foram criadas as pastas `public/css` e `public/js` para centralizar todos os arquivos de estilo e script.
+*   **Externalização de CSS e JS:** Todo o código CSS e JavaScript que estava embutido diretamente nos arquivos HTML (`<style>` e `<script>`) foi movido para arquivos externos.
+*   **Padrão de Arquivos:** Adotamos um padrão claro:
+    *   `main.css`: Estilos globais compartilhados por todas as páginas (cores, sidebar, etc.).
+    *   `[pagina].css`: Estilos específicos para uma determinada página.
+    *   `main.js`: Scripts globais (lógica da sidebar).
+    *   `utils.js`: Funções utilitárias compartilhadas (ex: `formatarValor`).
+    *   `[pagina].js`: Scripts específicos para uma determinada página.
+
+#### Páginas Refatoradas:
+O processo foi aplicado a **todas as páginas principais** da aplicação, incluindo:
+*   `index.html`
+*   `historico-servicos.html`
+*   `configuracoes.html`
+*   `os-manual.html`
+*   `orcamento-mecanico.html`
+*   `clientes-veiculos.html`
+*   `cadastro-servico.html`
+*   `gerenciar-orcamentos.html`
+*   `gerenciar-servicos.html`
+*   `gerenciar-pagamentos.html`
+
+#### Benefícios Imediatos:
+*   **Código Limpo:** Os arquivos HTML agora contêm apenas a estrutura do conteúdo, tornando-os muito mais legíveis.
+*   **Manutenção Simplificada:** Alterações em estilos ou scripts globais agora precisam ser feitas em um único lugar.
+*   **Eliminação de Duplicação:** Removemos dezenas de linhas de código CSS e JavaScript que estavam duplicadas em múltiplos arquivos.
+*   **Resolução de Bugs:** Durante o processo, corrigimos bugs relacionados ao escopo de funções, chamadas incorretas à API do Electron e a dependência de recursos externos (placeholders de imagem), que causavam lentidão.
+
+Esta refatoração representa um salto de maturidade para o projeto, saindo de um modelo de prototipagem para uma base de código organizada e profissional, pronta para futuras expansões.

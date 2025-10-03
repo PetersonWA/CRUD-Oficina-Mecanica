@@ -1,0 +1,3 @@
+/* Estilos específicos para a página de OS Manual */
+.item-row input { font-size: 0.9rem; }
+.total-display { font-size: 1.5rem; font-weight: bold; color: var(--bs-primary); }

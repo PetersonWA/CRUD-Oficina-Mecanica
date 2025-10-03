@@ -13,12 +13,13 @@ describe('Testes de Busca', () => {
     mockApi = {
       readData: cy.stub().as('readData'),
       writeData: cy.stub().as('writeData'),
-      searchData: cy.stub().as('searchData'),
+      searchData: cy.stub().as('searchData'), // Manter para evitar erros se for chamado em outro lugar
       editData: cy.stub().as('editData'),
       deleteData: cy.stub().as('deleteData'),
     };
 
-    // Mock para carregamento inicial de dados
+    // Mock para carregamento inicial de dados e para as buscas
+    // A aplicação usa `readData` para buscar e depois filtra no lado do cliente
     mockApi.readData.withArgs('clientes.json').resolves(mockClients);
     mockApi.readData.withArgs('veiculos.json').resolves(mockVehicles);
 
@@ -33,21 +34,17 @@ describe('Testes de Busca', () => {
     it('Deve buscar um cliente pelo nome', () => {
       const searchTerm = 'João';
       const searchField = 'nome';
-      const searchResult = [mockClients[0]];
-
-      // Mock da função de busca
-      mockApi.searchData.withArgs('clientes.json', searchTerm, searchField).resolves(searchResult);
-      mockApi.searchData.withArgs('veiculos.json', searchTerm, '').resolves([]); // Busca de veículos retorna vazio
 
       // Realiza a busca
       cy.get('#inputBusca').type(searchTerm);
       cy.get('#campoBusca').select(searchField);
       cy.get('button:contains("Buscar")').click();
 
-      // Verifica a chamada da API
-      cy.get('@searchData').should('have.been.calledWith', 'clientes.json', searchTerm, searchField);
+      // Verifica se a API de leitura foi chamada
+      cy.get('@readData').should('have.been.calledWith', 'clientes.json');
+      cy.get('@readData').should('have.been.calledWith', 'veiculos.json');
 
-      // Verifica se a tabela de clientes foi atualizada com o resultado
+      // Verifica se a tabela de clientes foi atualizada com o resultado filtrado
       cy.get('#lista-clientes').should('contain', 'João da Silva');
       cy.get('#lista-clientes').should('not.contain', 'Maria Oliveira');
     });
@@ -55,19 +52,15 @@ describe('Testes de Busca', () => {
     it('Deve buscar um veículo pela placa', () => {
       const searchTerm = 'ABC-1234';
       const searchField = 'placa';
-      const searchResult = [mockVehicles[0]];
-
-      // Mock da função de busca
-      mockApi.searchData.withArgs('clientes.json', searchTerm, '').resolves([]); // Busca de clientes retorna vazio
-      mockApi.searchData.withArgs('veiculos.json', searchTerm, searchField).resolves(searchResult);
 
       // Realiza a busca
       cy.get('#inputBusca').type(searchTerm);
       cy.get('#campoBusca').select(searchField);
       cy.get('button:contains("Buscar")').click();
 
-      // Verifica a chamada da API
-      cy.get('@searchData').should('have.been.calledWith', 'veiculos.json', searchTerm, searchField);
+      // Verifica se a API de leitura foi chamada
+      cy.get('@readData').should('have.been.calledWith', 'clientes.json');
+      cy.get('@readData').should('have.been.calledWith', 'veiculos.json');
 
       // Verifica se a tabela de veículos foi atualizada com o resultado
       cy.get('#lista-veiculos').should('contain', 'ABC-1234');
@@ -75,21 +68,13 @@ describe('Testes de Busca', () => {
     });
 
     it('Deve limpar a busca e mostrar todos os dados novamente', () => {
-      // Simula uma busca inicial que retorna um resultado filtrado
-      mockApi.searchData.withArgs('clientes.json', 'João', 'nome').resolves([mockClients[0]]);
-      mockApi.searchData.withArgs('veiculos.json', 'João', '').resolves([]);
-
+      // Realiza uma busca inicial para filtrar os dados
       cy.get('#inputBusca').type('João');
       cy.get('#campoBusca').select('nome');
       cy.get('button:contains("Buscar")').click();
 
       // Garante que o resultado foi filtrado
       cy.get('#lista-clientes').should('not.contain', 'Maria Oliveira');
-
-      // Mock para a chamada de `carregarClientesEVeiculos` que acontece ao limpar
-      // A função `carregarClientesEVeiculos` chama `buscarDados` que por sua vez chama `searchData` com termos vazios
-      mockApi.searchData.withArgs('clientes.json', '', '').resolves(mockClients);
-      mockApi.searchData.withArgs('veiculos.json', '', '').resolves(mockVehicles);
 
       // Clica no botão de limpar
       cy.get('button:contains("Limpar")').click();

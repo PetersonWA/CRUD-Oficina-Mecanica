@@ -1,85 +1,185 @@
 [
   {
-    "id": 3,
+    "id": 6,
     "clienteNome": "Peterson Amaral",
     "placaVeiculo": "IJX9727",
-    "data": "24/09/2025",
-    "valor": 878,
+    "data": "01/10/2025",
+    "valor": 565.33,
+    "status": "Recusado",
+    "itens": [
+      {
+        "descricao": "qualquer uma",
+        "quantidade": 2,
+        "valor": 251.55
+      },
+      {
+        "descricao": "Mão de Obra",
+        "quantidade": 1,
+        "valor": 62.23
+      }
+    ],
+    "problemaRelatado": "qualquer",
+    "descontoPercentual": 0,
+    "descontoValor": 0
+  },
+  {
+    "id": 5,
+    "clienteNome": "Peterson Amaral",
+    "placaVeiculo": "IJX9727",
+    "data": "29/09/2025",
+    "valor": 1028.78,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "isso ",
+        "quantidade": 1,
+        "valor": 236.52,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "aquilo",
+        "quantidade": 2,
+        "valor": 220.13,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "aquele outro",
+        "quantidade": 1,
+        "valor": 52,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "Mão de Obra",
+        "quantidade": 1,
+        "valor": 300,
+        "tipo": "Mão de Obra"
+      }
+    ],
+    "problemaRelatado": "qualquer coisa",
+    "descontoPercentual": 0,
+    "descontoValor": 0
+  },
+  {
+    "id": 4,
+    "clienteNome": "Viviani Lima ",
+    "placaVeiculo": "EVL6666",
+    "data": "29/09/2025",
+    "valor": 378.96,
     "status": "Faturado",
     "itens": [
       {
+        "descricao": "rolamento traseiro",
+        "quantidade": 2,
+        "valor": 50,
+        "tipo": "Peça"
+      },
+      {
         "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 55
+        "valor": 39.48,
+        "tipo": "Peça"
       },
       {
-        "descricao": "disco de freio",
-        "quantidade": 2,
-        "valor": 234
-      },
-      {
-        "descricao": "mão de obra",
+        "descricao": "Mão de Obra",
         "quantidade": 1,
-        "valor": 300
+        "valor": 200,
+        "tipo": "Mão de Obra"
       }
     ],
-    "problemaRelatado": "barulho no freio ",
+    "problemaRelatado": "barulho",
+    "descontoPercentual": 0,
+    "descontoValor": 0
+  },
+  {
+    "id": 3,
+    "clienteNome": "Viviani Lima ",
+    "placaVeiculo": "EVL6666",
+    "data": "29/09/2025",
+    "valor": 378.96,
+    "status": "Pendente",
+    "itens": [
+      {
+        "descricao": "rolamento traseiro",
+        "quantidade": 2,
+        "valor": 50,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "pastilha de freio",
+        "quantidade": 2,
+        "valor": 39.48,
+        "tipo": "Peça"
+      },
+      {
+        "descricao": "Mão de Obra",
+        "quantidade": 1,
+        "valor": 200,
+        "tipo": "Mão de Obra"
+      }
+    ],
+    "problemaRelatado": "barulho",
     "descontoPercentual": 0,
     "descontoValor": 0
   },
   {
     "id": 2,
-    "clienteNome": "Peterson Amaral",
-    "placaVeiculo": "IJX9727",
-    "data": "23/09/2025",
-    "valor": 878,
+    "clienteNome": "Viviani Lima ",
+    "placaVeiculo": "EVL6666",
+    "data": "29/09/2025",
+    "valor": 378.96,
     "status": "Pendente",
     "itens": [
       {
+        "descricao": "rolamento traseiro",
+        "quantidade": 2,
+        "valor": 50,
+        "tipo": "Peça"
+      },
+      {
         "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 55
+        "valor": 39.48,
+        "tipo": "Peça"
       },
       {
-        "descricao": "disco de freio",
-        "quantidade": 2,
-        "valor": 234
-      },
-      {
-        "descricao": "mão de obra",
+        "descricao": "Mão de Obra",
         "quantidade": 1,
-        "valor": 300
+        "valor": 200,
+        "tipo": "Mão de Obra"
       }
     ],
-    "problemaRelatado": "barulho no freio ",
+    "problemaRelatado": "barulho",
     "descontoPercentual": 0,
     "descontoValor": 0
   },
   {
     "id": 1,
-    "clienteNome": "Peterson Amaral",
-    "placaVeiculo": "IJX9727",
-    "data": "23/09/2025",
-    "valor": 878,
+    "clienteNome": "Viviani Lima ",
+    "placaVeiculo": "EVL6666",
+    "data": "29/09/2025",
+    "valor": 378.96,
     "status": "Pendente",
     "itens": [
       {
+        "descricao": "rolamento traseiro",
+        "quantidade": 2,
+        "valor": 50,
+        "tipo": "Peça"
+      },
+      {
         "descricao": "pastilha de freio",
         "quantidade": 2,
-        "valor": 55
+        "valor": 39.48,
+        "tipo": "Peça"
       },
       {
-        "descricao": "disco de freio",
-        "quantidade": 2,
-        "valor": 234
-      },
-      {
-        "descricao": "mão de obra",
+        "descricao": "Mão de Obra",
         "quantidade": 1,
-        "valor": 300
+        "valor": 200,
+        "tipo": "Mão de Obra"
       }
     ],
-    "problemaRelatado": "barulho no freio ",
+    "problemaRelatado": "barulho",
     "descontoPercentual": 0,
     "descontoValor": 0
   }

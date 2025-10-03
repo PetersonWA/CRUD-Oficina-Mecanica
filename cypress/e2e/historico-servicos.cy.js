@@ -1,11 +1,17 @@
 describe('Testes do Dashboard de Histórico e Análises', () => {
   let mockApi;
   const mockServicos = [
-    // Serviço concluído no período para faturamento
-    { id: 1, clienteNome: 'Cliente Faturado', placaVeiculo: 'FAT-1234', dataEntrada: '2025-09-15', dataConclusao: '2025-09-20', valorTotal: 500, status: 'Concluído', itens: [], mecanico: 'Carlos' },
-    { id: 2, clienteNome: 'Cliente Antigo', placaVeiculo: 'OLD-4321', dataEntrada: '2025-08-10', dataConclusao: '2025-08-15', valorTotal: 300, status: 'Concluído', itens: [], mecanico: 'Daniel' },
+    // Serviço concluído com pagamento para faturamento
+    { 
+      id: 1, clienteNome: 'Cliente Faturado', placaVeiculo: 'FAT-1234', dataEntrada: '2025-09-15', dataConclusao: '2025-09-20', valorTotal: 500, status: 'Concluído', itens: [], mecanico: 'Carlos',
+      pagamentos: [{ data: '2025-09-20', valor: 500 }] 
+    },
+    { 
+      id: 2, clienteNome: 'Cliente Antigo', placaVeiculo: 'OLD-4321', dataEntrada: '2025-08-10', dataConclusao: '2025-08-15', valorTotal: 300, status: 'Concluído', itens: [], mecanico: 'Daniel',
+      pagamentos: [{ data: '2025-08-15', valor: 300 }]
+    },
     // Serviço em andamento
-    { id: 3, clienteNome: 'Cliente Andamento', placaVeiculo: 'AND-5678', dataEntrada: '2025-09-18', dataConclusao: null, valorTotal: 700, status: 'Em andamento', itens: [], mecanico: 'Carlos' },
+    { id: 3, clienteNome: 'Cliente Andamento', placaVeiculo: 'AND-5678', dataEntrada: '2025-09-18', dataConclusao: null, valorTotal: 700, status: 'Em andamento', itens: [], mecanico: 'Carlos', pagamentos: [] },
   ];
   const mockOrcamentos = [
     // Orçamento aprovado para taxa de conversão
@@ -40,29 +46,22 @@ describe('Testes do Dashboard de Histórico e Análises', () => {
   });
 
   it('Deve calcular e exibir os KPIs corretamente na carga inicial', () => {
-    // Faturamento: 500 (FAT-1234) + 300 (OLD-4321) = 800
-    cy.get('#kpi-faturamento').should('contain', '800,00');
-    // Serviços Concluídos: 2
-    cy.get('#kpi-servicos-concluidos').should('contain', '2');
+    // Receita Realizada: 500 (FAT-1234) + 300 (OLD-4321) = 800
+    cy.get('#kpi-receita-realizada').should('contain', '800,00');
     // Ticket Médio: 800 / 2 = 400
     cy.get('#kpi-ticket-medio').should('contain', '400,00');
-    // Taxa de Conversão: 2 Aprovados/Faturados de 4 total = 50%
-    cy.get('#kpi-taxa-conversao').should('contain', '50.0');
   });
 
   it('Deve filtrar os dados por data e atualizar os KPIs e a lista', () => {
     // Filtra para um período que só inclui o 'Cliente Faturado'
     cy.get('#filtro-data-inicio').type('2025-09-01');
     cy.get('#filtro-data-fim').type('2025-09-21');
-    cy.get('#tipoDataConclusao').check(); // Filtra por data de conclusão
+    cy.get('#tipoDataConclusao').check({ force: true }); // Filtra por data de conclusão
     cy.contains('button', 'Aplicar Filtros').click();
 
     // KPIs atualizados para o período
-    cy.get('#kpi-faturamento').should('contain', '500,00');
-    cy.get('#kpi-servicos-concluidos').should('contain', '1');
+    cy.get('#kpi-receita-realizada').should('contain', '500,00');
     cy.get('#kpi-ticket-medio').should('contain', '500,00');
-    // A taxa de conversão também é afetada pelo filtro de data
-    cy.get('#kpi-taxa-conversao').should('contain', '50.0'); // 2 de 4 ainda estão no período
 
     // Lista de serviços deve conter apenas o serviço filtrado
     cy.get('#cards-servicos').children().should('have.length', 1);

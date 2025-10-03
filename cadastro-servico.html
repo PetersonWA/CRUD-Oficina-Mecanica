@@ -5,55 +5,9 @@
   <title>Cadastro de Serviço</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <style>
-    :root {
-      --bs-primary: #2E7D32;
-      --bs-primary-rgb: 46, 125, 50;
-      --bs-body-bg: #F8F9FA;
-    }
-    body { background-color: var(--bs-body-bg); overflow-x: hidden; }
-    #sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; width: 280px; background-color: var(--bs-primary); transition: all 0.3s; }
-    #sidebar.collapsed { width: 88px; }
-    #sidebar .nav-link span, #sidebar .sidebar-header .navbar-brand span { display: inline; transition: opacity 0.2s; }
-    #sidebar.collapsed .nav-link span, #sidebar.collapsed .sidebar-header .navbar-brand span { display: none; }
-    #sidebar .nav-link .bi, #sidebar .navbar-brand .bi { transition: font-size 0.2s; }
-    #sidebar.collapsed .nav-link, #sidebar.collapsed .navbar-brand { justify-content: center; }
-    #sidebar.collapsed .nav-link .bi, #sidebar.collapsed .navbar-brand .bi { font-size: 1.75rem; margin-right: 0 !important; }
-    #sidebar .nav-link { color: rgba(255, 255, 255, 0.8); transition: all 0.2s; display: flex; align-items: center; font-size: 0.95rem; }
-    #sidebar .nav-link:hover, #sidebar .nav-link.active { background-color: #1B5E20; color: white; }
-    #sidebar .navbar-brand { color: white; font-weight: bold; display: flex; align-items: center; }
-    .sidebar-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
-    #sidebar-toggle { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.5rem; }
-    #sidebar-toggle:hover { color: white; }
-    #content { width: 100%; transition: margin-left 0.3s; }
-    .text-primary { color: var(--bs-primary) !important; }
-    .btn-primary { --bs-btn-bg: var(--bs-primary); --bs-btn-border-color: var(--bs-primary); --bs-btn-hover-bg: #1B5E20; --bs-btn-hover-border-color: #1B5E20; }
-    #sidebar .sidebar-footer {
-        font-family: 'Lato', sans-serif;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        display: block;
-    }
-
-    #sidebar.collapsed .sidebar-footer {
-        display: none;
-    }
-    .form-floating > .form-control:not(:placeholder-shown) ~ label,
-    .form-floating > .form-control:focus ~ label,
-    .form-floating > .form-select ~ label,
-    .form-floating > textarea:not(:placeholder-shown) ~ label,
-    .form-floating > textarea:focus ~ label {
-        background-color: var(--bs-body-bg);
-        padding: 0 5px;
-        height: auto;
-        border-radius: 5px;
-    }
-    #sidebar.collapsed #sidebar-toggle {
-        display: none;
-    }
-    #sidebar.collapsed .sidebar-header {
-        justify-content: center;
-    }
-  </style>
+  
+  <!-- Estilos Globais -->
+  <link rel="stylesheet" href="public/css/main.css">
 </head>
 <body>
 <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
@@ -88,7 +42,12 @@
     <div class="container py-4">
       <h2 class="text-primary mb-4">Cadastro de Serviço</h2>
       <form id="servico-form">
-        <div class="form-floating mb-3"><select class="form-select" id="cliente" required><option value="">Selecione um cliente...</option></select><label for="cliente">Cliente</label></div>
+        <div class="form-floating mb-3">
+          <input type="text" class="form-control" id="search-cliente-input" placeholder="Digite para buscar um cliente..." autocomplete="off">
+          <label for="search-cliente-input">Cliente</label>
+          <input type="hidden" id="cliente" name="cliente">
+          <div class="list-group" id="cliente-search-results" style="position: absolute; z-index: 1000; width: 100%;"></div>
+        </div>
         <div class="form-floating mb-3"><select class="form-select" id="veiculo" required disabled><option value="">Selecione um veículo...</option></select><label for="veiculo">Veículo (Marca, Modelo, Placa)</label></div>
         <div class="form-floating mb-3"><input type="number" class="form-control" id="quilometragemVeiculo" placeholder="Quilometragem Atual"><label for="quilometragemVeiculo">Quilometragem Atual</label></input></div>
         <div class="form-floating mb-3"><input type="date" class="form-control" id="dataEntrada" placeholder="Data de Entrada" required><label for="dataEntrada">Data de Entrada</label></input></div>
@@ -99,22 +58,41 @@
         </div>
 
         <div class="card p-3 mb-3">
-          <h5 class="card-title text-primary mb-3">Itens do Serviço / Peças</h5>
+          <h5 class="card-title text-primary mb-3">Peças e Serviços</h5>
+          
+          <!-- Seção de Peças -->
+          <h6 class="text-secondary">Peças</h6>
           <table class="table table-sm">
               <thead>
                   <tr>
-                      <th style="width: 50%;">Descrição</th>
+                      <th style="width: 50%;">Descrição da Peça</th>
                       <th style="width: 15%;">Quantidade</th>
                       <th style="width: 20%;">Valor Unit. (R$)</th>
                       <th style="width: 10%;">Ações</th>
                   </tr>
               </thead>
-              <tbody id="itens-servico-body">
-                  <!-- Linhas de itens serão adicionadas aqui -->
+              <tbody id="pecas-servico-body">
+                  <!-- Linhas de peças serão adicionadas aqui -->
               </tbody>
           </table>
-          <button type="button" class="btn btn-outline-primary btn-sm mt-2 align-self-start" id="adicionar-item"><i class="bi bi-plus-circle"></i> Adicionar Item</button>
-          <hr>
+          <button type="button" class="btn btn-outline-primary btn-sm mt-2 align-self-start" id="adicionar-peca"><i class="bi bi-plus-circle"></i> Adicionar Peça</button>
+          
+          <hr class="my-4">
+
+          <!-- Seção de Mão de Obra -->
+          <h6 class="text-secondary">Mão de Obra</h6>
+          <div class="row">
+              <div class="col-md-4">
+                  <div class="form-floating">
+                      <input type="number" class="form-control" id="valor-mao-de-obra" placeholder="Valor da Mão de Obra" value="0" min="0" step="0.01" required>
+                      <label for="valor-mao-de-obra">Valor da Mão de Obra (R$)</label>
+                  </div>
+              </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Seção de Totais -->
           <div class="row justify-content-end">
               <div class="col-md-5">
                   <div class="d-flex justify-content-between align-items-center mb-2">
@@ -184,380 +162,12 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="renderer.js"></script>
-<script>
-    // Elementos do DOM
-    const form = document.getElementById('servico-form');
-    const selectCliente = document.getElementById('cliente');
-    const selectVeiculo = document.getElementById('veiculo');
-    const quilometragemInput = document.getElementById('quilometragemVeiculo');
-    const itensBody = document.getElementById('itens-servico-body');
-    const btnAdicionarItem = document.getElementById('adicionar-item');
-    const subtotalDisplay = document.getElementById('subtotal-servico');
-    const descontoInput = document.getElementById('desconto-percentual');
-    const valorDescontoDisplay = document.getElementById('valor-desconto');
-    const totalFinalDisplay = document.getElementById('total-final-servico');
-    const formaPagamentoSelect = document.getElementById('formaPagamento');
-    const parcelasContainer = document.getElementById('parcelas-container');
-    const numeroParcelasInput = document.getElementById('numeroParcelas');
-    const valorParcelaDisplay = document.getElementById('valor-parcela-display');
 
-    let listaClientes = [];
-    let listaVeiculos = [];
+<!-- Scripts da Aplicação -->
+<script src="public/js/utils.js"></script>
+<script src="public/js/validation.js"></script>
+<script src="public/js/main.js" defer></script>
+<script src="public/js/cadastro-servico.js" defer></script>
 
-    let config = {};
-
-    // Carregar dados iniciais
-    async function carregarDadosIniciais() {
-        try {
-            const [clientes, veiculos, loadedConfig] = await Promise.all([
-                lerDados("clientes.json"),
-                lerDados("veiculos.json"),
-                lerDados("configuracao.json")
-            ]);
-
-            listaClientes = clientes || [];
-            listaVeiculos = veiculos || [];
-            config = loadedConfig || {};
-
-            // Popular clientes
-            listaClientes.forEach(cliente => {
-                const option = document.createElement('option');
-                option.value = cliente.documento; // Usar um ID único
-                option.textContent = cliente.nome;
-                selectCliente.appendChild(option);
-            });
-
-            // Popular opções de parcelamento
-            const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
-            numeroParcelasInput.innerHTML = '';
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = `${i}x`;
-                if (i === 1) {
-                    option.selected = true;
-                }
-                numeroParcelasInput.appendChild(option);
-            }
-
-            selectVeiculo.disabled = true;
-            selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-
-            adicionarItem(); // Adiciona a primeira linha de item
-            descontoInput.addEventListener('input', calcularTotal);
-        } catch (error) {
-            console.error("Erro ao carregar dados iniciais:", error);
-        }
-    }
-
-    // Lógica para popular veículos baseados no cliente
-    selectCliente.addEventListener('change', () => {
-        const clienteDoc = selectCliente.value;
-        selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-        selectVeiculo.disabled = true;
-        quilometragemInput.value = ''; // Limpa o campo de KM
-
-        if (clienteDoc) {
-            const cliente = listaClientes.find(c => c.documento === clienteDoc);
-            const veiculosDoCliente = listaVeiculos.filter(v => v.cliente === cliente.nome);
-
-            if (veiculosDoCliente.length > 0) {
-                veiculosDoCliente.forEach(veiculo => {
-                    const option = document.createElement('option');
-                    option.value = veiculo.placa;
-                    option.textContent = `${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`;
-                    selectVeiculo.appendChild(option);
-                });
-                selectVeiculo.disabled = false;
-            } else {
-                alert('Este cliente não possui veículos cadastrados.');
-            }
-        }
-    });
-
-    // Nova lógica para carregar KM ao selecionar veículo
-    selectVeiculo.addEventListener('change', () => {
-        const placaSelecionada = selectVeiculo.value;
-        if (placaSelecionada) {
-            const veiculo = listaVeiculos.find(v => v.placa === placaSelecionada);
-            if (veiculo) {
-                quilometragemInput.value = veiculo.quilometragem || '';
-            }
-        } else {
-            quilometragemInput.value = '';
-        }
-    });
-
-    // Funções da tabela de itens
-    function adicionarItem() {
-        const row = document.createElement('tr');
-        row.classList.add('item-row');
-        row.innerHTML = `
-            <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição do item" required></td>
-            <td><input type="number" class="form-control form-control-sm" name="quantidade" value="1" min="1" step="1" required></td>
-            <td><input type="number" class="form-control form-control-sm" name="valor" placeholder="0.00" min="0" step="0.01" required></td>
-            <td><button type="button" class="btn btn-danger btn-sm" onclick="removerItem(this)"><i class="bi bi-trash"></i></button></td>
-        `;
-        itensBody.appendChild(row);
-
-        // Adiciona listeners para recalcular o total ao alterar quantidade ou valor
-        row.querySelector('[name=quantidade]').addEventListener('input', calcularTotal);
-        row.querySelector('[name=valor]').addEventListener('input', calcularTotal);
-        calcularTotal();
-    }
-
-    function removerItem(button) {
-        // Não permite remover a última linha
-        if (itensBody.querySelectorAll('tr').length > 1) {
-            button.closest('tr').remove();
-            calcularTotal();
-        } else {
-            alert('É necessário pelo menos um item no serviço.');
-        }
-    }
-
-    function calcularTotal() {
-        let subtotal = 0;
-        itensBody.querySelectorAll('.item-row').forEach(row => {
-            const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
-            subtotal += quantidade * valor;
-        });
-
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
-        const descontoValor = subtotal * (descontoPercentual / 100);
-        const totalFinal = subtotal - descontoValor;
-
-        subtotalDisplay.textContent = `R$ ${subtotal.toFixed(2)}`;
-        valorDescontoDisplay.textContent = `- R$ ${descontoValor.toFixed(2)}`;
-        totalFinalDisplay.textContent = `R$ ${totalFinal.toFixed(2)}`;
-        atualizarValorParcela(); // Adicionado aqui
-    }
-
-    function atualizarValorParcela() {
-        const jurosInicial = parseFloat(config.jurosInicial) || 0;
-        const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
-        const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
-        const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
-
-        if (formaPagamentoSelect.value !== 'Cartão de Crédito') {
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) {
-                    option.textContent = `${i}x`;
-                }
-            }
-            return;
-        }
-
-        let subtotal = 0;
-        itensBody.querySelectorAll('.item-row').forEach(row => {
-            const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
-            subtotal += quantidade * valor;
-        });
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
-        const descontoValor = subtotal * (descontoPercentual / 100);
-        const totalFinal = subtotal - descontoValor;
-
-        if (totalFinal > 0) {
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) {
-                    let valorParcela;
-                    if (i <= parcelasSemJuros) {
-                        valorParcela = totalFinal / i;
-                        option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)} (sem juros)`;
-                    } else {
-                        const taxaPercentual = jurosInicial + ((i - parcelasSemJuros -1) * acrescimoParcela);
-                        const i_juros = taxaPercentual / 100;
-
-                        if (i_juros > 0) {
-                            // Tabela Price
-                            const n_parcelas = i;
-                            const pv = totalFinal;
-                            
-                            valorParcela = pv * (i_juros * Math.pow(1 + i_juros, n_parcelas)) / (Math.pow(1 + i_juros, n_parcelas) - 1);
-                            
-                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)} `; //(${taxaPercentual.toFixed(2)}%)`;
-                        } else {
-                            valorParcela = totalFinal / i;
-                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)}`;
-                        }
-                    }
-                }
-            }
-        } else {
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) {
-                    option.textContent = `${i}x`;
-                }
-            }
-        }
-    }
-
-    btnAdicionarItem.addEventListener('click', adicionarItem);
-
-    // Listener para forma de pagamento que estava faltando no bloco anterior
-    formaPagamentoSelect.addEventListener('change', () => {
-        if (formaPagamentoSelect.value === 'Cartão de Crédito') {
-            parcelasContainer.style.display = 'block';
-        } else {
-            parcelasContainer.style.display = 'none';
-        }
-        atualizarValorParcela();
-    });
-
-
-    // L3gica de salvamento do formul3rio
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const itens = [];
-        let subtotal = 0;
-        itensBody.querySelectorAll('.item-row').forEach(row => {
-            const descricao = row.querySelector('[name=descricao]').value;
-            const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
-            if(descricao && quantidade > 0 && valor >= 0) {
-                itens.push({ descricao, quantidade, valor });
-                subtotal += quantidade * valor;
-            }
-        });
-
-        if (itens.length === 0) {
-            showAlert('Adicione pelo menos um item válido ao serviço.', 'warning');
-            return;
-        }
-
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
-        const descontoValor = subtotal * (descontoPercentual / 100);
-        const totalFinal = subtotal - descontoValor;
-
-        const placaVeiculo = selectVeiculo.value;
-        const novaQuilometragem = quilometragemInput.value;
-        if (placaVeiculo && novaQuilometragem) {
-            const veiculosAtuais = await lerDados('veiculos.json');
-            const veiculoIndex = veiculosAtuais.findIndex(v => v.placa === placaVeiculo);
-            if (veiculoIndex !== -1) {
-                const kmAntiga = parseInt(veiculosAtuais[veiculoIndex].quilometragem, 10) || 0;
-                const kmNova = parseInt(novaQuilometragem, 10);
-                if (kmNova >= kmAntiga) {
-                    veiculosAtuais[veiculoIndex].quilometragem = kmNova;
-                    await salvarDados('veiculos.json', veiculosAtuais);
-                    listaVeiculos = veiculosAtuais;
-                }
-            }
-        }
-
-        const servicos = await lerDados('servicos.json') || [];
-        const maiorId = servicos.reduce((max, s) => (s.id > max) ? s.id : max, 0);
-        const novoServicoId = maiorId + 1;
-
-        const clienteSelecionado = listaClientes.find(c => c.documento === selectCliente.value);
-        const formaPagamento = formaPagamentoSelect.value;
-        const numeroParcelas = parseInt(numeroParcelasInput.value, 10) || 1;
-
-        let valorFinalParaSalvar = totalFinal;
-        let statusPagamento = 'Pendente';
-
-        if (formaPagamento === 'Cartão de Crédito') {
-            statusPagamento = 'Pago';
-            const jurosInicial = parseFloat(config.jurosInicial) || 0;
-            const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
-            const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
-
-            if (numeroParcelas > parcelasSemJuros) {
-                const taxaPercentual = jurosInicial + ((numeroParcelas - parcelasSemJuros - 1) * acrescimoParcela);
-                const i_juros = taxaPercentual / 100;
-                if (i_juros > 0) {
-                    const valorParcela = totalFinal * (i_juros * Math.pow(1 + i_juros, numeroParcelas)) / (Math.pow(1 + i_juros, numeroParcelas) - 1);
-                    valorFinalParaSalvar = valorParcela * numeroParcelas;
-                }
-            }
-        }
-
-        const novoServico = {
-            id: novoServicoId,
-            clienteNome: clienteSelecionado.nome,
-            clienteDoc: selectCliente.value,
-            placaVeiculo: selectVeiculo.value,
-            dataEntrada: document.getElementById('dataEntrada').value,
-            problemaRelatado: document.getElementById('problemaRelatado').value,
-            mecanico: document.getElementById('mecanico').value,
-            status: document.getElementById('statusServico').value,
-            statusPagamento: statusPagamento,
-            itens: itens,
-            valor: valorFinalParaSalvar,
-            descontoPercentual: descontoPercentual,
-            descontoValor: descontoValor,
-            quilometragem: novaQuilometragem,
-            formaPagamento: formaPagamento,
-            parcelas: formaPagamento === 'Cartão de Crédito' ? numeroParcelas : null,
-            pagamentos: []
-        };
-
-        if (formaPagamento === 'Cartão de Crédito') {
-            const pagamento = {
-                id: Date.now(),
-                data: new Date().toISOString().split('T')[0],
-                valor: valorFinalParaSalvar,
-                metodo: 'Cartão de Crédito',
-                anotacao: `Pagamento em ${numeroParcelas}x`
-            };
-            novoServico.pagamentos.push(pagamento);
-        }
-
-        servicos.push(novoServico);
-        await salvarDados('servicos.json', servicos);
-
-        showAlert('✅ Serviço salvo com sucesso!');
-        form.reset();
-        selectCliente.value = '';
-        selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-        selectVeiculo.disabled = true;
-        quilometragemInput.value = '';
-        itensBody.innerHTML = '';
-        adicionarItem();
-        formaPagamentoSelect.dispatchEvent(new Event('change'));
-    });
-
-    window.addEventListener('DOMContentLoaded', carregarDadosIniciais);
-</script>
-<script>
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  const toggleIcon = toggleBtn.querySelector('i');
-  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
-
-  function updateSidebar() {
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    if (isCollapsed) {
-      toggleIcon.classList.remove('bi-x-lg');
-      toggleIcon.classList.add('bi-list');
-    } else {
-      toggleIcon.classList.remove('bi-list');
-      toggleIcon.classList.add('bi-x-lg');
-    }
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    updateSidebar();
-  });
-
-  navbarBrand.addEventListener('click', (e) => {
-    if (sidebar.classList.contains('collapsed')) {
-      e.preventDefault();
-      sidebar.classList.remove('collapsed');
-      updateSidebar();
-    }
-  });
-
-  // Set initial state in case it starts collapsed
-  updateSidebar();
-</script>
 </body>
-</html>dy>
-</html>>
+</html>

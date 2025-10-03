@@ -1,14 +1,14 @@
 {
-  "nomeOficina": "Engrenagem Mestra",
+  "nomeOficina": "Engrenagem Mestratgeste",
   "endereco": "Rua Manoel Marinho Cunha 245, Alvorada RS",
   "telefone": "51 980149570",
   "email": "engremestra@gmail.com",
   "cnpj": "24.356.524/0001-88",
   "nomeResponsavel": "Sidnei Anderson Oliveira da Silva",
-  "maxParcelas": "10",
-  "jurosInicial": "4.29",
-  "acrescimoParcela": "1.28",
-  "parcelasSemJuros": "3",
+  "maxParcelas": "13",
+  "jurosInicial": "4.33",
+  "acrescimoParcela": "1.33",
+  "parcelasSemJuros": "5",
   "logoPath": "data/logo.png",
   "assinaturaPath": "data/assinatura.png"
 }

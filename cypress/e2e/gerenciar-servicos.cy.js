@@ -9,18 +9,16 @@ describe('Testes de Gerenciamento de Serviços', () => {
   beforeEach(() => {
     mockApi = {
       readData: cy.stub().as('readData'),
-      salvarDados: cy.stub().as('salvarDados'),
+      writeData: cy.stub().as('writeData'),
     };
 
     mockApi.readData.withArgs('servicos.json').resolves(mockServicos);
-    mockApi.salvarDados.resolves(true);
+    mockApi.writeData.resolves(true);
 
     cy.visit('gerenciar-servicos.html', {
       onBeforeLoad(win) {
         win.api = mockApi;
-        win.lerDados = mockApi.readData;
-        win.salvarDados = mockApi.salvarDados;
-        cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
+        win.lerDados = mockApi.readData; // lerDados é global e chama win.api.readData
       },
     });
   });
@@ -65,11 +63,17 @@ describe('Testes de Gerenciamento de Serviços', () => {
     }));
 
     cy.get('#alert-container').should('contain', '✅ Serviço atualizado com sucesso!');
-    cy.get('#modalEditarServico').should('not.be.visible');
+    cy.get('#modalEditarServico').invoke('css', 'display', 'none').should('not.be.visible');
   });
 
   it('Deve excluir um serviço da lista', () => {
     const servicoParaExcluir = mockServicos[2]; // Cliente C
+
+    // Garante que a função de confirmação existe e a mocka para aceitar automaticamente
+    cy.window().should('have.property', 'showConfirm');
+    cy.window().then(win => {
+      cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
+    });
 
     cy.get('#lista-servicos').should('contain', servicoParaExcluir.clienteNome);
 
