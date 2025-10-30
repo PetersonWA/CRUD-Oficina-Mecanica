@@ -2,7 +2,8 @@ console.log("main.js is being executed");
 
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
-const fs = require("fs");
+const database = require("./database.js");
+const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard } = database; // Importa a instância do DB
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -18,43 +19,393 @@ function createWindow() {
   win.loadFile("index.html");
 }
 
-const dataDir = path.join(__dirname, "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
-
-function criarArquivoSeNaoExiste(nome) {
-  const filePath = path.join(dataDir, nome);
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, "[]");
-  }
-}
-
-["clientes.json", "veiculos.json", "servicos.json", "configuracao.json", "orcamentos.json"].forEach(
-  criarArquivoSeNaoExiste
-);
-
-ipcMain.handle("read-data", (event, filename) => {
-  console.log(`Reading data from ${filename}`);
-  const filePath = path.join(dataDir, filename);
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
-  const content = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(content);
+// Handlers IPC para Clientes
+ipcMain.handle("get-clientes", () => {
+  const stmt = db.prepare("SELECT * FROM clientes WHERE is_deleted = 0 ORDER BY nome");
+  return stmt.all();
 });
 
-ipcMain.handle("write-data", (event, filename, data) => {
-  console.log(`Writing data to ${filename}`);
-  const filePath = path.join(dataDir, filename);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  return true;
+ipcMain.handle("add-cliente", (event, cliente) => {
+  const stmt = db.prepare(
+    "INSERT INTO clientes (nome, cpf_cnpj, telefone, email, endereco) VALUES (?, ?, ?, ?, ?)"
+  );
+  const result = stmt.run(
+    cliente.nome,
+    cliente.cpf_cnpj,
+    cliente.telefone,
+    cliente.email,
+    cliente.endereco
+  );
+  return { id: result.lastInsertRowid, ...cliente };
 });
 
+ipcMain.handle("update-cliente", (event, cliente) => {
+  const stmt = db.prepare(
+    "UPDATE clientes SET nome = ?, cpf_cnpj = ?, telefone = ?, email = ?, endereco = ? WHERE id = ?"
+  );
+  const result = stmt.run(
+    cliente.nome,
+    cliente.cpf_cnpj,
+    cliente.telefone,
+    cliente.email,
+    cliente.endereco,
+    cliente.id
+  );
+  return result.changes > 0;
+});
+
+ipcMain.handle("delete-cliente", (event, id) => {
+  // Soft delete do cliente e dos seus veículos associados
+  const transaction = db.transaction((clienteId) => {
+    const stmtVeiculos = db.prepare("UPDATE veiculos SET is_deleted = 1 WHERE cliente_id = ?");
+    stmtVeiculos.run(clienteId);
+    
+    const stmtCliente = db.prepare("UPDATE clientes SET is_deleted = 1 WHERE id = ?");
+    const result = stmtCliente.run(clienteId);
+    
+    return result.changes > 0;
+  });
+
+  try {
+    return transaction(id);
+  } catch (error) {
+    console.error("Erro ao arquivar cliente:", error);
+    return false;
+  }
+});
+
+// Handlers IPC para Veículos
+ipcMain.handle("get-veiculos", () => {
+  const stmt = db.prepare(`
+    SELECT v.*, c.nome as cliente_nome 
+    FROM veiculos v
+    JOIN clientes c ON v.cliente_id = c.id
+    WHERE v.is_deleted = 0 AND c.is_deleted = 0
+    ORDER BY c.nome, v.modelo
+  `);
+  return stmt.all();
+});
+
+ipcMain.handle("add-veiculo", (event, veiculo) => {
+  const stmt = db.prepare(
+    "INSERT INTO veiculos (cliente_id, placa, marca, modelo, ano, cor, quilometragem) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  );
+  const result = stmt.run(
+    veiculo.cliente_id,
+    veiculo.placa,
+    veiculo.marca,
+    veiculo.modelo,
+    veiculo.ano,
+    veiculo.cor,
+    veiculo.quilometragem
+  );
+  return { id: result.lastInsertRowid, ...veiculo };
+});
+
+ipcMain.handle("update-veiculo", (event, veiculo) => {
+  const stmt = db.prepare(
+    "UPDATE veiculos SET cliente_id = ?, placa = ?, marca = ?, modelo = ?, ano = ?, cor = ?, quilometragem = ? WHERE id = ?"
+  );
+  const result = stmt.run(
+    veiculo.cliente_id,
+    veiculo.placa,
+    veiculo.marca,
+    veiculo.modelo,
+    veiculo.ano,
+    veiculo.cor,
+    veiculo.quilometragem,
+    veiculo.id
+  );
+  return result.changes > 0;
+});
+
+ipcMain.handle("delete-veiculo", (event, id) => {
+  const stmt = db.prepare("UPDATE veiculos SET is_deleted = 1 WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+// Handlers IPC para Orçamentos/Serviços
+ipcMain.handle("add-orcamento", (event, orcamento) => {
+  const transaction = db.transaction((orc) => {
+    const servicoStmt = db.prepare(
+      "INSERT INTO servicos (cliente_id, veiculo_id, data, descricao_problema, valor_total, status) VALUES (?, ?, ?, ?, ?, ?)"
+    );
+    const servicoResult = servicoStmt.run(
+      orc.cliente_id,
+      orc.veiculo_id,
+      orc.data,
+      orc.descricao_problema,
+      orc.valor_total,
+      "Pendente" // Status inicial padrão para orçamentos
+    );
+    const servicoId = servicoResult.lastInsertRowid;
+
+    const itemStmt = db.prepare(
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const item of orc.itens) {
+      itemStmt.run(
+        servicoId,
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        item.valor_unitario
+      );
+    }
+
+    // Atualiza a quilometragem do veículo se a nova for maior
+    if (orc.quilometragem) {
+      db.prepare(
+        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
+      ).run(orc.quilometragem, orc.veiculo_id, orc.quilometragem);
+    }
+
+    return servicoId;
+  });
+
+  try {
+    const newId = transaction(orcamento);
+    return { success: true, id: newId };
+  } catch (error) {
+    console.error("Erro ao adicionar orçamento:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("get-orcamentos", () => {
+  const stmt = db.prepare(`
+    SELECT s.*, c.nome as cliente_nome, v.placa as veiculo_placa
+    FROM servicos s
+    JOIN clientes c ON s.cliente_id = c.id
+    JOIN veiculos v ON s.veiculo_id = v.id
+    WHERE s.is_deleted = 0 AND s.status IN ('Pendente', 'Aprovado', 'Recusado')
+    ORDER BY s.data DESC
+  `);
+  return stmt.all();
+});
+
+ipcMain.handle("update-orcamento-status", (event, { id, status }) => {
+  const stmt = db.prepare("UPDATE servicos SET status = ? WHERE id = ?");
+  const result = stmt.run(status, id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("delete-orcamento", (event, id) => {
+  // Orçamentos são apenas serviços com status específico, então apenas arquivamos
+  const stmt = db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("get-orcamento-itens", (event, servicoId) => {
+  const stmt = db.prepare("SELECT * FROM itens_servico WHERE servico_id = ?");
+  return stmt.all(servicoId);
+});
+
+ipcMain.handle("get-orcamento-by-id", (event, id) => {
+  const orcamento = db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
+  if (orcamento) {
+    orcamento.itens = db
+      .prepare("SELECT * FROM itens_servico WHERE servico_id = ?")
+      .all(id);
+  }
+  return orcamento;
+});
+
+ipcMain.handle("update-orcamento", (event, orcamento) => {
+  const transaction = db.transaction((orc) => {
+    const servicoStmt = db.prepare(
+      "UPDATE servicos SET cliente_id = ?, veiculo_id = ?, data = ?, descricao_problema = ?, valor_total = ?, status = ? WHERE id = ?"
+    );
+    servicoStmt.run(
+      orc.cliente_id,
+      orc.veiculo_id,
+      orc.data,
+      orc.descricao_problema,
+      orc.valor_total,
+      orc.status,
+      orc.id
+    );
+
+    db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(orc.id);
+
+    const itemStmt = db.prepare(
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const item of orc.itens) {
+      itemStmt.run(
+        orc.id,
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        item.valor_unitario
+      );
+    }
+
+    // Atualiza a quilometragem do veículo se a nova for maior
+    if (orc.quilometragem) {
+      db.prepare(
+        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
+      ).run(orc.quilometragem, orc.veiculo_id, orc.quilometragem);
+    }
+
+    return orc.id;
+  });
+
+  try {
+    const updatedId = transaction(orcamento);
+    return { success: true, id: updatedId };
+  } catch (error) {
+    console.error("Erro ao atualizar orçamento:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("add-servico", (event, servico) => {
+  const transaction = db.transaction((s) => {
+    let clienteId = s.cliente_id;
+    let veiculoId = s.veiculo_id;
+
+    // Se for uma OS Manual (sem cliente_id), cria registros "fantasma"
+    if (!clienteId && s.cliente_nome_manual) {
+        const clienteResult = db.prepare("INSERT INTO clientes (nome, cpf_cnpj) VALUES (?, ?)")
+                                .run(`[Manual] ${s.cliente_nome_manual}`, `manual_${Date.now()}`);
+        clienteId = clienteResult.lastInsertRowid;
+
+        const veiculoResult = db.prepare("INSERT INTO veiculos (cliente_id, placa, marca, modelo) VALUES (?, ?, ?, ?)")
+                                .run(clienteId, `manual_${Date.now()}`, s.veiculo_desc_manual || 'N/A', '');
+        veiculoId = veiculoResult.lastInsertRowid;
+    }
+
+    // 1. Insere o serviço principal
+    const servicoStmt = db.prepare(
+      "INSERT INTO servicos (cliente_id, veiculo_id, data, descricao_problema, mecanico_responsavel, valor_total, status, valor_original, valor_desconto, forma_pagamento, numero_parcelas, status_pagamento, cliente_nome_manual, veiculo_desc_manual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+    const servicoResult = servicoStmt.run(
+      clienteId,
+      veiculoId,
+      s.data,
+      s.problema_relatado,
+      s.mecanico_responsavel,
+      s.valor_total,
+      s.status,
+      s.valor_original,
+      s.valor_desconto,
+      s.forma_pagamento,
+      s.numero_parcelas,
+      s.status_pagamento,
+      s.cliente_nome_manual,
+      s.veiculo_desc_manual
+    );
+    const servicoId = servicoResult.lastInsertRowid;
+
+    // 2. Insere os itens
+    const itemStmt = db.prepare(
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const item of s.itens) {
+      itemStmt.run(
+        servicoId,
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        item.valor_unitario
+      );
+    }
+
+    // 3. Insere o pagamento inicial, se houver
+    if (s.pagamento_inicial) {
+      const pagtoStmt = db.prepare(
+        "INSERT INTO pagamentos (servico_id, metodo, valor, data) VALUES (?, ?, ?, ?)"
+      );
+      pagtoStmt.run(
+        servicoId,
+        s.pagamento_inicial.forma,
+        s.pagamento_inicial.valor,
+        s.pagamento_inicial.data
+      );
+    }
+
+    // 4. Atualiza a quilometragem do veículo (apenas se for um veículo existente)
+    if (s.quilometragem && s.veiculo_id) {
+      db.prepare(
+        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
+      ).run(s.quilometragem, s.veiculo_id, s.quilometragem);
+    }
+
+    return servicoId;
+  });
+
+  try {
+    const newId = transaction(servico);
+    return { success: true, id: newId };
+  } catch (error) {
+    console.error("Erro ao adicionar serviço:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handlers para Configurações (Banco de Dados)
+ipcMain.handle("get-all-configs", () => {
+  const stmt = db.prepare("SELECT chave, valor FROM configuracoes");
+  const rows = stmt.all();
+  const config = {};
+  for (const row of rows) {
+    config[row.chave] = row.valor;
+  }
+
+  // Converter caminhos de imagem para URLs de arquivo para que o renderer possa exibi-los
+  const userDataPath = app.getPath("userData");
+  if (config.logoPath) {
+    const absolutePath = path.join(userDataPath, config.logoPath);
+    config.logoPath = require('url').pathToFileURL(absolutePath).href;
+  }
+  if (config.assinaturaPath) {
+    const absolutePath = path.join(userDataPath, config.assinaturaPath);
+    config.assinaturaPath = require('url').pathToFileURL(absolutePath).href;
+  }
+
+  return config;
+});
+
+ipcMain.handle("save-configs", (event, configData) => {
+  const stmt = db.prepare(
+    "INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES (?, ?)"
+  );
+      const transaction = db.transaction((configs) => {
+          const userDataPath = app.getPath("userData");
+          // Converte URLs de arquivo de volta para caminhos relativos para armazenamento
+          if (configs.logoPath && configs.logoPath.startsWith('file:///')) {
+              const filePath = require('url').fileURLToPath(configs.logoPath);
+              configs.logoPath = path.relative(userDataPath, filePath).replace(/\\/g, "/");
+          }
+          if (configs.assinaturaPath && configs.assinaturaPath.startsWith('file:///')) {
+              const filePath = require('url').fileURLToPath(configs.assinaturaPath);
+              configs.assinaturaPath = path.relative(userDataPath, filePath).replace(/\\/g, "/");
+          }
+  
+          for (const chave in configs) {
+              stmt.run(chave, configs[chave]);
+          }
+      });  try {
+    transaction(configData);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao salvar configurações:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// O handler save-file pode ser mantido se for para outros propósitos (ex: logo, assinatura)
 ipcMain.handle("save-file", (event, fileBuffer, destinationFilename) => {
+  const dataDir = path.join(app.getPath("userData"), "data");
+  if (!require("fs").existsSync(dataDir)) {
+    require("fs").mkdirSync(dataDir);
+  }
   const destPath = path.join(dataDir, destinationFilename);
   try {
-    fs.writeFileSync(destPath, Buffer.from(fileBuffer));
+    require("fs").writeFileSync(destPath, Buffer.from(fileBuffer));
     return path.join("data", destinationFilename).replace(/\\/g, "/");
   } catch (error) {
     console.error("Erro ao salvar arquivo:", error);
@@ -62,13 +413,305 @@ ipcMain.handle("save-file", (event, fileBuffer, destinationFilename) => {
   }
 });
 
+// Handlers IPC para Gerenciar Serviços
+
+// Handlers IPC para Pagamentos
+ipcMain.handle("get-servicos-para-pagamentos", (event, busca) => {
+  return getServicosParaPagamentos(busca);
+});
+
+ipcMain.handle("get-servico-com-pagamentos", (event, servicoId) => {
+  return getServicoComPagamentos(servicoId);
+});
+
+ipcMain.handle("adicionar-pagamento", (event, pagamento) => {
+  return adicionarPagamento(pagamento);
+});
+
+ipcMain.handle('get-dados-dashboard', (event, filtros) => {
+  return getDadosDashboard(filtros);
+});
+
+ipcMain.handle("get-servicos", () => {
+  // A consulta principal busca os serviços
+  const stmt = db.prepare(`
+    SELECT 
+      s.id,
+      COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
+      COALESCE(s.veiculo_desc_manual, v.placa) as placaVeiculo,
+      s.data as dataEntrada,
+      s.data_conclusao as dataConclusao,
+      s.valor_total as valorTotal,
+      s.mecanico_responsavel as mecanico,
+      s.status,
+      s.status_pagamento as statusPagamento
+    FROM servicos s
+    LEFT JOIN clientes c ON s.cliente_id = c.id
+    LEFT JOIN veiculos v ON s.veiculo_id = v.id
+    WHERE s.is_deleted = 0 AND s.status NOT IN ('Pendente', 'Recusado')
+    ORDER BY s.id DESC
+  `);
+  const servicos = stmt.all();
+
+  // A função de edição no frontend precisa dos itens, então vamos buscá-los
+  const stmtItens = db.prepare(
+    "SELECT * FROM itens_servico WHERE servico_id = ?"
+  );
+  for (const servico of servicos) {
+    // O frontend espera 'valor' e não 'valor_unitario' no objeto do item
+    servico.itens = stmtItens.all(servico.id).map((item) => ({
+      descricao: item.descricao,
+      tipo: item.tipo,
+      quantidade: item.quantidade,
+      valor: item.valor_unitario,
+    }));
+  }
+  return servicos;
+});
+
+ipcMain.handle("update-servico", (event, servico) => {
+  const transaction = db.transaction((s) => {
+    // 1. Atualiza a tabela principal de serviços
+    // Mapeia os nomes do frontend (ex: dataEntrada) para os nomes do DB (ex: data)
+    const servicoStmt = db.prepare(
+      `UPDATE servicos 
+       SET data = ?, mecanico_responsavel = ?, status = ?, valor_total = ?, data_conclusao = ?
+       WHERE id = ?`
+    );
+    servicoStmt.run(
+      s.dataEntrada,
+      s.mecanico,
+      s.status,
+      s.valorTotal,
+      s.dataConclusao,
+      s.id
+    );
+
+    // 2. Apaga os itens antigos para substituir pelos novos
+    db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(s.id);
+
+    // 3. Insere os novos itens
+    const itemStmt = db.prepare(
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const item of s.itens) {
+      // Mapeia 'valor' do frontend para 'valor_unitario' do DB
+      itemStmt.run(
+        s.id,
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        item.valor
+      );
+    }
+    return s.id;
+  });
+
+  try {
+    transaction(servico);
+    return true; // Retorna sucesso
+  } catch (error) {
+    console.error("Erro ao atualizar serviço:", error);
+    return false; // Retorna falha
+  }
+});
+
+ipcMain.handle("delete-servico", (event, id) => {
+  try {
+    const stmt = db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
+    const result = stmt.run(id);
+    if (result.changes > 0) {
+        return { success: true };
+    } else {
+        return { success: false, error: "Serviço não encontrado com o ID fornecido." };
+    }
+  } catch (error) {
+    console.error("Erro ao arquivar serviço:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("print-orcamento", async (event, id) => {
+  // 1. Get all data
+  const budget = db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
+  if (!budget) return false;
+
+  budget.itens = db
+    .prepare("SELECT * FROM itens_servico WHERE servico_id = ?")
+    .all(id);
+  
+  let client = {};
+  let vehicle = {};
+
+  // If a client is linked, fetch their data.
+  if (budget.cliente_id) {
+    client = db.prepare("SELECT * FROM clientes WHERE id = ?").get(budget.cliente_id) || {};
+    vehicle = db.prepare("SELECT * FROM veiculos WHERE id = ?").get(budget.veiculo_id) || {};
+  }
+
+  // If it's a manual service, overwrite with manual data for the template
+  if (budget.cliente_nome_manual) {
+    client.nome = budget.cliente_nome_manual;
+    client.cpf_cnpj = '';
+    client.telefone = '';
+    client.email = '';
+    client.endereco = '';
+  }
+  if (budget.veiculo_desc_manual) {
+    vehicle.placa = budget.veiculo_desc_manual;
+    vehicle.marca = '';
+    vehicle.modelo = '';
+    vehicle.ano = '';
+    vehicle.cor = '';
+  }
+
+  const configRows = db.prepare("SELECT chave, valor FROM configuracoes").all();
+  const config = configRows.reduce((acc, row) => {
+    acc[row.chave] = row.valor;
+    return acc;
+  }, {});
+
+  // Convert relative image paths to absolute file URLs
+  const userDataPath = app.getPath("userData");
+  if (config.logoPath) {
+    const absolutePath = path.join(userDataPath, config.logoPath);
+    config.logoPath = require('url').pathToFileURL(absolutePath).href;
+  }
+  if (config.assinaturaPath) {
+    const absolutePath = path.join(userDataPath, config.assinaturaPath);
+    config.assinaturaPath = require('url').pathToFileURL(absolutePath).href;
+  }
+
+  // 2. Create a new hidden window
+  const printWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    show: true, // Show the window to act as a preview
+        webPreferences: {
+            preload: path.join(__dirname, 'print-preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+  });
+
+  printWindow.loadFile("template-orcamento.html");
+
+  // 3. Send data and print
+  printWindow.webContents.on("did-finish-load", () => {
+    printWindow.webContents.send("print-data", {
+      budget,
+      client,
+      vehicle,
+      config,
+    });
+  });
+
+  // 4. Listen for ready signal from template
+  ipcMain.removeHandler('ready-to-print');
+  ipcMain.handleOnce("ready-to-print", () => {
+    printWindow.webContents.print({}, (success, errorType) => {
+      if (!success) console.log(`Print failed: ${errorType}`);
+      printWindow.close();
+    });
+  });
+
+  ipcMain.removeHandler('print-error');
+  ipcMain.handleOnce("print-error", (event, error) => {
+    console.error("Error in print template:", error);
+    printWindow.close();
+  });
+
+  return true;
+});
+
+// Handlers for Archived Data
+ipcMain.handle("get-archived-clientes", () => {
+  const stmt = db.prepare("SELECT * FROM clientes WHERE is_deleted = 1 ORDER BY nome");
+  return stmt.all();
+});
+
+ipcMain.handle("get-archived-veiculos", () => {
+  const stmt = db.prepare("SELECT v.*, c.nome as cliente_nome FROM veiculos v JOIN clientes c ON v.cliente_id = c.id WHERE v.is_deleted = 1 ORDER BY c.nome, v.modelo");
+  return stmt.all();
+});
+
+ipcMain.handle("get-archived-servicos", () => {
+  const stmt = db.prepare(`
+    SELECT 
+      s.id,
+      COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
+      COALESCE(s.veiculo_desc_manual, v.placa) as placaVeiculo,
+      s.data as dataEntrada
+    FROM servicos s
+    LEFT JOIN clientes c ON s.cliente_id = c.id
+    LEFT JOIN veiculos v ON s.veiculo_id = v.id
+    WHERE s.is_deleted = 1
+    ORDER BY s.id DESC
+  `);
+  return stmt.all();
+});
+
+ipcMain.handle("restore-cliente", (event, id) => {
+  // When restoring a client, also restore their vehicles that were not individually archived
+  const transaction = db.transaction((clienteId) => {
+    const stmtVeiculos = db.prepare("UPDATE veiculos SET is_deleted = 0 WHERE cliente_id = ?");
+    stmtVeiculos.run(clienteId);
+    
+    const stmtCliente = db.prepare("UPDATE clientes SET is_deleted = 0 WHERE id = ?");
+    const result = stmtCliente.run(clienteId);
+    
+    return result.changes > 0;
+  });
+
+  try {
+    return transaction(id);
+  } catch (error) {
+    console.error("Erro ao restaurar cliente:", error);
+    return false;
+  }
+});
+
+ipcMain.handle("restore-veiculo", (event, id) => {
+  const stmt = db.prepare("UPDATE veiculos SET is_deleted = 0 WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("restore-servico", (event, id) => {
+  const stmt = db.prepare("UPDATE servicos SET is_deleted = 0 WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("permanently-delete-cliente", (event, id) => {
+  // ON DELETE CASCADE will handle vehicles
+  const stmt = db.prepare("DELETE FROM clientes WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("permanently-delete-veiculo", (event, id) => {
+  const stmt = db.prepare("DELETE FROM veiculos WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
+ipcMain.handle("permanently-delete-servico", (event, id) => {
+  // ON DELETE CASCADE will handle items and payments
+  const stmt = db.prepare("DELETE FROM servicos WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+});
+
 app.whenReady().then(() => {
+  database.initDb();
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         "Content-Security-Policy": [
-          "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net;",
+          "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' file: data:;",
         ],
       },
     });

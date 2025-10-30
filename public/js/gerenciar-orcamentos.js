@@ -1,443 +1,257 @@
-/* Scripts específicos para a página de Gerenciar Orçamentos */
 document.addEventListener('DOMContentLoaded', () => {
-  const listaOrcamentosTable = document.getElementById('lista-orcamentos');
-  if (!listaOrcamentosTable) return; // Exit if not on the right page
+    const listaOrcamentosTable = document.getElementById('lista-orcamentos');
+    if (!listaOrcamentosTable) return; // Sai se não estiver na página
 
-  const inputBusca = document.getElementById('inputBusca');
-  const campoBusca = document.getElementById('campoBusca');
-  const itensOrcamentoModalBody = document.getElementById('itens-orcamento-modal-body');
-  const orcamentoIdModal = document.getElementById('orcamento-id-modal');
-  const problemaRelatadoModal = document.getElementById('problema-relatado-modal');
+    let todosOrcamentos = [];
 
-  let todosOrcamentos = [];
-  let orcamentosFiltrados = [];
-  let todosClientes = [];
-  let todosVeiculos = [];
-  let paginaAtual = 1;
-  const itensPorPagina = 10;
-  let confirmacaoCallback = () => {};
-  let editModalInstance = null;
-
-  const modalConfirmacaoEl = document.getElementById('modalConfirmarExclusao');
-  const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
-  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
-  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
-
-  // Attach functions to window for inline event handlers
-  window.realizarBusca = realizarBusca;
-  window.limparBusca = limparBusca;
-  window.abrirModalVerItens = abrirModalVerItens;
-  window.abrirModalEditarOrcamento = abrirModalEditarOrcamento;
-  window.imprimirOrcamento = imprimirOrcamento;
-  window.excluirOrcamento = excluirOrcamento;
-  window.mudarPagina = mudarPagina;
-  window.atualizarValorTotalModal = atualizarValorTotalModal;
-
-  btnConfirmarExclusao.addEventListener('click', () => {
-    if(confirmacaoCallback) confirmacaoCallback();
-    modalConfirmacao.hide();
-  });
-
-  function showConfirm(message, callback) {
-    corpoModalConfirmacao.textContent = message;
-    confirmacaoCallback = callback;
-    modalConfirmacao.show();
-  }
-
-  window.showConfirm = showConfirm;
-
-  async function carregarDados() {
-    [todosOrcamentos, todosClientes, todosVeiculos] = await Promise.all([
-        lerDados('orcamentos.json'),
-        lerDados('clientes.json'),
-        lerDados('veiculos.json')
-    ]);
-    orcamentosFiltrados = todosOrcamentos.sort((a, b) => b.id - a.id);
-    renderizarPagina();
-  }
-
-  window.carregarDados = carregarDados;
-
-  function renderizarPagina() {
-    renderizarOrcamentos();
-    renderizarPaginacao();
-  }
-
-  function renderizarOrcamentos() {
-    const inicio = (paginaAtual - 1) * itensPorPagina;
-    const fim = inicio + itensPorPagina;
-    const orcamentosPagina = orcamentosFiltrados.slice(inicio, fim);
-
-    listaOrcamentosTable.innerHTML = orcamentosPagina.map(o => `
-      <tr>
-        <td>${String(o.id).padStart(6, '0')}</td>
-        <td>${o.clienteNome}</td>
-        <td>${o.placaVeiculo}</td>
-        <td>${o.data}</td>
-        <td>R$ ${formatarValor(o.valor)}</td>
-        <td><span class="badge bg-warning text-dark">${o.status}</span></td>
-        <td>
-          <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${o.id})"><i class="bi bi-eye"></i></button>
-          <button class="btn btn-sm btn-primary" onclick="abrirModalEditarOrcamento(${o.id})"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-secondary" onclick="imprimirOrcamento(${o.id})"><i class="bi bi-printer"></i></button>
-          <button class="btn btn-sm btn-danger" onclick="excluirOrcamento(${o.id})"><i class="bi bi-trash"></i></button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function renderizarPaginacao() {
-    const totalPaginas = Math.ceil(orcamentosFiltrados.length / itensPorPagina);
-    const paginacaoEl = document.getElementById('paginacao-orcamentos');
-    if (!paginacaoEl) return;
-
-    paginacaoEl.innerHTML = '';
-
-    if (totalPaginas <= 1) {
-        paginacaoEl.style.display = 'none';
-        return;
+    async function carregarDados() {
+        try {
+            todosOrcamentos = await window.api.getOrcamentos();
+            renderizarOrcamentos(todosOrcamentos);
+        } catch (error) {
+            console.error('Erro ao carregar orçamentos:', error);
+            showAlert('Falha ao carregar orçamentos.', 'danger');
+        }
     }
 
-    paginacaoEl.style.display = 'flex';
-
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous" onclick="mudarPagina(${paginaAtual - 1})"><span aria-hidden="true">&laquo;</span></a>`;
-    paginacaoEl.appendChild(prevLi);
-
-    for (let i = 1; i <= totalPaginas; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
-        paginacaoEl.appendChild(li);
-    }
-
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next" onclick="mudarPagina(${paginaAtual + 1})"><span aria-hidden="true">&raquo;</span></a>`;
-    paginacaoEl.appendChild(nextLi);
-  }
-
-  function mudarPagina(pagina) {
-    const totalPaginas = Math.ceil(orcamentosFiltrados.length / itensPorPagina);
-    if (pagina < 1 || pagina > totalPaginas) return;
-    paginaAtual = pagina;
-    renderizarPagina();
-  }
-
-  function realizarBusca() {
-    const termo = inputBusca.value.toLowerCase();
-    const campo = campoBusca.value;
-    if (!termo || !campo) {
-      orcamentosFiltrados = todosOrcamentos;
-    } else {
-      orcamentosFiltrados = todosOrcamentos.filter(o => {
-        const valorCampo = o[campo] ? String(o[campo]).toLowerCase() : '';
-        return valorCampo.includes(termo);
-      });
-    }
-    paginaAtual = 1;
-    renderizarPagina();
-  }
-
-  function limparBusca() {
-    inputBusca.value = '';
-    campoBusca.value = '';
-    orcamentosFiltrados = todosOrcamentos;
-    paginaAtual = 1;
-    renderizarPagina();
-  }
-
-  function abrirModalVerItens(id) {
-    const orcamento = todosOrcamentos.find(o => o.id === id);
-    if (orcamento) {
-      orcamentoIdModal.textContent = String(id).padStart(6, '0');
-      problemaRelatadoModal.textContent = orcamento.problemaRelatado;
-      itensOrcamentoModalBody.innerHTML = orcamento.itens.map(item => `
-        <tr>
-          <td>${item.descricao}</td>
-          <td>${item.quantidade}</td>
-          <td>R$ ${formatarValor(item.valor)}</td>
-          <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
-        </tr>
-      `).join('');
-      new bootstrap.Modal(document.getElementById('modalVerItens')).show();
-    }
-  }
-
-  async function imprimirOrcamento(id) {
-    const orcamento = todosOrcamentos.find(o => o.id === id);
-    if (!orcamento) {
-        showAlert('Orçamento não encontrado!', 'danger');
-        return;
-    }
-
-    const cliente = todosClientes.find(c => c.nome === orcamento.clienteNome);
-    const veiculo = todosVeiculos.find(v => v.placa === orcamento.placaVeiculo);
-    const config = await lerDados('configuracao.json');
-    const templateHtml = await fetch('template-orcamento.html').then(res => res.text());
-
-    if(!cliente || !veiculo) {
-        showAlert('Dados do cliente ou veículo não encontrados para este orçamento!', 'danger');
-        return;
-    }
-
-    const subtotal = orcamento.itens.reduce((acc, item) => acc + (item.quantidade * item.valor), 0);
-    const descontoValor = orcamento.descontoValor || 0;
-    const totalFinal = orcamento.valor;
-
-    const imagemAssinaturaHtml = config.assinaturaPath ? `<img src="${config.assinaturaPath}?t=${new Date().getTime()}" alt="Assinatura" class="signature-image">` : '';
-    let htmlFinal = templateHtml;
-    const replacements = {
-        '{{LOGO_PATH}}': config.logoPath ? `${config.logoPath}?t=${new Date().getTime()}` : '',
-        '{{IMAGEM_ASSINATURA}}': imagemAssinaturaHtml,
-        '{{NOME_OFICINA}}': config.nomeOficina || 'Nome da Oficina',
-        '{{NOME_RESPONSAVEL}}': config.nomeResponsavel || ' ',
-        '{{ENDERECO}}': config.endereco || 'Endereço da Oficina',
-        '{{TELEFONE}}': config.telefone || 'Telefone da Oficina',
-        '{{EMAIL}}': config.email || 'Email da Oficina',
-        '{{CNPJ}}': config.cnpj || 'CNPJ da Oficina',
-        '{{OS_ID}}': String(orcamento.id).padStart(6, '0'),
-        '{{DATA_EMISSAO}}': orcamento.data,
-        '{{DATA_VALIDADE}}': new Date(new Date(orcamento.data.split('/').reverse().join('-') + 'T00:00:00').getTime() + 10 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-        '{{NOME_CLIENTE}}': cliente.nome,
-        '{{TELEFONE_CLIENTE}}': cliente.telefone,
-        '{{EMAIL_CLIENTE}}': cliente.email,
-        '{{ENDERECO_CLIENTE}}': cliente.endereco,
-        '{{MODELO_VEICULO}}': `${veiculo.marca} ${veiculo.modelo}`,
-        '{{PLACA_VEICULO}}': veiculo.placa,
-        '{{ANO_VEICULO}}': veiculo.ano,
-        '{{KM_VEICULO}}': veiculo.quilometragem || 'N/A',
-        '{{OBS_INICIAIS}}': orcamento.problemaRelatado,
-        '{{SUBTOTAL}}': formatarValor(subtotal),
-        '{{DESCONTO}}': formatarValor(descontoValor),
-        '{{TOTAL}}': formatarValor(totalFinal)
-    };
-
-    let itensHtml = '';
-    orcamento.itens.forEach(item => {
-        itensHtml += `
+    function renderizarOrcamentos(orcamentos) {
+        listaOrcamentosTable.innerHTML = orcamentos.map(o => `
             <tr>
-              <td>${item.descricao}</td>
-              <td>${item.quantidade}</td>
-              <td>R$ ${formatarValor(item.valor)}</td>
-              <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
+                <td>${String(o.id).padStart(6, '0')}</td>
+                <td>${o.cliente_nome}</td>
+                <td>${o.veiculo_placa}</td>
+                <td>${new Date(o.data).toLocaleDateString('pt-BR')}</td>
+                <td>R$ ${o.valor_total.toFixed(2)}</td>
+                <td><span class="badge bg-warning text-dark">${o.status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${o.id})"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-sm btn-warning" onclick="abrirModalEditarOrcamento(${o.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-success" onclick="imprimirOrcamento(${o.id})"><i class="bi bi-printer"></i> Imprimir</button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirOrcamento(${o.id})"><i class="bi bi-trash"></i></button>
+                </td>
             </tr>
-        `;
-    });
-    replacements['{{LISTA_SERVICOS}}'] = itensHtml;
-
-    for (const [key, value] of Object.entries(replacements)) {
-        htmlFinal = htmlFinal.replace(new RegExp(key, 'g'), value);
+        `).join('');
     }
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.open();
-    printWindow.document.write(htmlFinal);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-  }
+    window.abrirModalVerItens = async (id) => {
+        try {
+            const itens = await window.api.getOrcamentoItens(id);
+            const orcamento = todosOrcamentos.find(o => o.id === id);
 
-  async function excluirOrcamento(id) {
-    const orcamento = todosOrcamentos.find(o => o.id == id);
-    showConfirm(`Tem certeza que deseja excluir o orçamento #${String(id).padStart(6, '0')} do cliente "${orcamento.clienteNome}"?`, async () => {
-      const orcamentosAtualizados = todosOrcamentos.filter(o => o.id !== id);
-      await salvarDados('orcamentos.json', orcamentosAtualizados);
-      showAlert('✅ Orçamento excluído com sucesso!');
-      await carregarDados();
-    });
-  }
-
-  async function abrirModalEditarOrcamento(id) {
-    const orcamento = todosOrcamentos.find(o => o.id === id);
-    if (!orcamento) {
-      showAlert('Orçamento não encontrado!', 'danger');
-      return;
-    }
-
-    document.getElementById('editOrcamentoId').value = orcamento.id;
-    document.getElementById('editClienteNome').value = orcamento.clienteNome;
-    document.getElementById('editPlacaVeiculo').value = orcamento.placaVeiculo;
-    document.getElementById('editProblemaRelatado').value = orcamento.problemaRelatado;
-    document.getElementById('editStatus').value = orcamento.status;
-    document.getElementById('edit-desconto-percentual').value = orcamento.descontoPercentual || 0;
-
-    const itensContainer = document.getElementById('edit-itens-orcamento-container');
-    itensContainer.innerHTML = '';
-    orcamento.itens.forEach((item, index) => {
-      adicionarLinhaItem(item, index);
-    });
-    
-    atualizarValorTotalModal();
-    document.getElementById('edit-desconto-percentual').addEventListener('input', atualizarValorTotalModal);
-
-    const statusSelect = document.getElementById('editStatus');
-    const btnSalvarServico = document.getElementById('btnSalvarServico');
-    btnSalvarServico.disabled = statusSelect.value !== 'Concluído';
-
-    statusSelect.onchange = () => {
-      btnSalvarServico.disabled = statusSelect.value !== 'Concluído';
+            document.getElementById('itens-orcamento-modal-body').innerHTML = itens.map(item => `
+                <tr>
+                    <td>${item.descricao}</td>
+                    <td>${item.quantidade}</td>
+                    <td>R$ ${item.valor_unitario.toFixed(2)}</td>
+                    <td>R$ ${(item.quantidade * item.valor_unitario).toFixed(2)}</td>
+                </tr>
+            `).join('');
+            document.getElementById('problema-relatado-modal').textContent = orcamento.descricao_problema;
+            
+            new bootstrap.Modal(document.getElementById('modalVerItens')).show();
+        } catch (error) {
+            console.error('Erro ao buscar itens do orçamento:', error);
+            showAlert('Falha ao buscar detalhes do orçamento.', 'danger');
+        }
     };
 
-    editModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarOrcamento'));
-    editModalInstance.show();
-  }
+    window.imprimirOrcamento = (id) => {
+        window.api.printOrcamento(id);
+    };
 
-  function adicionarLinhaItem(item = { descricao: '', quantidade: 1, valor: 0 }, index) {
-      const itensContainer = document.getElementById('edit-itens-orcamento-container');
-      const div = document.createElement('div');
-      div.className = 'row g-3 mb-2 align-items-center item-row';
-      div.innerHTML = `
-          <div class="col-md-5">
-              <input type="text" class="form-control" placeholder="Descrição" value="${item.descricao}" oninput="atualizarValorTotalModal()">
-          </div>
-          <div class="col-md-2">
-              <input type="number" class="form-control" placeholder="Qtd" value="${item.quantidade}" min="1" oninput="atualizarValorTotalModal()">
-          </div>
-          <div class="col-md-3">
-              <input type="number" class="form-control" placeholder="Valor Unit." value="${item.valor}" step="0.01" min="0" oninput="atualizarValorTotalModal()">
-          </div>
-          <div class="col-md-2">
-              <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.item-row').remove(); atualizarValorTotalModal();">Remover</button>
-          </div>
-      `;
-      itensContainer.appendChild(div);
-  }
-  
-  function atualizarValorTotalModal() {
-      let subtotal = 0;
-      document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
-          const quantidade = parseFloat(row.querySelector('input[placeholder="Qtd"]').value) || 0;
-          const valor = parseFloat(row.querySelector('input[placeholder="Valor Unit."]').value) || 0;
-          subtotal += quantidade * valor;
-      });
+    window.excluirOrcamento = (id) => {
+        showConfirm('Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.', async () => {
+            try {
+                const sucesso = await window.api.deleteOrcamento(id);
+                if (sucesso) {
+                    showAlert('✅ Orçamento excluído com sucesso!', 'success');
+                    carregarDados(); // Recarrega a lista
+                } else {
+                    showAlert('Erro ao excluir o orçamento.', 'danger');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir orçamento:', error);
+                showAlert('Falha na comunicação com o banco de dados.', 'danger');
+            }
+        });
+    };
 
-      const descontoPercentual = parseFloat(document.getElementById('edit-desconto-percentual').value) || 0;
-      const descontoValor = subtotal * (descontoPercentual / 100);
-      const totalFinal = subtotal - descontoValor;
+    // --- Lógica de Edição de Orçamento ---
 
-      document.getElementById('edit-subtotal-orcamento').textContent = `R$ ${formatarValor(subtotal)}`;
-      document.getElementById('edit-valor-desconto').textContent = `- R$ ${formatarValor(descontoValor)}`;
-      document.getElementById('edit-total-final-orcamento').textContent = `R$ ${formatarValor(totalFinal)}`;
-  }
+    const modalEditarOrcamentoEl = document.getElementById('modalEditarOrcamento');
+    const modalEditarOrcamento = new bootstrap.Modal(modalEditarOrcamentoEl);
+    const formEditarOrcamento = document.getElementById('form-editar-orcamento');
+    const editOrcamentoId = document.getElementById('editOrcamentoId');
+    const editClienteNome = document.getElementById('editClienteNome');
+    const editPlacaVeiculo = document.getElementById('editPlacaVeiculo');
+    const editProblemaRelatado = document.getElementById('editProblemaRelatado');
+    const editStatus = document.getElementById('editStatus');
+    const editItensContainer = document.getElementById('edit-itens-orcamento-container');
+    const btnAdicionarItem = document.getElementById('btnAdicionarItem');
+    const editDescontoPercentual = document.getElementById('edit-desconto-percentual');
+    const editSubtotalOrcamento = document.getElementById('edit-subtotal-orcamento');
+    const editValorDesconto = document.getElementById('edit-valor-desconto');
+    const editTotalFinalOrcamento = document.getElementById('edit-total-final-orcamento');
+    const btnSalvarServico = document.getElementById('btnSalvarServico');
 
-  document.getElementById('btnAdicionarItem').addEventListener('click', () => {
-      adicionarLinhaItem();
-  });
+    editStatus.addEventListener('input', () => {
+        btnSalvarServico.disabled = editStatus.value !== 'Aprovado';
+    });
 
-  document.getElementById('form-editar-orcamento').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = parseInt(document.getElementById('editOrcamentoId').value);
-    const orcamentoIndex = todosOrcamentos.findIndex(o => o.id === id);
-    if (orcamentoIndex === -1) {
-      showAlert('Erro ao encontrar orçamento para atualizar.', 'danger');
-      return;
-    }
+    btnSalvarServico.addEventListener('click', async () => {
+        const id = parseInt(editOrcamentoId.value);
+        if (!id) return;
 
-    const itens = [];
-    let subtotal = 0;
-    document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
-        const descricao = row.children[0].children[0].value;
-        const quantidade = parseFloat(row.children[1].children[0].value) || 0;
-        const valor = parseFloat(row.children[2].children[0].value) || 0;
-        if (descricao && quantidade > 0 && valor >= 0) {
-            itens.push({ descricao, quantidade, valor });
-            subtotal += quantidade * valor;
+        try {
+            // O status 'Em andamento' o caracteriza como um serviço ativo
+            const sucesso = await window.api.updateOrcamentoStatus(id, 'Em andamento');
+            if (sucesso) {
+                showAlert('✅ Orçamento aprovado e convertido em Ordem de Serviço!', 'success');
+                modalEditarOrcamento.hide();
+                carregarDados(); // Recarrega a lista de orçamentos
+            } else {
+                showAlert('Erro ao aprovar o orçamento.', 'danger');
+            }
+        } catch (error) {
+            console.error('Erro ao converter orçamento em serviço:', error);
+            showAlert('Falha na comunicação ao converter orçamento.', 'danger');
         }
     });
 
-    const descontoPercentual = parseFloat(document.getElementById('edit-desconto-percentual').value) || 0;
-    const descontoValor = subtotal * (descontoPercentual / 100);
-    const totalFinal = subtotal - descontoValor;
+    function calcularTotaisEdicao() {
+        let subtotal = 0;
+        editItensContainer.querySelectorAll('.item-row').forEach(row => {
+            const quantidade = parseFloat(row.querySelector('[name="quantidade"]').value) || 0;
+            const valor = parseFloat(row.querySelector('[name="valor"]').value) || 0;
+            subtotal += quantidade * valor;
+        });
 
-    const orcamentoAtualizado = {
-      ...todosOrcamentos[orcamentoIndex],
-      problemaRelatado: document.getElementById('editProblemaRelatado').value,
-      status: document.getElementById('editStatus').value,
-      itens: itens,
-      valor: totalFinal,
-      descontoPercentual: descontoPercentual,
-      descontoValor: descontoValor
+        const descontoPercentual = parseFloat(editDescontoPercentual.value.replace(',', '.')) || 0;
+        const valorDesconto = subtotal * (descontoPercentual / 100);
+        const totalFinal = subtotal - valorDesconto;
+
+        editSubtotalOrcamento.textContent = `R$ ${subtotal.toFixed(2)}`;
+        editValorDesconto.textContent = `- R$ ${valorDesconto.toFixed(2)}`;
+        editTotalFinalOrcamento.textContent = `R$ ${totalFinal.toFixed(2)}`;
+    }
+
+    function adicionarItemEdicao(item = {}) {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'row g-3 mb-3 item-row align-items-center';
+        itemRow.innerHTML = `
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="descricao" placeholder="Descrição" value="${item.descricao || ''}" required>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="tipo">
+                    <option value="Peça" ${item.tipo === 'Peça' ? 'selected' : ''}>Peça</option>
+                    <option value="Mão de Obra" ${item.tipo === 'Mão de Obra' || !item.tipo ? 'selected' : ''}>Mão de Obra</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" name="quantidade" placeholder="Qtd" value="${item.quantidade || 1}" min="1">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" name="valor" placeholder="Valor" value="${(item.valor_unitario || 0).toFixed(2)}" step="0.01" min="0">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger btn-sm remover-item"><i class="bi bi-trash"></i></button>
+            </div>
+        `;
+        editItensContainer.appendChild(itemRow);
+        itemRow.querySelector('.remover-item').addEventListener('click', () => {
+            itemRow.remove();
+            calcularTotaisEdicao();
+        });
+        itemRow.querySelectorAll('input, select').forEach(input => input.addEventListener('input', calcularTotaisEdicao));
+    }
+
+    btnAdicionarItem.addEventListener('click', () => adicionarItemEdicao());
+    editDescontoPercentual.addEventListener('input', calcularTotaisEdicao);
+
+    window.abrirModalEditarOrcamento = async (id) => {
+        try {
+            const orcamento = await window.api.getOrcamentoById(id);
+            if (!orcamento) {
+                showAlert('Orçamento não encontrado.', 'danger');
+                return;
+            }
+            
+            const orcamentoNaLista = todosOrcamentos.find(o => o.id === id);
+
+            editOrcamentoId.value = orcamento.id;
+            editClienteNome.value = orcamentoNaLista?.cliente_nome || 'N/A';
+            editPlacaVeiculo.value = orcamentoNaLista?.veiculo_placa || 'N/A';
+            editProblemaRelatado.value = orcamento.descricao_problema;
+            editStatus.value = orcamento.status;
+            btnSalvarServico.disabled = editStatus.value !== 'Aprovado';
+            
+            editItensContainer.innerHTML = '';
+            orcamento.itens.forEach(adicionarItemEdicao);
+            
+            editDescontoPercentual.value = 0; 
+            
+            calcularTotaisEdicao();
+            modalEditarOrcamento.show();
+
+        } catch (error) {
+            console.error('Erro ao abrir modal de edição:', error);
+            showAlert('Falha ao carregar dados para edição.', 'danger');
+        }
     };
 
-    todosOrcamentos[orcamentoIndex] = orcamentoAtualizado;
-    await salvarDados('orcamentos.json', todosOrcamentos);
-    
-    showAlert('✅ Orçamento atualizado com sucesso!');
+    formEditarOrcamento.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    const modalEl = document.getElementById('modalEditarOrcamento');
-    if (editModalInstance) {
-      // Garante que os dados só serão recarregados após o modal ser completamente fechado
-      modalEl.addEventListener('hidden.bs.modal', async () => {
-        await carregarDados();
-      }, { once: true });
+        let subtotal = 0;
+        const itens = [];
+        editItensContainer.querySelectorAll('.item-row').forEach(row => {
+            const descricao = row.querySelector('[name="descricao"]').value;
+            const tipo = row.querySelector('[name="tipo"]').value;
+            const quantidade = parseFloat(row.querySelector('[name="quantidade"]').value) || 0;
+            const valor = parseFloat(row.querySelector('[name="valor"]').value) || 0;
+            if (descricao && quantidade > 0) {
+                itens.push({ descricao, tipo, quantidade, valor_unitario: valor });
+                subtotal += quantidade * valor;
+            }
+        });
 
-      editModalInstance.hide();
-    } else {
-      await carregarDados(); // Fallback caso a instância não exista
-    }
-  });
+        if (itens.length === 0) {
+            showAlert('O orçamento deve ter pelo menos um item.', 'warning');
+            return;
+        }
 
-  document.getElementById('btnSalvarServico').addEventListener('click', async () => {
-      const id = parseInt(document.getElementById('editOrcamentoId').value);
-      const orcamentoIndex = todosOrcamentos.findIndex(o => o.id === id);
-      if (orcamentoIndex === -1) {
-          showAlert('Orçamento não encontrado!', 'danger');
-          return;
-      }
+        const descontoPercentual = parseFloat(editDescontoPercentual.value) || 0;
+        const valorDesconto = subtotal * (descontoPercentual / 100);
+        const totalFinal = subtotal - valorDesconto;
 
-      const orcamento = todosOrcamentos[orcamentoIndex];
+        const orcamentoOriginal = todosOrcamentos.find(o => o.id === parseInt(editOrcamentoId.value));
 
-      // 1. Coletar dados atualizados do modal
-      const itens = [];
-      document.querySelectorAll('#edit-itens-orcamento-container .item-row').forEach(row => {
-          const descricao = row.querySelector('input[placeholder="Descrição"]').value;
-          const quantidade = parseFloat(row.querySelector('input[placeholder="Qtd"]').value) || 0;
-          const valor = parseFloat(row.querySelector('input[placeholder="Valor Unit."]').value) || 0;
-          if (descricao && quantidade > 0 && valor >= 0) {
-              itens.push({ descricao, quantidade, valor });
-          }
-      });
-      const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.valor), 0);
+        const orcamentoAtualizado = {
+            id: parseInt(editOrcamentoId.value),
+            descricao_problema: editProblemaRelatado.value,
+            status: editStatus.value,
+            valor_total: totalFinal,
+            itens: itens,
+            cliente_id: orcamentoOriginal.cliente_id,
+            veiculo_id: orcamentoOriginal.veiculo_id,
+            data: orcamentoOriginal.data,
+        };
 
-      // 2. Buscar dados adicionais
-      const cliente = todosClientes.find(c => c.nome === orcamento.clienteNome);
-      const veiculo = todosVeiculos.find(v => v.placa === orcamento.placaVeiculo);
+        try {
+            const resultado = await window.api.updateOrcamento(orcamentoAtualizado);
+            if (resultado.success) {
+                showAlert('✅ Orçamento atualizado com sucesso!', 'success');
+                modalEditarOrcamento.hide();
+                carregarDados();
+            } else {
+                showAlert(`Erro ao atualizar orçamento: ${resultado.error}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar alterações do orçamento:', error);
+            showAlert('Falha ao salvar alterações.', 'danger');
+        }
+    });
 
-      // 3. Criar novo objeto de serviço
-      const novoServico = {
-          id: Date.now(),
-          clienteNome: orcamento.clienteNome,
-          clienteDoc: cliente ? cliente.documento : 'N/A',
-          placaVeiculo: orcamento.placaVeiculo,
-          dataEntrada: getLocalDateAsString('yyyy-mm-dd'), // Data de hoje
-          problemaRelatado: document.getElementById('editProblemaRelatado').value,
-          mecanico: '', // Mecânico pode ser definido depois
-          status: 'Em andamento',
-          itens: itens,
-          valor: valorTotal, // Adicionado para compatibilidade
-          valorTotal: valorTotal,
-          quilometragem: veiculo ? veiculo.quilometragem : 'N/A',
-          statusPagamento: 'Pendente', // Status inicial de pagamento
-          pagamentos: [], // Inicializa a lista de pagamentos
-          formaPagamento: '' // Inicializa a forma de pagamento
-      };
-
-      // 4. Salvar o novo serviço
-      const todosServicos = await lerDados('servicos.json') || [];
-      todosServicos.push(novoServico);
-      await salvarDados('servicos.json', todosServicos);
-
-      // 5. Atualizar o orçamento
-      orcamento.status = 'Faturado';
-      todosOrcamentos[orcamentoIndex] = orcamento;
-      await salvarDados('orcamentos.json', todosOrcamentos);
-
-      // 6. Feedback e atualização da UI
-      showAlert('✅ Serviço gerado com sucesso a partir do orçamento!', 'success');
-      bootstrap.Modal.getInstance(document.getElementById('modalEditarOrcamento')).hide();
-      await carregarDados();
-  });
-
-  carregarDados();
+    carregarDados();
 });

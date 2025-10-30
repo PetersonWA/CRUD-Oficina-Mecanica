@@ -32,23 +32,22 @@ describe('Fase 1: Testes de Veículos', () => {
     mockApi.writeData.resolves(true);
     mockApi.editData.resolves(true);
     mockApi.deleteData.resolves(true);
-
-    cy.visit('clientes-veiculos.html', {
-      onBeforeLoad(win) {
-        win.api = mockApi;
-        // Mock da função de confirmação para aceitar automaticamente
-        cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
-      },
-    });
   });
 
   context('CRUD de Veículos', () => {
     it('Deve cadastrar um novo veículo com sucesso', () => {
-      // O beforeEach já configura o cliente. O teste foca no cadastro do veículo.
-      mockApi.readData.withArgs('veiculos.json').resolves([]); // Nenhum veículo no início
+      cy.visit('clientes-veiculos.html', {
+        onBeforeLoad(win) {
+          win.api = mockApi;
+          win.lerDados = mockApi.readData;
+          win.salvarDados = mockApi.writeData;
+          win.buscarDados = mockApi.searchData;
+          win.editarDados = mockApi.editData;
+          win.excluirDados = mockApi.deleteData;
+        }
+      });
 
-      // Garante que o select de clientes foi populado
-      cy.get('#selectClienteVeiculo').should('contain', mockClient.nome);
+      cy.get('#lista-veiculos').find('tr').should('have.length', 0);
 
       // Preenche o formulário
       cy.get('#selectClienteVeiculo').select(mockVehicle.cliente);
@@ -59,84 +58,127 @@ describe('Fase 1: Testes de Veículos', () => {
       cy.get('#corVeiculo').type(mockVehicle.cor);
       cy.get('#quilometragemVeiculo').type(mockVehicle.quilometragem);
 
-      // Simula a atualização da lista após o cadastro
-      mockApi.readData.withArgs('veiculos.json').onSecondCall().resolves([mockVehicle]);
+      // Após o cadastro, a aplicação recarrega os dados usando searchData.
+      // Mockamos essa chamada para retornar o veículo novo.
+      mockApi.searchData.withArgs('veiculos.json', '', '').resolves([mockVehicle]);
 
+      // Submete o formulário
       cy.get('#form-veiculo button[type="submit"]').click();
 
-      cy.get('@writeData').should('have.been.calledWith', 'veiculos.json', Cypress.sinon.match.some(
-        Cypress.sinon.match.has('placa', mockVehicle.placa)
-      ));
+      // Verifica se writeData foi chamado com um array contendo o novo veículo
+      cy.get('@writeData').should('have.been.calledWith', 'veiculos.json', 
+        Cypress.sinon.match(veiculos => veiculos.some(v => v.placa === mockVehicle.placa))
+      );
+      
+      // Verifica o alerta e a atualização na UI
       cy.get('#alert-container').should('contain', '✅ Veículo salvo com sucesso!');
       cy.get('#lista-veiculos').should('contain', mockVehicle.placa);
     });
 
-    it('Deve editar um veículo existente com sucesso', () => {
-      // Começamos com um veículo já existente
-      mockApi.readData.withArgs('veiculos.json').resolves([mockVehicle]);
-      // Recarrega a página para garantir que os dados do mock sejam carregados na tabela
-      cy.reload();
-
-      const dadosEditados = {
-        marca: 'Chevrolet',
-        modelo: 'Onix',
-        ano: '2022',
+it('Deve editar um veículo existente com sucesso', () => {
+      const veiculoOriginal = {
+        cliente: 'João da Silva',
+        marca: 'Fiat',
+        modelo: 'Uno',
+        ano: '2010',
+        placa: 'ABC-1234',
+        cor: 'Prata',
+        quilometragem: '100000'
       };
 
-      // Encontra o veículo na lista e clica no botão de editar
-      cy.get(`#lista-veiculos tr:contains(${mockVehicle.placa})`).within(() => {
+      // Configura o mock para este teste e visita a página
+      mockApi.searchData.withArgs('veiculos.json', '', '').resolves([veiculoOriginal]);
+
+      cy.visit('clientes-veiculos.html', {
+        onBeforeLoad(win) {
+          win.api = mockApi;
+          win.lerDados = mockApi.readData;
+          win.salvarDados = mockApi.writeData;
+          win.buscarDados = mockApi.searchData;
+          win.editarDados = mockApi.editData;
+          win.excluirDados = mockApi.deleteData;
+        }
+      });
+
+      cy.get('#lista-veiculos').should('contain', veiculoOriginal.placa);
+
+      // Clica no botão de editar
+      cy.get(`#lista-veiculos tr:contains(${veiculoOriginal.placa})`).within(() => {
         cy.get('button.btn-warning').click();
       });
 
       // O modal de edição deve abrir e conter os dados originais
       cy.get('#modalEditarVeiculo').should('be.visible');
-      cy.get('#editMarcaVeiculo').should('have.value', mockVehicle.marca);
+      cy.get('#editMarcaVeiculo').should('have.value', veiculoOriginal.marca);
 
       // Edita os campos
+      const dadosEditados = { marca: 'Chevrolet', modelo: 'Onix' };
       cy.get('#editMarcaVeiculo').clear().type(dadosEditados.marca);
       cy.get('#editModeloVeiculo').clear().type(dadosEditados.modelo);
-      cy.get('#editAnoVeiculo').clear().type(dadosEditados.ano);
 
-      // Simula a atualização da lista após a edição
-      const veiculoEditado = { ...mockVehicle, ...dadosEditados };
-      mockApi.readData.withArgs('veiculos.json').onSecondCall().resolves([veiculoEditado]);
+      // Mock para a atualização da UI após a edição
+      const veiculoEditado = { ...veiculoOriginal, ...dadosEditados };
+      mockApi.searchData.withArgs('veiculos.json', '', '').resolves([veiculoEditado]);
 
       // Salva as alterações
       cy.get('#form-editar-veiculo button[type="submit"]').click();
 
       // Verifica a chamada da API de edição
-      cy.get('@editData').should('have.been.calledWith', 'veiculos.json', 'placa', mockVehicle.placa, Cypress.sinon.match.has('marca', dadosEditados.marca));
+      cy.get('@editData').should('have.been.calledWith', 'veiculos.json', 'placa', veiculoOriginal.placa, Cypress.sinon.match.has('marca', dadosEditados.marca));
 
       // Verifica o feedback e a atualização na UI
       cy.get('#alert-container').should('contain', '✅ Veículo atualizado com sucesso!');
       cy.get('#modalEditarVeiculo').should('not.be.visible');
       cy.get('#lista-veiculos').should('contain', dadosEditados.marca);
-      cy.get('#lista-veiculos').should('not.contain', mockVehicle.marca);
+      cy.get('#lista-veiculos').should('not.contain', veiculoOriginal.marca);
     });
 
-    it('Deve excluir um veículo existente com sucesso', () => {
-      // Começamos com um veículo já existente
-      mockApi.readData.withArgs('veiculos.json').resolves([mockVehicle]);
-      cy.reload();
+it('Deve excluir um veículo existente com sucesso', () => {
+      const veiculoParaExcluir = {
+        cliente: 'João da Silva',
+        marca: 'VW',
+        modelo: 'Gol',
+        ano: '2015',
+        placa: 'XYZ-7890',
+        cor: 'Branco',
+        quilometragem: '50000'
+      };
 
-      // Verifica se o veículo está na lista
-      cy.get('#lista-veiculos').should('contain', mockVehicle.placa);
+      // Configura o mock para este teste e visita a página
+      mockApi.searchData.withArgs('veiculos.json', '', '').resolves([veiculoParaExcluir]);
 
-      // Encontra o veículo e clica no botão de excluir
-      cy.get(`#lista-veiculos tr:contains(${mockVehicle.placa})`).within(() => {
+      cy.visit('clientes-veiculos.html', {
+        onBeforeLoad(win) {
+          win.api = mockApi;
+          win.lerDados = mockApi.readData;
+          win.salvarDados = mockApi.writeData;
+          win.buscarDados = mockApi.searchData;
+          win.editarDados = mockApi.editData;
+          win.excluirDados = mockApi.deleteData;
+        }
+      });
+
+      cy.get('#lista-veiculos').should('contain', veiculoParaExcluir.placa);
+
+      // Mock para a função de confirmação
+      cy.window().then((win) => {
+        cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
+      });
+
+      // Clica no botão de excluir
+      cy.get(`#lista-veiculos tr:contains(${veiculoParaExcluir.placa})`).within(() => {
         cy.get('button.btn-danger').click();
       });
 
-      // A confirmação é mockada no beforeEach para aceitar automaticamente
-      // Simula a atualização da lista (vazia) após a exclusão
-      mockApi.readData.withArgs('veiculos.json').onSecondCall().resolves([]);
+      // Mock para a atualização da UI (lista vazia)
+      mockApi.searchData.withArgs('veiculos.json', '', '').resolves([]);
 
       // Verifica a chamada da API de exclusão
-      cy.get('@deleteData').should('have.been.calledWith', 'veiculos.json', 'placa', mockVehicle.placa);
+      cy.get('@deleteData').should('have.been.calledWith', 'veiculos.json', 'placa', veiculoParaExcluir.placa);
 
-      // Verifica o feedback e a atualização na UI
+      // Verifica o feedback e a remoção da UI
       cy.get('#alert-container').should('contain', '✅ Veículo e seus serviços associados excluídos com sucesso!');
-      cy.get('#lista-veiculos').should('not.contain', mockVehicle.placa);
+      cy.get('#lista-veiculos').should('not.contain', veiculoParaExcluir.placa);
     });
   });
 });

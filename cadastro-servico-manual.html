@@ -53,11 +53,26 @@
     </ul>
   </nav>
   <main id="content" class="container-fluid py-4">
+    <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
     <div class="container py-4">
       <h2 class="text-primary mb-4">Criar Serviço Manual</h2>
       <form id="form-servico">
-        <div class="form-floating mb-3"><input type="text" class="form-control" id="cliente" placeholder="Cliente" required><label for="cliente">Cliente</label></div>
-        <div class="form-floating mb-3"><input type="text" class="form-control" id="veiculo" placeholder="Veículo" required><label for="veiculo">Veículo (Marca, Modelo, Placa)</label></div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="search-cliente-input" placeholder="Digite para buscar um cliente..." autocomplete="off" required>
+                    <label for="search-cliente-input">Buscar Cliente</label>
+                    <input type="hidden" id="cliente" name="cliente">
+                    <div class="list-group" id="cliente-search-results" style="position: absolute; z-index: 1000; width: 95%;"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating">
+                    <select class="form-select" id="veiculo" required disabled><option value="">Selecione um cliente primeiro...</option></select>
+                    <label for="veiculo">Veículo</label>
+                </div>
+            </div>
+        </div>
         <div class="form-floating mb-3"><input type="date" class="form-control" id="dataEntrada" placeholder="Data" required><label for="dataEntrada">Data de Entrada</label></div>
         <div class="form-floating mb-3"><textarea class="form-control" id="descricaoServico" placeholder="Descrição" style="height: 100px" required></textarea><label for="descricaoServico">Descrição do Serviço</label></div>
         <div class="form-floating mb-3"><input type="text" class="form-control" id="mecanico" placeholder="Mecânico" required><label for="mecanico">Mecânico Responsável</label></div>
@@ -71,43 +86,11 @@
     </footer>
   </main>
 </div>
-<script src="renderer.js"></script>
-<script>
-  const form = document.getElementById('form-servico');
-  form.addEventListener('submit', async (e) => { e.preventDefault(); const servico = { cliente: document.getElementById('cliente').value, veiculo: document.getElementById('veiculo').value, dataEntrada: document.getElementById('dataEntrada').value, descricaoServico: document.getElementById('descricaoServico').value, mecanico: document.getElementById('mecanico').value, valor: parseFloat(document.getElementById('valor').value), status: document.getElementById('statusServico').value }; const servicos = await lerDados('servicos.json'); servicos.push(servico); await salvarDados('servicos.json', servicos); alert('✅ Serviço salvo com sucesso!'); form.reset(); });
-</script>
-<script>
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  const toggleIcon = toggleBtn.querySelector('i');
-  const navbarBrand = document.querySelector('.sidebar-header .navbar-brand');
+<script src="renderer.js" defer></script>
 
-  function updateSidebar() {
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    if (isCollapsed) {
-      toggleIcon.classList.remove('bi-x-lg');
-      toggleIcon.classList.add('bi-list');
-    } else {
-      toggleIcon.classList.remove('bi-list');
-      toggleIcon.classList.add('bi-x-lg');
-    }
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    updateSidebar();
-  });
-
-  navbarBrand.addEventListener('click', (e) => {
-    if (sidebar.classList.contains('collapsed')) {
-      e.preventDefault();
-      sidebar.classList.remove('collapsed');
-      updateSidebar();
-    }
-  });
-
-  // Set initial state in case it starts collapsed
-  updateSidebar();
-</script>
+<!-- Scripts da Aplicação -->
+<script src="public/js/utils.js" defer></script>
+<script src="public/js/main.js" defer></script>
+<script src="public/js/cadastro-servico-manual.js" defer></script>
 </body>
 </html>

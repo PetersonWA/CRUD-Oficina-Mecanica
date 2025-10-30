@@ -51,13 +51,13 @@
       <table class="table table-hover table-bordered">
         <thead class="table-primary">
           <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Veículo</th>
-            <th>Data</th>
-            <th>Valor Total (R$)</th>
-            <th>Forma de Pagamento</th>
-            <th>Status</th>
+            <th class="sortable-header" data-sort-key="id">ID</th>
+            <th class="sortable-header" data-sort-key="clienteNome">Cliente</th>
+            <th class="sortable-header" data-sort-key="placaVeiculo">Veículo</th>
+            <th class="sortable-header" data-sort-key="dataEntrada">Data</th>
+            <th class="sortable-header" data-sort-key="valorTotal">Valor Total (R$)</th>
+            <th class="sortable-header" data-sort-key="formaPagamento">Forma de Pagamento</th>
+            <th class="sortable-header" data-sort-key="statusPagamento">Status</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -120,10 +120,10 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="renderer.js"></script>
+<script src="renderer.js" defer></script>
 
 <!-- Scripts da Aplicação -->
-<script src="public/js/utils.js"></script>
+<script src="public/js/utils.js" defer></script>
 <script src="public/js/main.js" defer></script>
 <script src="public/js/gerenciar-pagamentos.js" defer></script>
 

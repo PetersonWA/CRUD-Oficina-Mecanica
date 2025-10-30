@@ -1,9 +1,8 @@
-'''
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Orçamento - {{NOME_OFICINA}}</title>
+    <title>Orçamento</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,7 +31,8 @@
         .header .logo {
             max-width: 350px;
             max-height: 180px;
-            object-fit: contain; /* Garante que a imagem não seja distorcida */
+            object-fit: contain;
+            display: none; /* Hide by default */
         }
         .header .company-details {
             text-align: right;
@@ -124,13 +124,8 @@
         }
         .signature-image {
             max-height: 60px;
-            display: block;
-            margin-top: 1rem; /* Espaço acima da assinatura */
-            margin-bottom: -1.5rem; /* Aproxima a linha da assinatura */
-            margin-left: auto;
-            margin-right: auto;
-           /* position: relative; /* Garante que a imagem não sobreponha outros elementos */
-           /* z-index: -1; /* Coloca a imagem atrás de qualquer texto, se houver sobreposição */
+            display: none; /* Hide by default */
+            margin: 1rem auto -1.5rem auto;
         }
         .signature-line {
             display: inline-block;
@@ -150,9 +145,6 @@
                 padding: 0;
                 box-shadow: none;
             }
-            .no-print {
-                display: none;
-            }
             h3, thead {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -160,56 +152,53 @@
             .section, .totals, .signature-area, table, thead, tbody, tr {
                 page-break-inside: avoid !important;
             }
-            .section {
-                page-break-before: auto;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{LOGO_PATH}}" alt="Logotipo" class="logo">
+            <img src="" alt="Logotipo" class="logo" id="logo">
             <div class="company-details">
-                <h2>{{NOME_OFICINA}}</h2>
-                <p>{{ENDERECO}}</p>
-                <p>Telefone: {{TELEFONE}}</p>
-                <p>Email: {{EMAIL}}</p>
-                <p>CNPJ: {{CNPJ}}</p>
+                <h2 id="nome-oficina"></h2>
+                <p id="endereco-oficina"></p>
+                <p id="telefone-oficina"></p>
+                <p id="email-oficina"></p>
+                <p id="cnpj-oficina"></p>
             </div>
         </div>
         <br>
         <div class="section">
-            <h3>Orçamento / Ordem de Serviço #{{OS_ID}}</h3>
+            <h3>Orçamento / Ordem de Serviço #<span id="os-id"></span></h3>
             <div class="details-grid">
-                <p><strong>Data de Emissão:</strong> {{DATA_EMISSAO}}</p>
-                <p><strong>Validade:</strong> {{DATA_VALIDADE}}</p>
+                <p><strong>Data de Emissão:</strong> <span id="data-emissao"></span></p>
+                <p><strong>Validade:</strong> <span id="data-validade"></span></p>
             </div>
         </div>
 
         <div class="section">
             <h3>Dados do Cliente</h3>
             <div class="details-grid">
-                <p><strong>Nome:</strong> {{NOME_CLIENTE}}</p>
-                <p><strong>Telefone:</strong> {{TELEFONE_CLIENTE}}</p>
-                <p><strong>Email:</strong> {{EMAIL_CLIENTE}}</p>
-                <p><strong>Endereço:</strong> {{ENDERECO_CLIENTE}}</p>
+                <p><strong>Nome:</strong> <span id="nome-cliente"></span></p>
+                <p><strong>Telefone:</strong> <span id="telefone-cliente"></span></p>
+                <p><strong>Email:</strong> <span id="email-cliente"></span></p>
+                <p><strong>Endereço:</strong> <span id="endereco-cliente"></span></p>
             </div>
         </div>
 
         <div class="section">
             <h3>Dados do Veículo</h3>
             <div class="details-grid">
-                <p><strong>Modelo:</strong> {{MODELO_VEICULO}}</p>
-                <p><strong>Placa:</strong> {{PLACA_VEICULO}}</p>
-                <p><strong>Ano:</strong> {{ANO_VEICULO}}</p>
-                <p><strong>KM:</strong> {{KM_VEICULO}}</p>
+                <p><strong>Modelo:</strong> <span id="modelo-veiculo"></span></p>
+                <p><strong>Placa:</strong> <span id="placa-veiculo"></span></p>
+                <p><strong>Ano:</strong> <span id="ano-veiculo"></span></p>
+                <p><strong>KM:</strong> <span id="km-veiculo"></span></p>
             </div>
         </div>
         
         <div class="section">
             <h3>Problema Relatado / Observações Iniciais</h3>
-            <p>{{OBS_INICIAIS}}</p>
+            <p id="obs-iniciais"></p>
         </div>
 
         <div class="section">
@@ -223,8 +212,8 @@
                         <th>Valor Total</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {{LISTA_SERVICOS}}
+                <tbody id="lista-servicos-tbody">
+                    <!-- Items will be injected here -->
                 </tbody>
             </table>
         </div>
@@ -234,15 +223,15 @@
                 <tbody>
                     <tr>
                         <td>Subtotal:</td>
-                        <td style="text-align: right;">R$ {{SUBTOTAL}}</td>
+                        <td style="text-align: right;" id="subtotal"></td>
                     </tr>
                     <tr>
                         <td>Desconto:</td>
-                        <td style="text-align: right;">R$ {{DESCONTO}}</td>
+                        <td style="text-align: right;" id="desconto"></td>
                     </tr>
                     <tr class="total-row">
                         <td>Total:</td>
-                        <td style="text-align: right;">R$ {{TOTAL}}</td>
+                        <td style="text-align: right;" id="total"></td>
                     </tr>
                 </tbody>
             </table>
@@ -253,21 +242,21 @@
         <br>
         <div class="section payment-methods">
             <h3>Formas de Pagamento</h3>
-            {{FORMAS_PAGAMENTO}}
+            <div id="formas-pagamento"></div>
         </div>
 
         <div class="signature-area">
             <p>De acordo com os serviços e valores descritos.</p>
-            {{IMAGEM_ASSINATURA}}
+            <img src="" alt="Assinatura" class="signature-image" id="imagem-assinatura">
             <div class="signature-line"></div>
-            <p>{{NOME_RESPONSAVEL}}</p>
+            <p id="nome-responsavel"></p>
         </div>
 
         <div class="footer">
             <p>Obrigado pela preferência!</p>
-            <p>{{NOME_OFICINA}} - {{TELEFONE}}</p>
+            <p><span id="footer-nome-oficina"></span> - <span id="footer-telefone"></span></p>
         </div>
     </div>
+    <script src="./public/js/template-orcamento.js" defer></script>
 </body>
 </html>
-'''

@@ -1,371 +1,280 @@
-/* Scripts específicos para a página de Cadastro de Serviço */
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('servico-form');
-    if (!form) return; // Exit if not on the right page
+    if (!form) return; // Sai se não estiver na página correta
 
-    const searchClienteInput = document.getElementById('search-cliente-input');
-    const clienteHiddenInput = document.getElementById('cliente');
-    const clienteSearchResults = document.getElementById('cliente-search-results');
-    const selectVeiculo = document.getElementById('veiculo');
-    const quilometragemInput = document.getElementById('quilometragemVeiculo');
-    const pecasBody = document.getElementById('pecas-servico-body');
-    const btnAdicionarPeca = document.getElementById('adicionar-peca');
-    const valorMaoDeObraInput = document.getElementById('valor-mao-de-obra');
-    const subtotalDisplay = document.getElementById('subtotal-servico');
-    const descontoInput = document.getElementById('desconto-percentual');
-    const valorDescontoDisplay = document.getElementById('valor-desconto');
-    const totalFinalDisplay = document.getElementById('total-final-servico');
-    const formaPagamentoSelect = document.getElementById('formaPagamento');
-    const parcelasContainer = document.getElementById('parcelas-container');
-    const numeroParcelasInput = document.getElementById('numeroParcelas');
+    // Mapeamento de Elementos
+    const elements = {
+        searchClienteInput: document.getElementById('search-cliente-input'),
+        clienteHiddenInput: document.getElementById('cliente'),
+        clienteSearchResults: document.getElementById('cliente-search-results'),
+        selectVeiculo: document.getElementById('veiculo'),
+        quilometragemInput: document.getElementById('quilometragemVeiculo'),
+        pecasBody: document.getElementById('pecas-servico-body'),
+        btnAdicionarPeca: document.getElementById('adicionar-peca'),
+        maoDeObraInput: document.getElementById('valor-mao-de-obra'),
+        subtotalDisplay: document.getElementById('subtotal-servico'),
+        descontoInput: document.getElementById('desconto-percentual'),
+        descontoDisplay: document.getElementById('valor-desconto'),
+        totalDisplay: document.getElementById('total-final-servico'),
+        formaPagamentoSelect: document.getElementById('formaPagamento'),
+        parcelasContainer: document.getElementById('parcelas-container'),
+        numeroParcelasInput: document.getElementById('numeroParcelas'),
+        dataEntradaInput: document.getElementById('dataEntrada'),
+        problemaRelatadoInput: document.getElementById('problemaRelatado'),
+        mecanicoInput: document.getElementById('mecanico'),
+        statusServicoInput: document.getElementById('statusServico'),
+    };
 
     let listaClientes = [];
     let listaVeiculos = [];
     let config = {};
 
-    // Attach functions to window for inline event handlers
-    window.removerPeca = removerPeca;
+    window.removerPeca = (button) => {
+        button.closest('tr').remove();
+        calcularTotal();
+    };
 
-    async function carregarDadosIniciais() {
+    async function inicializar() {
         try {
-            const [clientes, veiculos, loadedConfig] = await Promise.all([
-                lerDados("clientes.json"),
-                lerDados("veiculos.json"),
-                lerDados("configuracao.json")
+            [listaClientes, listaVeiculos, config] = await Promise.all([
+                window.api.getClientes(),
+                window.api.getVeiculos(),
+                window.api.getAllConfigs()
             ]);
-
-            listaClientes = clientes || [];
-            listaVeiculos = veiculos || [];
-            config = loadedConfig || {};
-
-            const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
-            numeroParcelasInput.innerHTML = '';
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = `${i}x`;
-                if (i === 1) option.selected = true;
-                numeroParcelasInput.appendChild(option);
-            }
-
-            selectVeiculo.disabled = true;
-            selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-
-            descontoInput.addEventListener('input', calcularTotal);
-            valorMaoDeObraInput.addEventListener('input', calcularTotal);
+            configurarParcelas();
+            vincularEventos();
         } catch (error) {
             console.error("Erro ao carregar dados iniciais:", error);
+            showAlert('Falha ao carregar dados. Verifique a conexão com o banco de dados.', 'danger');
         }
     }
 
-    function carregarVeiculosDoCliente(clienteDoc) {
-        selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-        selectVeiculo.disabled = true;
-        quilometragemInput.value = '';
-
-        if (clienteDoc) {
-            const cliente = listaClientes.find(c => c.documento === clienteDoc);
-            if (!cliente) {
-                showAlert('Cliente não encontrado na lista.', 'danger');
-                return;
-            }
-            const veiculosDoCliente = listaVeiculos.filter(v => v.cliente === cliente.nome);
-
-            if (veiculosDoCliente.length > 0) {
-                veiculosDoCliente.forEach(veiculo => {
-                    const option = document.createElement('option');
-                    option.value = veiculo.placa;
-                    option.textContent = `${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`;
-                    selectVeiculo.appendChild(option);
-                });
-                selectVeiculo.disabled = false;
-            } else {
-                showAlert('Este cliente não possui veículos cadastrados.', 'warning');
-            }
+    function configurarParcelas() {
+        const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
+        elements.numeroParcelasInput.innerHTML = '';
+        for (let i = 1; i <= maxParcelas; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i}x`;
+            elements.numeroParcelasInput.appendChild(option);
         }
     }
 
-    searchClienteInput.addEventListener('input', () => {
-        const searchTerm = searchClienteInput.value.toLowerCase();
-        clienteSearchResults.innerHTML = '';
+    function vincularEventos() {
+        elements.searchClienteInput.addEventListener('input', handleBuscaCliente);
+        elements.clienteSearchResults.addEventListener('click', handleSelecaoCliente);
+        elements.selectVeiculo.addEventListener('change', handleSelecaoVeiculo);
+        elements.btnAdicionarPeca.addEventListener('click', adicionarPeca);
+        elements.formaPagamentoSelect.addEventListener('change', handleMudancaPagamento);
+        [elements.descontoInput, elements.maoDeObraInput, elements.numeroParcelasInput].forEach(el => el.addEventListener('input', calcularTotal));
+        form.addEventListener('submit', salvarServico);
+    }
 
-        if (searchTerm.length === 0) {
-            clienteHiddenInput.value = ''; // Limpa o valor se a busca for apagada
+    function handleBuscaCliente() {
+        const termo = elements.searchClienteInput.value.toLowerCase();
+        elements.clienteSearchResults.innerHTML = '';
+        if (!termo) {
+            elements.clienteHiddenInput.value = '';
             return;
         }
-
-        const filteredClientes = listaClientes.filter(cliente =>
-            cliente.nome.toLowerCase().includes(searchTerm) || cliente.documento.includes(searchTerm)
-        );
-
-        filteredClientes.forEach(cliente => {
+        const clientesFiltrados = listaClientes.filter(c => c.nome.toLowerCase().includes(termo) || c.cpf_cnpj.toLowerCase().includes(termo));
+        clientesFiltrados.forEach(cliente => {
             const item = document.createElement('a');
             item.href = '#';
-            item.classList.add('list-group-item', 'list-group-item-action');
-            item.textContent = `${cliente.nome} (${cliente.documento})`;
-            item.dataset.documento = cliente.documento;
+            item.className = 'list-group-item list-group-item-action';
+            item.textContent = `${cliente.nome} (${cliente.cpf_cnpj})`;
+            item.dataset.id = cliente.id;
             item.dataset.nome = cliente.nome;
-            clienteSearchResults.appendChild(item);
+            elements.clienteSearchResults.appendChild(item);
         });
-    });
+    }
 
-    clienteSearchResults.addEventListener('click', (e) => {
-        if (e.target && e.target.matches('a.list-group-item')) {
-            e.preventDefault();
-            const clienteDoc = e.target.dataset.documento;
-            const clienteNome = e.target.dataset.nome;
+    function handleSelecaoCliente(e) {
+        if (!e.target.matches('a.list-group-item')) return;
+        e.preventDefault();
+        const clienteId = parseInt(e.target.dataset.id);
+        elements.searchClienteInput.value = e.target.dataset.nome;
+        elements.clienteHiddenInput.value = clienteId;
+        elements.clienteSearchResults.innerHTML = '';
+        carregarVeiculosDoCliente(clienteId);
+    }
 
-            searchClienteInput.value = clienteNome;
-            clienteHiddenInput.value = clienteDoc;
-            clienteSearchResults.innerHTML = '';
-
-            carregarVeiculosDoCliente(clienteDoc);
-        }
-    });
-    
-    document.addEventListener('click', (e) => {
-        if (!searchClienteInput.contains(e.target) && !clienteSearchResults.contains(e.target)) {
-            clienteSearchResults.innerHTML = '';
-        }
-    });
-
-    selectVeiculo.addEventListener('change', () => {
-        const placaSelecionada = selectVeiculo.value;
-        if (placaSelecionada) {
-            const veiculo = listaVeiculos.find(v => v.placa === placaSelecionada);
-            if (veiculo) quilometragemInput.value = veiculo.quilometragem || '';
+    function carregarVeiculosDoCliente(clienteId) {
+        const veiculosDoCliente = listaVeiculos.filter(v => v.cliente_id === clienteId);
+        elements.selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
+        elements.quilometragemInput.value = '';
+        if (veiculosDoCliente.length > 0) {
+            veiculosDoCliente.forEach(veiculo => {
+                const option = document.createElement('option');
+                option.value = veiculo.id;
+                option.textContent = `${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`;
+                elements.selectVeiculo.appendChild(option);
+            });
+            elements.selectVeiculo.disabled = false;
         } else {
-            quilometragemInput.value = '';
+            elements.selectVeiculo.disabled = true;
+            showAlert('Este cliente não possui veículos cadastrados.', 'warning');
         }
-    });
+    }
+
+    function handleSelecaoVeiculo() {
+        const veiculoId = parseInt(elements.selectVeiculo.value);
+        if (veiculoId) {
+            const veiculo = listaVeiculos.find(v => v.id === veiculoId);
+            if (veiculo) elements.quilometragemInput.value = veiculo.quilometragem || '';
+        } else {
+            elements.quilometragemInput.value = '';
+        }
+    }
 
     function adicionarPeca() {
         const row = document.createElement('tr');
-        row.classList.add('peca-row');
+        row.className = 'peca-row';
         row.innerHTML = `
-            <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição da peça" required></td>
-            <td><input type="number" class="form-control form-control-sm" name="quantidade" value="1" min="1" step="1" required></td>
-            <td><input type="number" class="form-control form-control-sm" name="valor" placeholder="0.00" min="0" step="0.01" required></td>
+            <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição da peça/serviço"></td>
+            <td><input type="number" class="form-control form-control-sm" name="quantidade" value="1" min="1"></td>
+            <td><input type="text" class="form-control form-control-sm" name="valor" placeholder="R$ 0,00"></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removerPeca(this)"><i class="bi bi-trash"></i></button></td>
         `;
-        pecasBody.appendChild(row);
+        elements.pecasBody.appendChild(row);
+        row.querySelector('[name=valor]').addEventListener('input', (e) => maskCurrency(e.target));
         row.querySelectorAll('input').forEach(input => input.addEventListener('input', calcularTotal));
-        calcularTotal();
-    }
-
-    function removerPeca(button) {
-        button.closest('tr').remove();
-        calcularTotal();
     }
 
     function calcularTotal() {
         let subtotal = 0;
-        pecasBody.querySelectorAll('.peca-row').forEach(row => {
+        elements.pecasBody.querySelectorAll('.peca-row').forEach(row => {
             const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
+            const valor = getNumericValue(row.querySelector('[name=valor]').value);
             subtotal += quantidade * valor;
         });
-
-        const maoDeObra = parseFloat(valorMaoDeObraInput.value) || 0;
-        subtotal += maoDeObra;
-
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
+        subtotal += getNumericValue(elements.maoDeObraInput.value);
+        const descontoPercentual = parseFloat(elements.descontoInput.value) || 0;
         const descontoValor = subtotal * (descontoPercentual / 100);
         const totalFinal = subtotal - descontoValor;
 
-        subtotalDisplay.textContent = `R$ ${totalFinal.toFixed(2)}`; // Corrected to show final value, not subtotal
-        valorDescontoDisplay.textContent = `- R$ ${descontoValor.toFixed(2)}`;
-        totalFinalDisplay.textContent = `R$ ${totalFinal.toFixed(2)}`;
-        atualizarValorParcela();
+        elements.subtotalDisplay.textContent = `R$ ${formatarValor(subtotal)}`;
+        elements.descontoDisplay.textContent = `- R$ ${formatarValor(descontoValor)}`;
+        elements.totalDisplay.textContent = `R$ ${formatarValor(totalFinal)}`;
+        atualizarValorParcela(totalFinal);
     }
 
-    function atualizarValorParcela() {
-        const jurosInicial = parseFloat(config.jurosInicial) || 0;
-        const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
-        const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
-        const maxParcelas = parseInt(config.maxParcelas, 10) || 12;
+    function atualizarValorParcela(total) {
+        const numParcelas = parseInt(elements.numeroParcelasInput.value);
+        const { jurosInicial = 0, acrescimoParcela = 0, parcelasSemJuros = 0, maxParcelas = 12 } = config;
 
-        if (formaPagamentoSelect.value !== 'Cartão de Crédito') {
+        if (elements.formaPagamentoSelect.value !== 'Cartão de Crédito') {
             for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) option.textContent = `${i}x`;
+                const opt = elements.numeroParcelasInput.querySelector(`option[value="${i}"]`);
+                if (opt) opt.textContent = `${i}x`;
             }
             return;
         }
 
-        let subtotal = 0;
-        pecasBody.querySelectorAll('.peca-row').forEach(row => {
-            const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
-            subtotal += quantidade * valor;
-        });
-        subtotal += parseFloat(valorMaoDeObraInput.value) || 0;
-
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
-        const descontoValor = subtotal * (descontoPercentual / 100);
-        const totalFinal = subtotal - descontoValor;
-
-        if (totalFinal > 0) {
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) {
-                    let valorParcela;
-                    if (i <= parcelasSemJuros) {
-                        valorParcela = totalFinal / i;
-                        option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)} (sem juros)`;
-                    } else {
-                        const taxaPercentual = jurosInicial + ((i - parcelasSemJuros - 1) * acrescimoParcela);
-                        const i_juros = taxaPercentual / 100;
-                        if (i_juros > 0) {
-                            const n_parcelas = i;
-                            const pv = totalFinal;
-                            valorParcela = pv * (i_juros * Math.pow(1 + i_juros, n_parcelas)) / (Math.pow(1 + i_juros, n_parcelas) - 1);
-                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)}`;
-                        } else {
-                            valorParcela = totalFinal / i;
-                            option.textContent = `${i}x de R$ ${valorParcela.toFixed(2)}`;
-                        }
-                    }
+        for (let i = 1; i <= maxParcelas; i++) {
+            const opt = elements.numeroParcelasInput.querySelector(`option[value="${i}"]`);
+            if (opt) {
+                let valorParcela;
+                if (i <= parcelasSemJuros) {
+                    valorParcela = total / i;
+                    opt.textContent = `${i}x de R$ ${formatarValor(valorParcela)} (s/ juros)`;
+                } else {
+                    const taxa = (jurosInicial + ((i - parcelasSemJuros - 1) * acrescimoParcela)) / 100;
+                    valorParcela = taxa > 0 ? (total * (taxa * Math.pow(1 + taxa, i)) / (Math.pow(1 + taxa, i) - 1)) : total / i;
+                    opt.textContent = `${i}x de R$ ${formatarValor(valorParcela)}`;
                 }
-            }
-        } else {
-            for (let i = 1; i <= maxParcelas; i++) {
-                const option = numeroParcelasInput.querySelector(`option[value="${i}"]`);
-                if (option) option.textContent = `${i}x`;
             }
         }
     }
 
-    btnAdicionarPeca.addEventListener('click', () => adicionarPeca());
+    function handleMudancaPagamento() {
+        elements.parcelasContainer.style.display = elements.formaPagamentoSelect.value === 'Cartão de Crédito' ? 'block' : 'none';
+        calcularTotal();
+    }
 
-    formaPagamentoSelect.addEventListener('change', () => {
-        parcelasContainer.style.display = formaPagamentoSelect.value === 'Cartão de Crédito' ? 'block' : 'none';
-        atualizarValorParcela();
-    });
-
-    form.addEventListener('submit', async (e) => {
+    async function salvarServico(e) {
         e.preventDefault();
+        
+        // Coleta e Validação
+        const clienteId = parseInt(elements.clienteHiddenInput.value);
+        const veiculoId = parseInt(elements.selectVeiculo.value);
+        if (!clienteId || !veiculoId) return showAlert('Selecione um cliente e um veículo.', 'warning');
+
+        const novaQuilometragem = parseInt(String(elements.quilometragemInput.value).replace(/\D/g, ''));
+        const veiculo = listaVeiculos.find(v => v.id === veiculoId);
+        const quilometragemAntiga = parseInt(String(veiculo.quilometragem).replace(/\D/g, '')) || 0;
+        if (novaQuilometragem < quilometragemAntiga) return showAlert(`Quilometragem inválida.`, 'danger');
 
         const itens = [];
-        let subtotal = 0;
-
-        pecasBody.querySelectorAll('.peca-row').forEach(row => {
-            const descricao = row.querySelector('[name=descricao]').value;
+        elements.pecasBody.querySelectorAll('.peca-row').forEach(row => {
+            const descricao = row.querySelector('[name=descricao]').value.trim();
             const quantidade = parseFloat(row.querySelector('[name=quantidade]').value) || 0;
-            const valor = parseFloat(row.querySelector('[name=valor]').value) || 0;
-            if(descricao && quantidade > 0 && valor > 0) {
-                itens.push({ descricao, quantidade, valor, tipo: 'Peça' });
-                subtotal += quantidade * valor;
+            const valor_unitario = getNumericValue(row.querySelector('[name=valor]').value);
+            if (descricao && quantidade > 0 && valor_unitario > 0) {
+                itens.push({ descricao, tipo: 'Peça', quantidade, valor_unitario });
             }
         });
+        const maoDeObra = getNumericValue(elements.maoDeObraInput.value);
+        if (maoDeObra > 0) itens.push({ descricao: 'Mão de Obra', tipo: 'Mão de Obra', quantidade: 1, valor_unitario: maoDeObra });
+        if (itens.length === 0) return showAlert('Adicione pelo menos um item ao serviço.', 'warning');
 
-        const maoDeObraValor = parseFloat(valorMaoDeObraInput.value) || 0;
-        if (maoDeObraValor > 0) {
-            itens.push({ descricao: 'Mão de Obra', quantidade: 1, valor: maoDeObraValor, tipo: 'Mão de Obra' });
-            subtotal += maoDeObraValor;
-        }
-
-        if (itens.length === 0) {
-            showAlert('Adicione pelo menos uma peça ou um valor de mão de obra.', 'warning');
-            return;
-        }
-
-        const descontoPercentual = parseFloat(descontoInput.value) || 0;
-        const descontoValor = subtotal * (descontoPercentual / 100);
-        const totalFinal = subtotal - descontoValor;
-
-        const placaVeiculo = selectVeiculo.value;
-        const novaQuilometragem = quilometragemInput.value;
-        if (placaVeiculo && novaQuilometragem) {
-            const veiculosAtuais = await lerDados('veiculos.json');
-            const veiculoIndex = veiculosAtuais.findIndex(v => v.placa === placaVeiculo);
-            if (veiculoIndex !== -1) {
-                const kmAntiga = parseInt(veiculosAtuais[veiculoIndex].quilometragem, 10) || 0;
-                const kmNova = parseInt(novaQuilometragem, 10);
-                if (kmNova >= kmAntiga) {
-                    veiculosAtuais[veiculoIndex].quilometragem = kmNova;
-                    await salvarDados('veiculos.json', veiculosAtuais);
-                    listaVeiculos = veiculosAtuais;
-                }
-            }
-        }
-
-        const servicos = await lerDados('servicos.json') || [];
-        const maiorId = servicos.reduce((max, s) => (s.id > max) ? s.id : max, 0);
-        const novoServicoId = maiorId + 1;
-
-        const clienteSelecionado = listaClientes.find(c => c.documento === clienteHiddenInput.value);
-        if (!clienteSelecionado) {
-            showAlert('Por favor, selecione um cliente válido da lista.', 'danger');
-            return;
-        }
-        const formaPagamento = formaPagamentoSelect.value;
-        const numeroParcelas = parseInt(numeroParcelasInput.value, 10) || 1;
-
-        let valorFinalParaSalvar = totalFinal;
-        let statusPagamento = 'Pendente';
-
-        if (formaPagamento === 'Cartão de Crédito') {
-            statusPagamento = 'Pago';
-            const jurosInicial = parseFloat(config.jurosInicial) || 0;
-            const acrescimoParcela = parseFloat(config.acrescimoParcela) || 0;
-            const parcelasSemJuros = parseInt(config.parcelasSemJuros, 10) || 0;
-
-            if (numeroParcelas > parcelasSemJuros) {
-                const taxaPercentual = jurosInicial + ((numeroParcelas - parcelasSemJuros - 1) * acrescimoParcela);
-                const i_juros = taxaPercentual / 100;
-                if (i_juros > 0) {
-                    const valorParcela = totalFinal * (i_juros * Math.pow(1 + i_juros, numeroParcelas)) / (Math.pow(1 + i_juros, numeroParcelas) - 1);
-                    valorFinalParaSalvar = valorParcela * numeroParcelas;
-                }
-            }
-        }
+        // Montagem do Objeto
+        const totalSemDesconto = getNumericValue(elements.subtotalDisplay.textContent);
+        const descontoValor = getNumericValue(elements.descontoDisplay.textContent);
+        const totalFinal = getNumericValue(elements.totalDisplay.textContent);
+        const formaPagamento = elements.formaPagamentoSelect.value;
+        const numeroParcelas = parseInt(elements.numeroParcelasInput.value);
 
         const novoServico = {
-            id: novoServicoId,
-            clienteNome: clienteSelecionado.nome,
-            clienteDoc: clienteHiddenInput.value,
-            placaVeiculo: selectVeiculo.value,
-            dataEntrada: document.getElementById('dataEntrada').value,
-            problemaRelatado: document.getElementById('problemaRelatado').value,
-            mecanico: document.getElementById('mecanico').value,
-            status: document.getElementById('statusServico').value,
-            statusPagamento: statusPagamento,
-            itens: itens,
-            valor: valorFinalParaSalvar,
-            descontoPercentual: descontoPercentual,
-            descontoValor: descontoValor,
+            cliente_id: clienteId,
+            veiculo_id: veiculoId,
+            data: elements.dataEntradaInput.value,
+            problema_relatado: elements.problemaRelatadoInput.value,
+            status: elements.statusServicoInput.value,
+            valor_original: totalSemDesconto,
+            valor_desconto: descontoValor,
+            valor_total: totalFinal, // Valor final sem juros
+            forma_pagamento: formaPagamento,
+            numero_parcelas: formaPagamento === 'Cartão de Crédito' ? numeroParcelas : null,
+            status_pagamento: 'Pendente',
             quilometragem: novaQuilometragem,
-            formaPagamento: formaPagamento,
-            parcelas: formaPagamento === 'Cartão de Crédito' ? numeroParcelas : null,
-            pagamentos: []
+            itens: itens,
+            pagamento_inicial: null
         };
 
         if (formaPagamento === 'Cartão de Crédito') {
-            const pagamento = {
-                id: Date.now(),
-                data: new Date().toISOString().split('T')[0],
-                valor: valorFinalParaSalvar,
-                metodo: 'Cartão de Crédito',
-                anotacao: `Pagamento em ${numeroParcelas}x`
+            const valorParcelaText = elements.numeroParcelasInput.options[elements.numeroParcelasInput.selectedIndex].text;
+            const valorTotalComJuros = getNumericValue(valorParcelaText.split('R$ ')[1]) * numeroParcelas;
+            novoServico.valor_total = valorTotalComJuros || totalFinal; // Atualiza o valor total com juros
+            novoServico.status_pagamento = 'Pago'; // Assume-se pago no crédito
+            novoServico.pagamento_inicial = {
+                forma: formaPagamento,
+                valor: novoServico.valor_total,
+                data: getLocalDateAsString(new Date())
             };
-            novoServico.pagamentos.push(pagamento);
         }
 
-        servicos.push(novoServico);
-        await salvarDados('servicos.json', servicos);
+        // Envio para o Backend
+        try {
+            const result = await window.api.addServico(novoServico);
+            if (result.success) {
+                showAlert('✅ Serviço salvo com sucesso!', 'success');
+                form.reset();
+                handleMudancaPagamento();
+                elements.pecasBody.innerHTML = '';
+                calcularTotal();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            console.error("Erro ao salvar serviço:", error);
+            showAlert('Falha ao salvar o serviço.', 'danger');
+        }
+    }
 
-        showAlert('✅ Serviço salvo com sucesso!');
-        form.reset();
-        searchClienteInput.value = '';
-        clienteHiddenInput.value = '';
-        selectVeiculo.innerHTML = '<option value="">Selecione um veículo...</option>';
-        selectVeiculo.disabled = true;
-        quilometragemInput.value = '';
-        pecasBody.innerHTML = '';
-        calcularTotal();
-        formaPagamentoSelect.dispatchEvent(new Event('change'));
-    });
+    // Funções Utilitárias Globais (devem vir de utils.js)
+    const getNumericValue = (str) => parseFloat(String(str).replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.')) || 0;
+    const formatarValor = (val) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    carregarDadosIniciais();
+    inicializar();
 });

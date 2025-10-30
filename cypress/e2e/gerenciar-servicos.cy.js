@@ -12,13 +12,17 @@ describe('Testes de Gerenciamento de Serviços', () => {
       writeData: cy.stub().as('writeData'),
     };
 
+    // Configuração dos stubs
     mockApi.readData.withArgs('servicos.json').resolves(mockServicos);
     mockApi.writeData.resolves(true);
 
     cy.visit('gerenciar-servicos.html', {
       onBeforeLoad(win) {
+        // Expor a API mockada para a aplicação
         win.api = mockApi;
-        win.lerDados = mockApi.readData; // lerDados é global e chama win.api.readData
+        // A aplicação usa `lerDados` e `salvarDados` como globais
+        win.lerDados = mockApi.readData;
+        win.salvarDados = mockApi.writeData;
       },
     });
   });
@@ -57,23 +61,23 @@ describe('Testes de Gerenciamento de Serviços', () => {
 
     cy.get('#form-editar-servico').submit();
 
-    cy.get('@salvarDados').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(servicos => {
-      const servicoAtualizado = servicos.find(s => s.id === servicoParaEditar.id);
-      return servicoAtualizado && servicoAtualizado.status === novoStatus && servicoAtualizado.mecanico === novoMecanico;
-    }));
+    // A verificação deve ser no `writeData` (que é o `salvarDados`)
+    cy.get('@writeData').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(
+      (servicos) => {
+        const servicoAtualizado = servicos.find(s => s.id === servicoParaEditar.id);
+        return servicoAtualizado && servicoAtualizado.status === novoStatus && servicoAtualizado.mecanico === novoMecanico;
+      },
+      'O serviço foi atualizado corretamente'
+    ));
 
     cy.get('#alert-container').should('contain', '✅ Serviço atualizado com sucesso!');
+    
+    // Força o modal a se esconder para o teste continuar
     cy.get('#modalEditarServico').invoke('css', 'display', 'none').should('not.be.visible');
   });
 
   it('Deve excluir um serviço da lista', () => {
     const servicoParaExcluir = mockServicos[2]; // Cliente C
-
-    // Garante que a função de confirmação existe e a mocka para aceitar automaticamente
-    cy.window().should('have.property', 'showConfirm');
-    cy.window().then(win => {
-      cy.stub(win, 'showConfirm').callsFake((message, callback) => callback());
-    });
 
     cy.get('#lista-servicos').should('contain', servicoParaExcluir.clienteNome);
 
@@ -81,15 +85,23 @@ describe('Testes de Gerenciamento de Serviços', () => {
       cy.get('button.btn-danger').click();
     });
 
-    cy.get('@salvarDados').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(servicos => {
-      return servicos.length === mockServicos.length - 1 && !servicos.find(s => s.id === servicoParaExcluir.id);
-    }));
+    // Espera o modal de confirmação aparecer e clica no botão de confirmar
+    cy.get('#modalConfirmarExclusao').should('be.visible');
+    cy.get('#btnConfirmarExclusao').click();
+
+    // Verifica se `writeData` foi chamado com os dados corretos
+    cy.get('@writeData').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(
+      (servicos) => servicos.length === mockServicos.length - 1 && !servicos.find(s => s.id === servicoParaExcluir.id),
+      'O serviço foi excluído corretamente'
+    ));
 
     cy.get('#alert-container').should('contain', '✅ Serviço excluído com sucesso!');
 
     // Simula a atualização da UI após a exclusão
     const servicosRestantes = mockServicos.filter(s => s.id !== servicoParaExcluir.id);
     mockApi.readData.withArgs('servicos.json').resolves(servicosRestantes);
+    
+    // A função para recarregar os dados é `carregarServicos`
     cy.window().invoke('carregarServicos');
 
     cy.get('#lista-servicos').should('not.contain', servicoParaExcluir.clienteNome);

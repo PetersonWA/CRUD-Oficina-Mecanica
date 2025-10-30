@@ -1,24 +1,3 @@
 [
-  {
-    "id": "1758671583626",
-    "nome": "Peterson Amaral",
-    "telefone": "(51) 99220-3110",
-    "email": "pweschenfelder@gmail.com",
-    "documento": "029.344.410-24",
-    "endereco": "Rua Coronel Aparício Borges",
-    "cidade": "",
-    "bairro": "",
-    "cep": ""
-  },
-  {
-    "id": "1759190406459",
-    "nome": "Viviani Lima ",
-    "telefone": "(51) 99999-9999",
-    "email": "viviani.limadelima@gmail.com",
-    "documento": "026.678.580-85",
-    "endereco": "rua do teste, 22",
-    "cidade": "",
-    "bairro": "",
-    "cep": ""
-  }
+
 ]

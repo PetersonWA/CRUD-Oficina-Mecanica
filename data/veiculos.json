@@ -1,22 +1,3 @@
 [
-  {
-    "cliente": "Peterson Amaral",
-    "id": "1758671623059",
-    "marca": "ww",
-    "modelo": "Gol",
-    "ano": "2001",
-    "placa": "IJX9727",
-    "cor": "bege",
-    "quilometragem": 350000
-  },
-  {
-    "cliente": "Viviani Lima ",
-    "id": "1759190766197",
-    "marca": "ww",
-    "modelo": "kombi",
-    "ano": "1990",
-    "placa": "EVL6666",
-    "cor": "azul",
-    "quilometragem": 20010
-  }
+  
 ]

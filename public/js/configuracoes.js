@@ -1,166 +1,258 @@
-/* Scripts específicos para a página de configurações */
-
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('config-form');
-  if (!form) return; // Exit if not on the settings page
+    const form = document.getElementById('config-form');
+    if (!form) return; // Sai se não estiver na página
 
-  const logoPreview = document.getElementById('logo-preview');
-  const logoInput = document.getElementById('logo');
-  const deleteLogoBtn = document.getElementById('delete-logo');
-  const assinaturaPreview = document.getElementById('assinatura-preview');
-  const assinaturaInput = document.getElementById('assinatura');
-  const deleteAssinaturaBtn = document.getElementById('delete-assinatura');
-
-  const placeholderLogo = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect fill='%23F8F9FA' width='200' height='150'/%3E%3Ctext fill='rgba(0,0,0,0.4)' font-family='sans-serif' font-size='16' dy='5.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ELogo%3C/text%3E%3C/svg%3E";
-  const placeholderAssinatura = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='80' viewBox='0 0 200 80'%3E%3Crect fill='%23F8F9FA' width='200' height='80'/%3E%3Ctext fill='rgba(0,0,0,0.4)' font-family='sans-serif' font-size='14' dy='5.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3EAssinatura%3C/text%3E%3C/svg%3E";
-  
-  let confirmacaoCallback = () => {};
-
-  const modalConfirmacaoEl = document.getElementById('modalConfirmarExclusao');
-  const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
-  const corpoModalConfirmacao = document.getElementById('corpoModalConfirmacao');
-  const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
-
-  btnConfirmarExclusao.addEventListener('click', () => {
-    if(confirmacaoCallback) confirmacaoCallback();
-    modalConfirmacao.hide();
-  });
-
-  function showConfirm(message, callback) {
-    corpoModalConfirmacao.textContent = message;
-    confirmacaoCallback = callback;
-    modalConfirmacao.show();
-  }
-
-  // Expor a função para o escopo global para que o Cypress possa stubá-la
-  window.showConfirm = showConfirm;
-
-  // Carregar dados existentes
-  async function carregarConfiguracoes() {
-    try {
-      const config = await window.api.readData('configuracao.json');
-      if (config) {
-        document.getElementById('nomeOficina').value = config.nomeOficina || '';
-        document.getElementById('endereco').value = config.endereco || '';
-        document.getElementById('telefone').value = config.telefone || '';
-        document.getElementById('email').value = config.email || '';
-        document.getElementById('cnpj').value = config.cnpj || '';
-        document.getElementById('nomeResponsavel').value = config.nomeResponsavel || '';
-        document.getElementById('maxParcelas').value = config.maxParcelas || 12;
-        document.getElementById('jurosInicial').value = config.jurosInicial || 0;
-        document.getElementById('acrescimoParcela').value = config.acrescimoParcela || 0;
-        document.getElementById('parcelasSemJuros').value = config.parcelasSemJuros || 0;
-        if (config.logoPath) {
-          logoPreview.src = config.logoPath + '?t=' + new Date().getTime();
-        } else {
-          logoPreview.src = placeholderLogo;
-        }
-        if (config.assinaturaPath) {
-          assinaturaPreview.src = config.assinaturaPath + '?t=' + new Date().getTime();
-        } else {
-          assinaturaPreview.src = placeholderAssinatura;
-        }
-      }
-    } catch (error) {
-      console.warn('Arquivo de configuração ainda não existe. Será criado ao salvar.');
-    }
-  }
-
-  // Preview da imagem do logo
-  logoInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        logoPreview.src = e.target.result;
-      }
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // Preview da imagem da assinatura
-  assinaturaInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        assinaturaPreview.src = e.target.result;
-      }
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // Botão de excluir logo
-  deleteLogoBtn.addEventListener('click', () => {
-    showConfirm('Tem certeza que deseja excluir a imagem do logotipo?', () => {
-      logoPreview.src = placeholderLogo;
-      logoInput.value = null; // Limpa o campo de seleção de arquivo
-    });
-  });
-
-  // Botão de excluir assinatura
-  deleteAssinaturaBtn.addEventListener('click', () => {
-    showConfirm('Tem certeza que deseja excluir a imagem da assinatura?', () => {
-      assinaturaPreview.src = placeholderAssinatura;
-      assinaturaInput.value = null; // Limpa o campo de seleção de arquivo
-    });
-  });
-
-  // Salvar formulário
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    
-    const configData = {
-      nomeOficina: document.getElementById('nomeOficina').value,
-      endereco: document.getElementById('endereco').value,
-      telefone: document.getElementById('telefone').value,
-      email: document.getElementById('email').value,
-      cnpj: document.getElementById('cnpj').value,
-      nomeResponsavel: document.getElementById('nomeResponsavel').value,
-      maxParcelas: document.getElementById('maxParcelas').value,
-      jurosInicial: document.getElementById('jurosInicial').value,
-      acrescimoParcela: document.getElementById('acrescimoParcela').value,
-      parcelasSemJuros: document.getElementById('parcelasSemJuros').value,
+    const elements = {
+        logoPreview: document.getElementById('logo-preview'),
+        logoInput: document.getElementById('logo'),
+        deleteLogoBtn: document.getElementById('delete-logo'),
+        assinaturaPreview: document.getElementById('assinatura-preview'),
+        assinaturaInput: document.getElementById('assinatura'),
+        deleteAssinaturaBtn: document.getElementById('delete-assinatura'),
     };
 
-    const logoFile = logoInput.files[0];
-    const assinaturaFile = assinaturaInput.files[0];
-    
-    try {
-      const oldConfig = await lerDados('configuracao.json').catch(() => ({}));
+    const placeholderLogo = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect fill='%23F8F9FA' width='200' height='150'/%3E%3Ctext fill='rgba(0,0,0,0.4)' font-family='sans-serif' font-size='16' dy='5.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ELogo%3C/text%3E%3C/svg%3E";
+    const placeholderAssinatura = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='80' viewBox='0 0 200 80'%3E%3Crect fill='%23F8F9FA' width='200' height='80'/%3E%3Ctext fill='rgba(0,0,0,0.4)' font-family='sans-serif' font-size='14' dy='5.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3EAssinatura%3C/text%3E%3C/svg%3E";
 
-      // Lógica para salvar/excluir logo
-      if (logoFile) {
-        const fileBuffer = await logoFile.arrayBuffer();
-        const logoPath = await window.api.saveFile(fileBuffer, 'logo.' + logoFile.name.split('.').pop());
-        if (!logoPath) throw new Error('O caminho do logo não foi retornado.');
-        configData.logoPath = logoPath;
-      } else if (logoPreview.src === placeholderLogo) {
-        configData.logoPath = ''; // Imagem foi excluída
-      } else if (oldConfig.logoPath) {
-        configData.logoPath = oldConfig.logoPath; // Mantém a antiga se nenhuma nova foi enviada
-      }
+    async function carregarConfiguracoes() {
+        try {
+            const config = await window.api.getAllConfigs();
+            if (!config) return;
 
-      // Lógica para salvar/excluir assinatura
-      if (assinaturaFile) {
-        const fileBuffer = await assinaturaFile.arrayBuffer();
-        const assinaturaPath = await window.api.saveFile(fileBuffer, 'assinatura.' + assinaturaFile.name.split('.').pop());
-        if (!assinaturaPath) throw new Error('O caminho da assinatura não foi retornado.');
-        configData.assinaturaPath = assinaturaPath;
-      } else if (assinaturaPreview.src === placeholderAssinatura) {
-        configData.assinaturaPath = ''; // Imagem foi excluída
-      } else if (oldConfig.assinaturaPath) {
-        configData.assinaturaPath = oldConfig.assinaturaPath; // Mantém a antiga se nenhuma nova foi enviada
-      }
+            document.getElementById('nomeOficina').value = config.nomeOficina || '';
+            document.getElementById('endereco').value = config.endereco || '';
+            document.getElementById('telefone').value = config.telefone || '';
+            document.getElementById('email').value = config.email || '';
+            document.getElementById('cnpj').value = config.cnpj || '';
+            document.getElementById('nomeResponsavel').value = config.nomeResponsavel || '';
+            document.getElementById('maxParcelas').value = config.maxParcelas || 12;
+            document.getElementById('jurosInicial').value = config.jurosInicial || 0;
+            document.getElementById('acrescimoParcela').value = config.acrescimoParcela || 0;
+            document.getElementById('parcelasSemJuros').value = config.parcelasSemJuros || 0;
 
-      await salvarDados('configuracao.json', configData);
-      showAlert('✅ Configurações salvas com sucesso!');
-    } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
-      showAlert('Erro ao salvar configurações. Verifique o console para mais detalhes (Ctrl+Shift+I).', 'danger');
+            elements.logoPreview.src = config.logoPath ? `${config.logoPath}?t=${new Date().getTime()}` : placeholderLogo;
+            elements.assinaturaPreview.src = config.assinaturaPath ? `${config.assinaturaPath}?t=${new Date().getTime()}` : placeholderAssinatura;
+
+        } catch (error) {
+            console.error('Erro ao carregar configurações:', error);
+        }
     }
-  });
 
-  // Initial load
-  carregarConfiguracoes();
+    elements.logoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { elements.logoPreview.src = ev.target.result; };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    elements.assinaturaInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { elements.assinaturaPreview.src = ev.target.result; };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    elements.deleteLogoBtn.addEventListener('click', () => {
+        showConfirm('Tem certeza que deseja remover o logotipo? A alteração será permanente ao salvar.', () => {
+            elements.logoPreview.src = placeholderLogo;
+            elements.logoInput.value = ''; // Limpa o input de arquivo
+            showAlert('Logotipo removido. Clique em "Salvar Alterações" para confirmar.', 'info');
+        });
+    });
+
+    elements.deleteAssinaturaBtn.addEventListener('click', () => {
+        showConfirm('Tem certeza que deseja remover a assinatura? A alteração será permanente ao salvar.', () => {
+            elements.assinaturaPreview.src = placeholderAssinatura;
+            elements.assinaturaInput.value = ''; // Limpa o input de arquivo
+            showAlert('Assinatura removida. Clique em "Salvar Alterações" para confirmar.', 'info');
+        });
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        const configData = {
+            nomeOficina: document.getElementById('nomeOficina').value,
+            endereco: document.getElementById('endereco').value,
+            telefone: document.getElementById('telefone').value,
+            email: document.getElementById('email').value,
+            cnpj: document.getElementById('cnpj').value,
+            nomeResponsavel: document.getElementById('nomeResponsavel').value,
+            maxParcelas: document.getElementById('maxParcelas').value,
+            jurosInicial: document.getElementById('jurosInicial').value,
+            acrescimoParcela: document.getElementById('acrescimoParcela').value,
+            parcelasSemJuros: document.getElementById('parcelasSemJuros').value,
+        };
+
+        try {
+            const oldConfig = await window.api.getAllConfigs();
+
+            // Lógica para salvar/excluir logo
+            if (elements.logoInput.files[0]) {
+                const fileBuffer = await elements.logoInput.files[0].arrayBuffer();
+                configData.logoPath = await window.api.saveFile(fileBuffer, 'logo.' + elements.logoInput.files[0].name.split('.').pop());
+            } else if (elements.logoPreview.src === placeholderLogo) {
+                configData.logoPath = '';
+            } else {
+                configData.logoPath = oldConfig.logoPath || '';
+            }
+
+            // Lógica para salvar/excluir assinatura
+            if (elements.assinaturaInput.files[0]) {
+                const fileBuffer = await elements.assinaturaInput.files[0].arrayBuffer();
+                configData.assinaturaPath = await window.api.saveFile(fileBuffer, 'assinatura.' + elements.assinaturaInput.files[0].name.split('.').pop());
+            } else if (elements.assinaturaPreview.src === placeholderAssinatura) {
+                configData.assinaturaPath = '';
+            } else {
+                configData.assinaturaPath = oldConfig.assinaturaPath || '';
+            }
+
+            const result = await window.api.saveConfigs(configData);
+            if (result.success) {
+                showAlert('✅ Configurações salvas com sucesso!');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar configurações:', error);
+            showAlert('Erro ao salvar configurações.', 'danger');
+        }
+    });
+
+    carregarConfiguracoes();
+
+    // --- Lógica para Itens Arquivados ---
+    const modalArquivadosEl = document.getElementById('modalArquivados');
+    const modalArquivados = new bootstrap.Modal(modalArquivadosEl);
+    const modalArquivadosLabel = document.getElementById('modalArquivadosLabel');
+    const modalArquivadosThead = document.getElementById('modal-arquivados-thead');
+    const modalArquivadosTbody = document.getElementById('modal-arquivados-tbody');
+
+    const btnGerenciarClientes = document.getElementById('btn-gerenciar-clientes-arquivados');
+    const btnGerenciarVeiculos = document.getElementById('btn-gerenciar-veiculos-arquivados');
+    const btnGerenciarServicos = document.getElementById('btn-gerenciar-servicos-arquivados');
+
+    btnGerenciarClientes.addEventListener('click', () => abrirModalArquivados('clientes'));
+    btnGerenciarVeiculos.addEventListener('click', () => abrirModalArquivados('veiculos'));
+    btnGerenciarServicos.addEventListener('click', () => abrirModalArquivados('servicos'));
+
+    async function abrirModalArquivados(tipo) {
+        modalArquivadosTbody.innerHTML = '<tr><td colspan="10">Carregando...</td></tr>';
+        modalArquivados.show();
+
+        let data = [];
+        let headers = '';
+        let renderRow = (item) => '';
+
+        try {
+            switch (tipo) {
+                case 'clientes':
+                    modalArquivadosLabel.textContent = 'Clientes Arquivados';
+                    data = await window.api.getArchivedClientes();
+                    headers = '<tr><th>ID</th><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>Ações</th></tr>';
+                    renderRow = (cliente) => `
+                        <tr>
+                            <td>${cliente.id}</td>
+                            <td>${cliente.nome}</td>
+                            <td>${cliente.cpf_cnpj}</td>
+                            <td>${cliente.telefone}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success" onclick="handleRestore('clientes', ${cliente.id}, '${cliente.nome}')"><i class="bi bi-arrow-counterclockwise"></i> Restaurar</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('clientes', ${cliente.id}, '${cliente.nome}')"><i class="bi bi-trash3-fill"></i> Excluir Permanentemente</button>
+                            </td>
+                        </tr>`;
+                    break;
+                case 'veiculos':
+                    modalArquivadosLabel.textContent = 'Veículos Arquivados';
+                    data = await window.api.getArchivedVeiculos();
+                    headers = '<tr><th>ID</th><th>Placa</th><th>Marca/Modelo</th><th>Cliente</th><th>Ações</th></tr>';
+                    renderRow = (veiculo) => `
+                        <tr>
+                            <td>${veiculo.id}</td>
+                            <td>${veiculo.placa}</td>
+                            <td>${veiculo.marca} ${veiculo.modelo}</td>
+                            <td>${veiculo.cliente_nome}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success" onclick="handleRestore('veiculos', ${veiculo.id}, '${veiculo.placa}')"><i class="bi bi-arrow-counterclockwise"></i> Restaurar</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('veiculos', ${veiculo.id}, '${veiculo.placa}')"><i class="bi bi-trash3-fill"></i> Excluir Permanentemente</button>
+                            </td>
+                        </tr>`;
+                    break;
+                case 'servicos':
+                    modalArquivadosLabel.textContent = 'Serviços Arquivados';
+                    data = await window.api.getArchivedServicos();
+                    headers = '<tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Data</th><th>Ações</th></tr>';
+                    renderRow = (servico) => `
+                        <tr>
+                            <td>${String(servico.id).padStart(6, '0')}</td>
+                            <td>${servico.clienteNome}</td>
+                            <td>${servico.placaVeiculo}</td>
+                            <td>${new Date(servico.dataEntrada + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success" onclick="handleRestore('servicos', ${servico.id}, 'OS #${String(servico.id).padStart(6, '0')}')"><i class="bi bi-arrow-counterclockwise"></i> Restaurar</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('servicos', ${servico.id}, 'OS #${String(servico.id).padStart(6, '0')}')"><i class="bi bi-trash3-fill"></i> Excluir Permanentemente</button>
+                            </td>
+                        </tr>`;
+                    break;
+            }
+
+            modalArquivadosThead.innerHTML = headers;
+            if (data.length > 0) {
+                modalArquivadosTbody.innerHTML = data.map(renderRow).join('');
+            } else {
+                modalArquivadosTbody.innerHTML = '<tr><td colspan="10" class="text-center">Nenhum item arquivado encontrado.</td></tr>';
+            }
+        } catch (error) {
+            console.error(`Erro ao carregar ${tipo} arquivados:`, error);
+            modalArquivadosTbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados.</td></tr>';
+        }
+    }
+
+    window.handleRestore = (tipo, id, nome) => {
+        showConfirm(`Tem certeza que deseja restaurar "${nome}"? Ele voltará a aparecer nas listagens principais.`, async () => {
+            try {
+                let success = false;
+                switch (tipo) {
+                    case 'clientes': success = await window.api.restoreCliente(id); break;
+                    case 'veiculos': success = await window.api.restoreVeiculo(id); break;
+                    case 'servicos': success = await window.api.restoreServico(id); break;
+                }
+                if (success) {
+                    showAlert('✅ Item restaurado com sucesso!');
+                    abrirModalArquivados(tipo); // Recarrega a lista do modal
+                } else {
+                    throw new Error('A restauração falhou no backend.');
+                }
+            } catch (error) {
+                console.error('Erro ao restaurar:', error);
+                showAlert(`Erro ao restaurar item: ${error.message}`, 'danger');
+            }
+        });
+    };
+
+    window.handlePermanentDelete = (tipo, id, nome) => {
+        showConfirm(`ATENÇÃO: Exclusão permanente! Tem certeza que deseja apagar "${nome}" para sempre? Esta ação não pode ser desfeita.`, async () => {
+            try {
+                let success = false;
+                switch (tipo) {
+                    case 'clientes': success = await window.api.permanentlyDeleteCliente(id); break;
+                    case 'veiculos': success = await window.api.permanentlyDeleteVeiculo(id); break;
+                    case 'servicos': success = await window.api.permanentlyDeleteServico(id); break;
+                }
+                if (success) {
+                    showAlert('🗑️ Item excluído permanentemente.', 'success');
+                    abrirModalArquivados(tipo); // Recarrega a lista do modal
+                } else {
+                    throw new Error('A exclusão permanente falhou no backend.');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir permanentemente:', error);
+                showAlert(`Erro ao excluir item: ${error.message}`, 'danger');
+            }
+        });
+    };
 });

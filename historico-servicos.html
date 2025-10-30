@@ -60,19 +60,12 @@
                     <input type="date" class="form-control" id="filtro-data-fim">
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="btn-group btn-group-sm w-100" role="group">
-                  <input type="radio" class="btn-check" name="filtroTipoData" id="tipoDataEntrada" value="dataEntrada" checked>
-                  <label class="btn btn-outline-secondary" for="tipoDataEntrada">Filtrar por Entrada</label>
-                  <input type="radio" class="btn-check" name="filtroTipoData" id="tipoDataConclusao" value="dataConclusao">
-                  <label class="btn btn-outline-secondary" for="tipoDataConclusao">Filtrar por Conclusão</label>
-                </div>
-            </div>
         </div>
         <div class="row mt-2 g-2 align-items-center">
             <div class="col-md-auto">
                 <button class="btn btn-primary btn-sm me-1" onclick="aplicarFiltros()"><i class="bi bi-search"></i> Aplicar Filtros</button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="limparFiltros()"><i class="bi bi-x-circle"></i> Limpar</button>
+                <button class="btn btn-outline-secondary btn-sm me-1" onclick="limparFiltros()"><i class="bi bi-x-circle"></i> Limpar</button>
+                <button class="btn btn-info btn-sm" id="btn-gerar-relatorio"><i class="bi bi-file-text"></i> Gerar Relatório</button>
             </div>
             <div class="col-md-auto">
                 <span class="form-label-sm fw-bold me-2">Agrupar gráfico por:</span>
@@ -92,6 +85,17 @@
             </div>
         </div>
       </div>
+      <div id="relatorio-container" class="mb-4" style="display: none;">
+          <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">Relatório Gerado</h5>
+                  <button type="button" class="btn-close" id="btn-fechar-relatorio" aria-label="Close"></button>
+              </div>
+              <div class="card-body">
+                  <pre id="relatorio-texto" style="white-space: pre-wrap; font-family: inherit;"></pre>
+              </div>
+          </div>
+      </div>
 
       <!-- KPI Cards -->
       <div class="row mb-4 g-3">
@@ -106,7 +110,7 @@
         <div class="col-lg-3 col-md-6">
             <div class="card text-dark bg-light">
                 <div class="card-body">
-                    <h6 class="card-title">Faturamento Liquido</h6>
+                    <h6 class="card-title">Lucro Bruto (M.O. Recebida)</h6>
                     <p class="card-text fs-4" id="kpi-faturamento-bruto">R$ 0,00</p>
                 </div>
             </div>
@@ -134,7 +138,17 @@
         <div class="col-md-4"><div class="chart-container h-100"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><button class="btn btn-sm btn-outline-secondary analysis-type-btn" id="toggle-tipo-chart-analysis"><i class="bi bi-arrow-repeat"></i></button><canvas id="tipoItemChart"></canvas></div></div>
       </div>
       <div class="row mb-4">
-        <div class="col-md-12"><div class="chart-container"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><canvas id="topItensChart"></canvas></div></div>
+        <div class="col-md-12">
+          <div class="chart-container">
+            <div class="chart-header d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0 text-secondary">Top 10 Itens por Faturamento</h5>
+              <button class="btn btn-sm btn-outline-secondary collapse-chart-btn" data-target-canvas="topItensChart">
+                <i class="bi bi-chevron-up"></i>
+              </button>
+            </div>
+            <canvas id="topItensChart"></canvas>
+          </div>
+        </div>
       </div>
       <hr class="my-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -150,10 +164,10 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="renderer.js"></script>
+<script src="renderer.js" defer></script>
 
 <!-- Scripts da Aplicação -->
-<script src="public/js/utils.js"></script>
+<script src="public/js/utils.js" defer></script>
 <script src="public/js/main.js" defer></script>
 <script src="public/js/historico.js" defer></script>
 

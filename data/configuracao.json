@@ -10,5 +10,12 @@
   "acrescimoParcela": "1.33",
   "parcelasSemJuros": "5",
   "logoPath": "data/logo.png",
-  "assinaturaPath": "data/assinatura.png"
+  "assinaturaPath": "data/assinatura.png",
+  "formasPagamento": [
+    "Dinheiro",
+    "PIX",
+    "Cartão de Débito",
+    "Cartão de Crédito",
+    "Transferência Bancária"
+  ]
 }

@@ -10,14 +10,6 @@ function getLocalDateAsString(format = 'dd/mm/yyyy') {
     return `${dia}/${mes}/${ano}`;
 }
 
-async function lerDados(arquivo) {
-  return await window.api.readData(arquivo) || [];
-}
-
-async function salvarDados(arquivo, dados) {
-  await window.api.writeData(arquivo, dados);
-}
-
 
 async function buscarDados(arquivo, termoBusca, campo) {
   const dados = await lerDados(arquivo);

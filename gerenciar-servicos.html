@@ -49,7 +49,7 @@
         <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBuscaServico" placeholder="Termo de busca"><label>Termo de busca</label></div>
         <div class="col-md-4"><button type="button" class="btn btn-info" onclick="realizarBuscaServico()">Buscar</button><button type="button" class="btn btn-secondary ms-2" onclick="limparBuscaServico()">Limpar</button></div>
       </div>
-      <table class="table table-hover table-bordered"><thead class="table-primary"><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Data Entrada</th><th>Data Conclusão</th><th>Valor Total (R$)</th><th>Mecânico</th><th>Status</th><th>Status Pagamento</th><th>Ações</th></tr></thead><tbody id="lista-servicos"></tbody></table>
+      <table class="table table-hover table-bordered"><thead class="table-primary"><tr><th class="sortable-header" data-sort-key="id">OS</th><th class="sortable-header" data-sort-key="clienteNome">Cliente</th><th class="sortable-header" data-sort-key="placaVeiculo">Veículo</th><th class="sortable-header" data-sort-key="dataEntrada">Data Entrada</th><th class="sortable-header" data-sort-key="dataConclusao">Data Conclusão</th><th class="sortable-header" data-sort-key="valorTotal">Valor Total (R$)</th><th class="sortable-header" data-sort-key="mecanico">Mecânico</th><th class="sortable-header" data-sort-key="status">Status</th><th class="sortable-header" data-sort-key="statusPagamento">Status Pagamento</th><th>Ações</th></tr></thead><tbody id="lista-servicos"></tbody></table>
       <nav><ul class="pagination" id="paginacao-servicos"></ul></nav>
     </div>
     <!-- Modal de Visualização de Itens -->
@@ -175,10 +175,10 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="renderer.js"></script>
+<script src="renderer.js" defer></script>
 
 <!-- Scripts da Aplicação -->
-<script src="public/js/utils.js"></script>
+<script src="public/js/utils.js" defer></script>
 <script src="public/js/main.js" defer></script>
 <script src="public/js/gerenciar-servicos.js" defer></script>
 

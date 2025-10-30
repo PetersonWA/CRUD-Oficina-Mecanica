@@ -43,3 +43,37 @@ body { background-color: var(--bs-body-bg); overflow-x: hidden; }
 #sidebar.collapsed .sidebar-header {
     justify-content: center;
 }
+
+/* Estilos para cabeçalhos de tabela ordenáveis */
+.sortable-header {
+  cursor: pointer;
+  position: relative;
+}
+
+.sortable-header:hover {
+  background-color: #A5D6A7; /* Um tom de verde mais claro para o efeito hover */
+}
+
+.sortable-header::after {
+  content: '\2195'; /* Seta dupla para cima e para baixo */
+  font-size: 1.2em;
+  color: #2E7D32;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.3;
+}
+
+.sortable-header.sort-asc::after,
+.sortable-header.sort-desc::after {
+  opacity: 1;
+}
+
+.sortable-header.sort-asc::after {
+  content: '\2191'; /* Seta para cima */
+}
+
+.sortable-header.sort-desc::after {
+  content: '\2193'; /* Seta para baixo */
+}
