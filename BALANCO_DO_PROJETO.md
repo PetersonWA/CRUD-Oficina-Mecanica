@@ -215,3 +215,27 @@ Nesta sessão, focamos em resolver uma série de bugs e inconsistências que sur
     *   Agora, essas telas excluem corretamente os orçamentos com status 'Pendente' ou 'Recusado', garantindo que apenas serviços relevantes (aprovados, em andamento ou concluídos) sejam exibidos e considerados nos cálculos.
 
 Esta sessão foi fundamental para refinar a aplicação, eliminando bugs legados e garantindo que a base de código se comporte de maneira previsível e robusta após as grandes mudanças estruturais.
+
+---
+
+### 11. Refatoração do Dashboard, Documentação e UX (29/10/2025)
+
+Nesta sessão, o foco foi validar funcionalidades pós-migração, refatorar componentes de frontend que apresentavam bugs e melhorar a documentação e a experiência de usuário (UX) em pontos específicos.
+
+#### Validação e Correções no Dashboard de Histórico:
+*   **Diagnóstico:** Foi identificado que a página de Histórico (`historico-servicos.html`) perdeu funcionalidades interativas nos gráficos após a migração para o banco de dados. A causa raiz era que o código do frontend (`historico.js`) não estava mais sincronizado com a nova forma como os dados eram processados e enviados pelo backend.
+*   **Refatoração Completa:** O script `historico.js` foi inteiramente refatorado para se adaptar à nova arquitetura.
+    *   **Conserto das Interações:** A lógica para alternar os tipos de gráfico (barra/linha) e a análise do gráfico de pizza foi corrigida para requisitar os dados atualizados ao backend, em vez de tentar manipular dados inexistentes no frontend.
+    *   **Correção da Paginação e Relatórios:** As funções de paginação e geração de relatório, que também estavam quebradas, foram reescritas para funcionar com a nova estrutura de dados.
+*   **Melhoria de UX no Gráfico "Top 10":**
+    *   Após uma série de ajustes na funcionalidade de "expandir" gráficos, o usuário solicitou um comportamento de **recolher** o gráfico "Top 10 Itens", para economizar espaço na tela.
+    *   A estrutura HTML do gráfico foi alterada para separar o título do canvas.
+    *   Uma nova lógica de JavaScript foi implementada para permitir que o usuário esconda a área do gráfico, mantendo apenas o título visível, e alterne a visibilidade com um clique no botão.
+
+#### Verificação da Funcionalidade de Arquivamento:
+*   Foi realizada uma análise completa da funcionalidade de "Itens Arquivados".
+*   Confirmou-se que todo o fluxo (arquivar, visualizar, restaurar e excluir permanentemente) está 100% funcional, desde a interface até as operações no banco de dados, incluindo as regras de exclusão em cascata (`ON DELETE CASCADE`).
+
+#### Atualização da Documentação:
+*   O arquivo `README.md` do projeto, que estava severamente desatualizado, foi completamente reescrito.
+*   A nova documentação agora reflete com precisão todas as funcionalidades atuais do sistema, a arquitetura baseada em SQLite, as tecnologias utilizadas e as instruções corretas para instalação, teste e build do projeto.
