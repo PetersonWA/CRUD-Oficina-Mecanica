@@ -34,11 +34,14 @@ contextBridge.exposeInMainWorld('api', {
   getServicos: () => ipcRenderer.invoke('get-servicos'),
   updateServico: (servico) => ipcRenderer.invoke('update-servico', servico),
   deleteServico: (id) => ipcRenderer.invoke('delete-servico', id),
+  getServicoById: (id) => ipcRenderer.invoke('get-servico-by-id', id),
 
   // Pagamentos
   getServicosParaPagamentos: (busca) => ipcRenderer.invoke('get-servicos-para-pagamentos', busca),
   getServicoComPagamentos: (servicoId) => ipcRenderer.invoke('get-servico-com-pagamentos', servicoId),
   adicionarPagamento: (pagamento) => ipcRenderer.invoke('adicionar-pagamento', pagamento),
+
+  getPagamentos: () => ipcRenderer.invoke('get-pagamentos'),
 
   getDadosDashboard: (filtros) => ipcRenderer.invoke('get-dados-dashboard', filtros),
 

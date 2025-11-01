@@ -428,6 +428,11 @@ ipcMain.handle("adicionar-pagamento", (event, pagamento) => {
   return adicionarPagamento(pagamento);
 });
 
+ipcMain.handle("get-pagamentos", () => {
+  const stmt = db.prepare("SELECT * FROM pagamentos ORDER BY data");
+  return stmt.all();
+});
+
 ipcMain.handle('get-dados-dashboard', (event, filtros) => {
   return getDadosDashboard(filtros);
 });
@@ -458,15 +463,34 @@ ipcMain.handle("get-servicos", () => {
     "SELECT * FROM itens_servico WHERE servico_id = ?"
   );
   for (const servico of servicos) {
-    // O frontend espera 'valor' e não 'valor_unitario' no objeto do item
     servico.itens = stmtItens.all(servico.id).map((item) => ({
       descricao: item.descricao,
       tipo: item.tipo,
       quantidade: item.quantidade,
-      valor: item.valor_unitario,
+      valor_unitario: item.valor_unitario, // Padronizado para valor_unitario
     }));
   }
   return servicos;
+});
+
+ipcMain.handle("get-servico-by-id", (event, id) => {
+  const servico = db.prepare(`
+    SELECT 
+      s.id, s.data as dataEntrada, s.data_conclusao as dataConclusao, s.mecanico_responsavel as mecanico, 
+      s.status, s.status_pagamento as statusPagamento, s.valor_total as valorTotal,
+      COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
+      COALESCE(s.veiculo_desc_manual, v.placa) as placaVeiculo
+    FROM servicos s
+    LEFT JOIN clientes c ON s.cliente_id = c.id
+    LEFT JOIN veiculos v ON s.veiculo_id = v.id
+    WHERE s.id = ?
+  `).get(id);
+
+  if (servico) {
+    servico.itens = db.prepare("SELECT *, valor_unitario FROM itens_servico WHERE servico_id = ?").all(id);
+    servico.pagamentos = db.prepare("SELECT * FROM pagamentos WHERE servico_id = ?").all(id);
+  }
+  return servico;
 });
 
 ipcMain.handle("update-servico", (event, servico) => {
@@ -495,13 +519,13 @@ ipcMain.handle("update-servico", (event, servico) => {
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
-      // Mapeia 'valor' do frontend para 'valor_unitario' do DB
+      // Mapeia 'valor_unitario' do frontend para 'valor_unitario' do DB
       itemStmt.run(
         s.id,
         item.descricao,
         item.tipo,
         item.quantidade,
-        item.valor
+        item.valor_unitario
       );
     }
     return s.id;

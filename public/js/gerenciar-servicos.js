@@ -289,8 +289,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${item.descricao}</td>
           <td>${item.tipo || "Mão de Obra"}</td>
           <td>${item.quantidade}</td>
-          <td>R$ ${formatarValor(item.valor)}</td>
-          <td>R$ ${formatarValor(item.quantidade * item.valor)}</td>
+          <td>R$ ${formatarValor(item.valor_unitario)}</td>
+          <td>R$ ${formatarValor(item.quantidade * item.valor_unitario)}</td>
         </tr>
       `
         )
@@ -342,8 +342,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <td><input type="number" class="form-control form-control-sm" name="quantidade" value="${
           item ? item.quantidade : 1
         }" min="1" step="1" required></td>
-        <td><input type="number" class="form-control form-control-sm" name="valor" placeholder="0.00" value="${
-          item ? item.valor.toFixed(2) : "0.00"
+        <td><input type="number" class="form-control form-control-sm" name="valor_unitario" placeholder="0.00" value="${
+          item ? item.valor_unitario.toFixed(2) : "0.00"
         }" min="0" step="0.01" required></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="editRemoverItem(this)"><i class="bi bi-trash"></i></button></td>
     `;
@@ -369,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const quantidade =
         parseFloat(row.querySelector("[name=quantidade]").value) || 0;
       const valor =
-        parseFloat(row.querySelector("[name=valor]").value.replace(",", ".")) ||
+        parseFloat(row.querySelector("[name=valor_unitario]").value.replace(",", ".")) ||
         0;
       total += quantidade * valor;
     });
@@ -389,10 +389,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const tipo = row.querySelector("[name=tipo]").value;
       const quantidade =
         parseFloat(row.querySelector("[name=quantidade]").value) || 0;
-      const valor = parseFloat(row.querySelector("[name=valor]").value) || 0;
-      if (descricao && quantidade > 0 && valor >= 0) {
-        itens.push({ descricao, tipo, quantidade, valor });
-        valorTotal += quantidade * valor;
+      const valor_unitario = parseFloat(row.querySelector("[name=valor_unitario]").value) || 0;
+      if (descricao && quantidade > 0 && valor_unitario >= 0) {
+        itens.push({ descricao, tipo, quantidade, valor_unitario });
+        valorTotal += quantidade * valor_unitario;
       }
     });
 

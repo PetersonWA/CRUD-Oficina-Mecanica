@@ -239,3 +239,60 @@ Nesta sessão, o foco foi validar funcionalidades pós-migração, refatorar com
 #### Atualização da Documentação:
 *   O arquivo `README.md` do projeto, que estava severamente desatualizado, foi completamente reescrito.
 *   A nova documentação agora reflete com precisão todas as funcionalidades atuais do sistema, a arquitetura baseada em SQLite, as tecnologias utilizadas e as instruções corretas para instalação, teste e build do projeto.
+
+---
+
+### 12. Recuperação de Repositório e Refatoração Avançada do Dashboard (30/10/2025)
+
+Esta sessão foi marcada por dois grandes desafios: a recuperação de um estado crítico do repositório Git e uma refatoração profunda e completa do Dashboard de Análises para implementar novas métricas de negócio.
+
+#### Recuperação e Limpeza do Repositório Git:
+*   **Diagnóstico e Recuperação:** Um erro acidental no cliente Git levou à perda de vários dias de trabalho. Utilizando o `git reflog`, foi possível diagnosticar o problema, encontrar os commits perdidos e restaurar o projeto ao seu estado correto com `git reset --hard`.
+*   **Correção de Histórico (Arquivos Grandes):** Foi identificado que o erro original foi causado por arquivos grandes da pasta `dist/` sendo comitados no histórico, o que impedia o `push` para o GitHub.
+*   **Reescrita do Histórico:** Para uma solução definitiva, o comando `git filter-branch` foi utilizado para reescrever todo o histórico do repositório, removendo os arquivos pesados de todos os commits passados.
+*   **Sincronização Final:** Após a limpeza, o histórico local foi forçado para o repositório remoto com `git push --force`, resolvendo o conflito de divergência e alinhando o projeto com sucesso.
+
+#### Refatoração Completa do Dashboard de Histórico:
+*   **Arquitetura de Dados:** A lógica de processamento de dados do dashboard, que antes dependia do backend, foi transferida para o frontend (`historico.js`) para atender aos requisitos da nova implementação. Isso envolveu a busca de dados brutos e a realização de todos os cálculos e agregações no lado do cliente.
+*   **Correção de KPIs Existentes:**
+    *   O rótulo do KPI "Faturamento Líquido" foi corrigido para "Faturamento Bruto".
+    *   O cálculo do **Ticket Médio** foi ajustado para usar a fórmula correta, baseada no número de serviços concluídos.
+*   **Implementação de Novos KPIs:**
+    *   **Taxa de Conversão:** Um novo KPI foi adicionado para medir a taxa de conversão de orçamentos, buscando e processando os dados de `orcamentos.json`.
+    *   **Serviços Concluídos:** O total de serviços concluídos foi adicionado como um card de KPI em destaque.
+*   **Funcionalidade Avançada no Gráfico "Top 10":**
+    *   Foi adicionado um botão que permite ao usuário alternar dinamicamente a visualização do gráfico.
+    *   O gráfico agora pode exibir o "Top 10" por **Itens**, **Clientes** ou **Mecânicos**, com base no faturamento gerado. O título do gráfico é atualizado dinamicamente para refletir a visão atual.
+*   **Depuração e Estabilização:**
+    *   Foi realizado um processo iterativo de depuração para corrigir múltiplos bugs que surgiram com a nova arquitetura, incluindo:
+        *   Chamadas incorretas à API (`readData` vs. `getServicos`).
+        *   Lógica de combinação de dados de serviços e pagamentos.
+        *   Nomes de propriedades incorretos (`mecanicoResponsavel`, `valor_unitario`).
+        *   Cálculos que resultavam em `NaN` devido a tipos de dados inconsistentes.
+
+Ao final da sessão, o dashboard estava 100% funcional, com todas as novas métricas e funcionalidades implementadas e validadas.
+---
+
+### 13. Padronização da API e a Descoberta de Requisitos Financeiros (31/10/2025)
+
+Nesta sessão, o que começou como uma série de correções de bugs e otimizações de performance na página de Histórico evoluiu para uma importante redescoberta dos requisitos financeiros fundamentais da aplicação.
+
+#### Padronização e Otimização da API de Dados:
+*   **Otimização de Performance no Dashboard:** Identificamos e corrigimos um grande gargalo de performance na página de Histórico, onde os dados de pagamento eram buscados individualmente para cada serviço. A solução envolveu a criação de um novo endpoint na API (`get-pagamentos`) e a refatoração do frontend para carregar todos os pagamentos de uma só vez, processando os dados em memória e tornando a filtragem do dashboard instantânea.
+*   **Correção de Inconsistência na API:** Durante a refatoração, descobrimos que diferentes partes da API retornavam dados com estruturas inconsistentes (ex: `item.valor` vs. `item.valor_unitario`). Isso causou uma série de bugs em cascata, incluindo:
+    1.  Gráficos no dashboard que não renderizavam na carga inicial.
+    2.  Um erro fatal (`TypeError`) ao tentar abrir o modal de edição na tela "Gerenciar Serviços".
+*   **Refatoração Abrangente:** Para resolver a raiz do problema, realizamos uma padronização completa. Todas as funções da API (`get-servicos`, `get-servico-by-id`, `update-servico`) e as páginas que as consomem (`historico.js`, `gerenciar-servicos.js`) foram atualizadas para usar consistentemente a propriedade `valor_unitario`, eliminando a ambiguidade e corrigindo todos os bugs relacionados.
+
+#### Redefinição do Modelo Financeiro (Próximos Passos):
+
+A principal descoberta do dia foi uma profunda observação sobre a lógica financeira do sistema, levantada pelo próprio usuário.
+
+*   **O Problema Identificado:** Atualmente, quando uma venda é feita no cartão de crédito, o valor total é lançado imediatamente como "Receita Realizada". Embora a venda tenha sido concluída (regime de competência), isso não reflete a realidade do fluxo de caixa da empresa (regime de caixa), pois o dinheiro entrará em parcelas futuras.
+*   **A Necessidade Real:** Para que o dashboard seja uma ferramenta de gestão financeira fiel, ele precisa fornecer uma visão clara do **fluxo de caixa** — o dinheiro que realmente entra e sai da empresa. O modelo atual pode levar a uma falsa sensação de liquidez, mascarando a saúde financeira real do negócio.
+*   **O Objetivo:** Evoluir o sistema para um modelo de controle financeiro mais sofisticado, que inclua:
+    1.  **Previsão de Fluxo de Caixa:** Ao registrar uma venda parcelada, o sistema deve gerar um lançamento para cada parcela futura, com suas respectivas datas de compensação (ex: D+30, D+60, D+90).
+    2.  **Revisão dos KPIs:** O KPI "Receita Realizada" no dashboard deve ser alterado para refletir apenas os pagamentos cuja data de compensação já passou.
+    3.  **Novas Métricas:** Introduzir novas métricas e visualizações, como "Contas a Receber" (detalhando valores futuros) e um gráfico de "Fluxo de Caixa Projetado".
+
+Esta mudança transformará o dashboard de um simples registro de vendas para um verdadeiro "livro caixa" gerencial, fornecendo insights muito mais profundos e precisos para a tomada de decisão. Este será o nosso foco principal nas próximas sessões.
