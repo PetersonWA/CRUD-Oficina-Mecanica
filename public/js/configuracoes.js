@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('jurosInicial').value = config.jurosInicial || 0;
             document.getElementById('acrescimoParcela').value = config.acrescimoParcela || 0;
             document.getElementById('parcelasSemJuros').value = config.parcelasSemJuros || 0;
+            document.getElementById('formasPagamento').value = config.formasPagamento || '';
+            document.getElementById('percentualLucroPecas').value = config.percentualLucroPecas || 10;
 
             elements.logoPreview.src = config.logoPath ? `${config.logoPath}?t=${new Date().getTime()}` : placeholderLogo;
             elements.assinaturaPreview.src = config.assinaturaPath ? `${config.assinaturaPath}?t=${new Date().getTime()}` : placeholderAssinatura;
@@ -86,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             jurosInicial: document.getElementById('jurosInicial').value,
             acrescimoParcela: document.getElementById('acrescimoParcela').value,
             parcelasSemJuros: document.getElementById('parcelasSemJuros').value,
+            formasPagamento: document.getElementById('formasPagamento').value,
+            percentualLucroPecas: document.getElementById('percentualLucroPecas').value,
         };
 
         try {

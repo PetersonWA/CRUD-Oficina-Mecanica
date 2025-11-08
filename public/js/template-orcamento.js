@@ -1,6 +1,5 @@
-// public/js/template-orcamento.js
 window.electronAPI.onPrintData((_event, data) => {
-    console.log("Dados recebidos para impressão:", data); // Adicionado para depuração
+    console.log("Dados recebidos para impressão:", data);
     try {
         // Populate company details
         document.getElementById('nome-oficina').textContent = data.config.nomeOficina || '';
@@ -8,16 +7,32 @@ window.electronAPI.onPrintData((_event, data) => {
         document.getElementById('telefone-oficina').textContent = `Telefone: ${data.config.telefone || ''}`;
         document.getElementById('email-oficina').textContent = `Email: ${data.config.email || ''}`;
         document.getElementById('cnpj-oficina').textContent = `CNPJ: ${data.config.cnpj || ''}`;
+
+        let imagesToLoad = 0;
+        let imagesLoaded = 0;
+
+        const signalReadyWhenLoaded = () => {
+            imagesLoaded++;
+            if (imagesLoaded === imagesToLoad) {
+                window.electronAPI.readyToPrint();
+            }
+        };
+
         if (data.config.logoPath) {
+            imagesToLoad++;
             const logo = document.getElementById('logo');
+            logo.onload = signalReadyWhenLoaded;
+            logo.onerror = signalReadyWhenLoaded; // Also count errors as "loaded" to avoid getting stuck
             logo.src = data.config.logoPath;
             logo.style.display = 'block';
+        } else {
+            document.getElementById('logo').style.display = 'none';
         }
 
         // Populate budget details
         document.getElementById('os-id').textContent = String(data.budget.id).padStart(6, '0');
-        document.getElementById('data-emissao').textContent = new Date(data.budget.data).toLocaleDateString('pt-BR');
-        const validade = new Date(data.budget.data);
+        document.getElementById('data-emissao').textContent = new Date(data.budget.data_entrada).toLocaleDateString('pt-BR');
+        const validade = new Date(data.budget.data_entrada);
         validade.setDate(validade.getDate() + 30);
         document.getElementById('data-validade').textContent = validade.toLocaleDateString('pt-BR');
 
@@ -63,15 +78,35 @@ window.electronAPI.onPrintData((_event, data) => {
         document.getElementById('footer-telefone').textContent = data.config.telefone || '';
         document.getElementById('nome-responsavel').textContent = data.config.nomeResponsavel || '';
         if (data.config.assinaturaPath) {
+            imagesToLoad++;
             const assinatura = document.getElementById('imagem-assinatura');
+            assinatura.onload = signalReadyWhenLoaded;
+            assinatura.onerror = signalReadyWhenLoaded;
             assinatura.src = data.config.assinaturaPath;
             assinatura.style.display = 'block';
+        } else {
+            document.getElementById('imagem-assinatura').style.display = 'none';
         }
         
-        document.getElementById('formas-pagamento').innerHTML = data.config.formasPagamento || 'Consulte-nos';
+        const formasPagamentoContainer = document.getElementById('formas-pagamento');
+        if (data.config.formasPagamento) {
+            const formas = data.config.formasPagamento.split(',').map(forma => forma.trim());
+            const ul = document.createElement('ul');
+            formas.forEach(forma => {
+                const li = document.createElement('li');
+                li.textContent = forma;
+                ul.appendChild(li);
+            });
+            formasPagamentoContainer.innerHTML = ''; // Clear previous content
+            formasPagamentoContainer.appendChild(ul);
+        } else {
+            formasPagamentoContainer.textContent = 'Consulte-nos';
+        }
 
-        // After populating, trigger print
-        window.electronAPI.readyToPrint();
+        // If there are no images, signal ready immediately
+        if (imagesToLoad === 0) {
+            window.electronAPI.readyToPrint();
+        }
     } catch (error) {
         window.electronAPI.printError(error.message);
     }

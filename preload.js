@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld('api', {
 
   getDadosDashboard: (filtros) => ipcRenderer.invoke('get-dados-dashboard', filtros),
 
+  getPlanoContas: () => ipcRenderer.invoke('get-plano-contas'),
+
+  addDespesa: (despesa) => ipcRenderer.invoke('add-despesa', despesa),
+
   getAllConfigs: () => ipcRenderer.invoke('get-all-configs'),
   saveConfigs: (configs) => ipcRenderer.invoke('save-configs', configs),
 

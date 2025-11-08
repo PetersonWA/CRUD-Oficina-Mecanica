@@ -3,7 +3,7 @@ console.log("main.js is being executed");
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const database = require("./database.js");
-const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard } = database; // Importa a instância do DB
+const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard, getPlanoContas, addDespesa } = database; // Importa a instância do DB
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -129,28 +129,37 @@ ipcMain.handle("delete-veiculo", (event, id) => {
 ipcMain.handle("add-orcamento", (event, orcamento) => {
   const transaction = db.transaction((orc) => {
     const servicoStmt = db.prepare(
-      "INSERT INTO servicos (cliente_id, veiculo_id, data, descricao_problema, valor_total, status) VALUES (?, ?, ?, ?, ?, ?)"
+      "INSERT INTO servicos (cliente_id, veiculo_id, data_entrada, descricao_problema, valor_total, status, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     const servicoResult = servicoStmt.run(
       orc.cliente_id,
       orc.veiculo_id,
-      orc.data,
+      orc.data_entrada,
       orc.descricao_problema,
       orc.valor_total,
-      "Pendente" // Status inicial padrão para orçamentos
+      "Pendente", // Status inicial padrão para orçamentos
+      111 // Default to 'Serviços de Mecânica Geral'
     );
     const servicoId = servicoResult.lastInsertRowid;
 
+    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
+
     const itemStmt = db.prepare(
-      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of orc.itens) {
+      let valorCusto = null;
+      if (item.tipo === 'Peça' && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      }
       itemStmt.run(
         servicoId,
         item.descricao,
         item.tipo,
         item.quantidade,
-        item.valor_unitario
+        item.valor_unitario,
+        valorCusto
       );
     }
 
@@ -180,7 +189,7 @@ ipcMain.handle("get-orcamentos", () => {
     JOIN clientes c ON s.cliente_id = c.id
     JOIN veiculos v ON s.veiculo_id = v.id
     WHERE s.is_deleted = 0 AND s.status IN ('Pendente', 'Aprovado', 'Recusado')
-    ORDER BY s.data DESC
+    ORDER BY s.data_entrada DESC
   `);
   return stmt.all();
 });
@@ -216,12 +225,12 @@ ipcMain.handle("get-orcamento-by-id", (event, id) => {
 ipcMain.handle("update-orcamento", (event, orcamento) => {
   const transaction = db.transaction((orc) => {
     const servicoStmt = db.prepare(
-      "UPDATE servicos SET cliente_id = ?, veiculo_id = ?, data = ?, descricao_problema = ?, valor_total = ?, status = ? WHERE id = ?"
+      "UPDATE servicos SET cliente_id = ?, veiculo_id = ?, data_entrada = ?, descricao_problema = ?, valor_total = ?, status = ? WHERE id = ?"
     );
     servicoStmt.run(
       orc.cliente_id,
       orc.veiculo_id,
-      orc.data,
+      orc.data_entrada,
       orc.descricao_problema,
       orc.valor_total,
       orc.status,
@@ -230,16 +239,24 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
     db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(orc.id);
 
+    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
+
     const itemStmt = db.prepare(
-      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of orc.itens) {
+      let valorCusto = null;
+      if (item.tipo === 'Peça' && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      }
       itemStmt.run(
         orc.id,
         item.descricao,
         item.tipo,
         item.quantidade,
-        item.valor_unitario
+        item.valor_unitario,
+        valorCusto
       );
     }
 
@@ -264,30 +281,20 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
 ipcMain.handle("add-servico", (event, servico) => {
   const transaction = db.transaction((s) => {
-    let clienteId = s.cliente_id;
-    let veiculoId = s.veiculo_id;
-
-    // Se for uma OS Manual (sem cliente_id), cria registros "fantasma"
-    if (!clienteId && s.cliente_nome_manual) {
-        const clienteResult = db.prepare("INSERT INTO clientes (nome, cpf_cnpj) VALUES (?, ?)")
-                                .run(`[Manual] ${s.cliente_nome_manual}`, `manual_${Date.now()}`);
-        clienteId = clienteResult.lastInsertRowid;
-
-        const veiculoResult = db.prepare("INSERT INTO veiculos (cliente_id, placa, marca, modelo) VALUES (?, ?, ?, ?)")
-                                .run(clienteId, `manual_${Date.now()}`, s.veiculo_desc_manual || 'N/A', '');
-        veiculoId = veiculoResult.lastInsertRowid;
-    }
-
-    // 1. Insere o serviço principal
     const servicoStmt = db.prepare(
-      "INSERT INTO servicos (cliente_id, veiculo_id, data, descricao_problema, mecanico_responsavel, valor_total, status, valor_original, valor_desconto, forma_pagamento, numero_parcelas, status_pagamento, cliente_nome_manual, veiculo_desc_manual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      `INSERT INTO servicos (
+        cliente_id, veiculo_id, data_entrada, descricao_problema, mecanico_responsavel, 
+        valor_total, status, valor_original, valor_desconto, forma_pagamento, 
+        numero_parcelas, status_pagamento, data_competencia, data_vencimento, id_plano_contas
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
+
     const servicoResult = servicoStmt.run(
-      clienteId,
-      veiculoId,
-      s.data,
-      s.problema_relatado,
-      s.mecanico_responsavel,
+      s.cliente_id,
+      s.veiculo_id,
+      s.data_entrada,
+      s.problema_relatado,      // Frontend sends problema_relatado
+      s.mecanico,               // Frontend sends mecanico
       s.valor_total,
       s.status,
       s.valor_original,
@@ -295,39 +302,45 @@ ipcMain.handle("add-servico", (event, servico) => {
       s.forma_pagamento,
       s.numero_parcelas,
       s.status_pagamento,
-      s.cliente_nome_manual,
-      s.veiculo_desc_manual
+      s.data_competencia,
+      s.data_vencimento,
+      s.id_plano_contas || 111 // Use provided or default
     );
     const servicoId = servicoResult.lastInsertRowid;
 
-    // 2. Insere os itens
+    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
+
     const itemStmt = db.prepare(
-      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
+      let valorCusto = null;
+      if (item.tipo === 'Peça' && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      }
       itemStmt.run(
         servicoId,
         item.descricao,
         item.tipo,
         item.quantidade,
-        item.valor_unitario
+        item.valor_unitario,
+        valorCusto
       );
     }
 
-    // 3. Insere o pagamento inicial, se houver
     if (s.pagamento_inicial) {
       const pagtoStmt = db.prepare(
-        "INSERT INTO pagamentos (servico_id, metodo, valor, data) VALUES (?, ?, ?, ?)"
+        "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao) VALUES (?, ?, ?, ?)"
       );
       pagtoStmt.run(
         servicoId,
         s.pagamento_inicial.forma,
         s.pagamento_inicial.valor,
-        s.pagamento_inicial.data
+        s.pagamento_inicial.data_liquidacao
       );
     }
 
-    // 4. Atualiza a quilometragem do veículo (apenas se for um veículo existente)
     if (s.quilometragem && s.veiculo_id) {
       db.prepare(
         "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
@@ -429,7 +442,7 @@ ipcMain.handle("adicionar-pagamento", (event, pagamento) => {
 });
 
 ipcMain.handle("get-pagamentos", () => {
-  const stmt = db.prepare("SELECT * FROM pagamentos ORDER BY data");
+  const stmt = db.prepare("SELECT * FROM pagamentos ORDER BY data_liquidacao");
   return stmt.all();
 });
 
@@ -444,12 +457,15 @@ ipcMain.handle("get-servicos", () => {
       s.id,
       COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
       COALESCE(s.veiculo_desc_manual, v.placa) as placaVeiculo,
-      s.data as dataEntrada,
+      s.data_entrada as dataEntrada,
       s.data_conclusao as dataConclusao,
       s.valor_total as valorTotal,
       s.mecanico_responsavel as mecanico,
       s.status,
-      s.status_pagamento as statusPagamento
+      s.status_pagamento as statusPagamento,
+      s.data_competencia as data_competencia,
+      s.data_vencimento as data_vencimento,
+      s.id_plano_contas as id_plano_contas
     FROM servicos s
     LEFT JOIN clientes c ON s.cliente_id = c.id
     LEFT JOIN veiculos v ON s.veiculo_id = v.id
@@ -468,6 +484,7 @@ ipcMain.handle("get-servicos", () => {
       tipo: item.tipo,
       quantidade: item.quantidade,
       valor_unitario: item.valor_unitario, // Padronizado para valor_unitario
+      valor_custo: item.valor_custo
     }));
   }
   return servicos;
@@ -499,7 +516,7 @@ ipcMain.handle("update-servico", (event, servico) => {
     // Mapeia os nomes do frontend (ex: dataEntrada) para os nomes do DB (ex: data)
     const servicoStmt = db.prepare(
       `UPDATE servicos 
-       SET data = ?, mecanico_responsavel = ?, status = ?, valor_total = ?, data_conclusao = ?
+       SET data_entrada = ?, mecanico_responsavel = ?, status = ?, valor_total = ?, data_conclusao = ?, data_competencia = ?, data_vencimento = ?, id_plano_contas = ?
        WHERE id = ?`
     );
     servicoStmt.run(
@@ -508,6 +525,9 @@ ipcMain.handle("update-servico", (event, servico) => {
       s.status,
       s.valorTotal,
       s.dataConclusao,
+      s.data_competencia,
+      s.data_vencimento,
+      s.id_plano_contas,
       s.id
     );
 
@@ -515,17 +535,25 @@ ipcMain.handle("update-servico", (event, servico) => {
     db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(s.id);
 
     // 3. Insere os novos itens
+    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
+
     const itemStmt = db.prepare(
-      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
+      let valorCusto = null;
+      if (item.tipo === 'Peça' && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      }
       // Mapeia 'valor_unitario' do frontend para 'valor_unitario' do DB
       itemStmt.run(
         s.id,
         item.descricao,
         item.tipo,
         item.quantidade,
-        item.valor_unitario
+        item.valor_unitario,
+        valorCusto
       );
     }
     return s.id;
@@ -665,7 +693,7 @@ ipcMain.handle("get-archived-servicos", () => {
       s.id,
       COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
       COALESCE(s.veiculo_desc_manual, v.placa) as placaVeiculo,
-      s.data as dataEntrada
+      s.data_entrada as dataEntrada
     FROM servicos s
     LEFT JOIN clientes c ON s.cliente_id = c.id
     LEFT JOIN veiculos v ON s.veiculo_id = v.id
@@ -727,6 +755,14 @@ ipcMain.handle("permanently-delete-servico", (event, id) => {
   return result.changes > 0;
 });
 
+ipcMain.handle("get-plano-contas", () => {
+  return getPlanoContas();
+});
+
+ipcMain.handle("add-despesa", (event, despesa) => {
+  return addDespesa(despesa);
+});
+
 app.whenReady().then(() => {
   database.initDb();
 
@@ -735,7 +771,7 @@ app.whenReady().then(() => {
       responseHeaders: {
         ...details.responseHeaders,
         "Content-Security-Policy": [
-          "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' file: data:;",
+          "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' file: data: *;",
         ],
       },
     });

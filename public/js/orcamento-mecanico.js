@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: orcamentoIdEmEdicao,
             cliente_id: clienteId,
             veiculo_id: veiculoId,
-            data: getLocalDateAsString(new Date()),
+            data_entrada: getLocalDateAsString(new Date()),
             descricao_problema: elements.problemaRelatadoInput.value,
             valor_total: calcularTotal(),
             status: orcamentoIdEmEdicao ? elements.statusSelect.value : 'Orçamento',

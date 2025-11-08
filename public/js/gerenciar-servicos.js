@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let sortKey = 'id';
   let sortOrder = 'desc';
+  let planoContas = [];
 
   const modalConfirmacaoEl = document.getElementById("modalConfirmarExclusao");
   const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
@@ -56,6 +57,28 @@ document.addEventListener("DOMContentLoaded", () => {
     modalConfirmacao.hide();
   });
 
+  async function carregarPlanoContas() {
+    try {
+      planoContas = await window.api.getPlanoContas();
+    } catch (error) {
+      console.error("Erro ao carregar plano de contas:", error);
+      showAlert("Falha ao carregar plano de contas.", "danger");
+    }
+  }
+
+  function popularPlanoContasDropdown(selectElement, selectedId) {
+    selectElement.innerHTML = '<option value="">Selecione...</option>';
+    planoContas.forEach(conta => {
+      const option = document.createElement('option');
+      option.value = conta.id;
+      option.textContent = conta.nome_conta;
+      if (conta.id === selectedId) {
+        option.selected = true;
+      }
+      selectElement.appendChild(option);
+    });
+  }
+
   function showConfirm(message, callback) {
     corpoModalConfirmacao.textContent = message;
     confirmacaoCallback = callback;
@@ -63,6 +86,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   window.showConfirm = showConfirm;
+
+  function lancarCustoComoDespesa(servicoId, custoTotal) {
+    const despesaData = {
+        valor: custoTotal.toFixed(2),
+        anotacao: `Custo de peças referente à OS #${String(servicoId).padStart(6, "0")}`,
+        id_plano_contas: 311 // ID para "Custo das Peças Vendidas (CMV)"
+    };
+
+    sessionStorage.setItem('despesaPreenchida', JSON.stringify(despesaData));
+    window.location.href = 'despesas.html';
+  }
+  window.lancarCustoComoDespesa = lancarCustoComoDespesa;
 
   const getStatusPagamentoBadge = (status) => {
     switch (status) {
@@ -160,6 +195,24 @@ document.addEventListener("DOMContentLoaded", () => {
     listaServicosTable.innerHTML = servicosPagina
       .map((s) => {
         const valorServico = s.valor !== undefined ? s.valor : s.valorTotal;
+
+        let lancarCustoBtnHtml = '';
+        if (s.status === 'Concluído') {
+            const custoTotalPecas = s.itens
+                .filter(item => item.tipo === 'Peça' && item.valor_custo > 0)
+                .reduce((acc, item) => acc + (item.valor_custo * item.quantidade), 0);
+
+            if (custoTotalPecas > 0) {
+                lancarCustoBtnHtml = `
+                    <button 
+                        class="btn btn-sm btn-success mt-1" 
+                        onclick='lancarCustoComoDespesa(${s.id}, ${custoTotalPecas})' 
+                        title="Lançar Custo das Peças como Despesa">
+                        <i class="bi bi-currency-dollar"></i> Lançar Custo
+                    </button>`;
+            }
+        }
+
         return `
       <tr>
         <td>${String(s.id).padStart(6, "0")}</td>
@@ -179,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${s.mecanico}</td>
         <td>${s.status}</td>
         <td>${getStatusPagamentoBadge(s.statusPagamento)}</td>
-        <td>
+        <td class="text-center">
           <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${
             s.id
           })"><i class="bi bi-eye"></i></button>
@@ -189,6 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="btn btn-sm btn-danger" onclick="excluirServico(${
             s.id
           })"><i class="bi bi-trash"></i></button>
+          ${lancarCustoBtnHtml}
         </td>
       </tr>
     `;
@@ -310,6 +364,12 @@ document.addEventListener("DOMContentLoaded", () => {
       editServicoMecanico.value = servico.mecanico;
       editServicoStatus.value = servico.status;
 
+      // Populate new fields
+      document.getElementById('editServicoDataCompetencia').value = servico.data_competencia || '';
+      document.getElementById('editServicoDataVencimento').value = servico.data_vencimento || '';
+      const planoContasSelect = document.getElementById('editServicoPlanoContas');
+      popularPlanoContasDropdown(planoContasSelect, servico.id_plano_contas);
+
       editItensBody.innerHTML = "";
       servico.itens.forEach((item) => editAdicionarItem(item));
       editCalcularTotal();
@@ -410,6 +470,10 @@ document.addEventListener("DOMContentLoaded", () => {
       status: editServicoStatus.value,
       itens: itens,
       valorTotal: valorTotal,
+      // Add new fields
+      data_competencia: document.getElementById('editServicoDataCompetencia').value,
+      data_vencimento: document.getElementById('editServicoDataVencimento').value,
+      id_plano_contas: parseInt(document.getElementById('editServicoPlanoContas').value)
     };
 
     if (
@@ -472,4 +536,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   carregarServicos();
+  carregarPlanoContas();
 });

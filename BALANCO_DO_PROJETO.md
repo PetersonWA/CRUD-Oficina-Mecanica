@@ -37,7 +37,7 @@ Nesta sessão, realizamos uma grande refatoração e aprimoramento do fluxo de p
 
 #### Correções de Bugs:
 *   **Código Visível na Página:** Corrigido um bug na página de orçamento (`orcamento-mecanico.html`) onde um trecho de código JavaScript era exibido para o usuário.
-*   **Codificação de Caracteres:** Resolvido um problema de codificação em várias páginas, onde caracteres acentuados (como "ó", "ç", "ú") eram exibidos como códigos unicode (ex: `\u00f3`).
+*   **Codificação de Caracteres:** Resolvido um problema de codificação em várias páginas, onde caracteres acentuados (como "ó", "ç", "ú") eram exibidos como códigos unicode (ex: `ó`).
 *   **Tabela de Serviços Vazia:** Corrigido um erro em `gerenciar-servicos.html` que impedia a exibição de serviços recém-criados na tabela.
 *   **Geração de PDF:**
     *   Resolvido o problema de perda de cores de fundo nos títulos das seções ao salvar o orçamento como PDF.
@@ -296,3 +296,89 @@ A principal descoberta do dia foi uma profunda observação sobre a lógica fina
     3.  **Novas Métricas:** Introduzir novas métricas e visualizações, como "Contas a Receber" (detalhando valores futuros) e um gráfico de "Fluxo de Caixa Projetado".
 
 Esta mudança transformará o dashboard de um simples registro de vendas para um verdadeiro "livro caixa" gerencial, fornecendo insights muito mais profundos e precisos para a tomada de decisão. Este será o nosso foco principal nas próximas sessões.
+
+---
+
+### 14. Refatoração Financeira Completa e Estabilização do Sistema (02/11/2025)
+
+Nesta sessão, realizamos uma refatoração profunda do modelo financeiro da aplicação, corrigindo inconsistências entre frontend e backend, implementando novos campos para uma gestão financeira mais robusta e estabilizando funcionalidades críticas.
+
+#### Refatoração do Modelo Financeiro e Correções de Schema:
+*   **Novos Campos de Data e Plano de Contas:**
+    *   Adicionados os campos `data_competencia`, `data_vencimento` e `id_plano_contas` às tabelas `servicos` e `pagamentos` no banco de dados.
+    *   Esses campos são cruciais para a implementação de um regime de competência e de caixa, permitindo análises financeiras mais precisas.
+*   **Sincronização Frontend-Backend:**
+    *   Corrigidas diversas inconsistências onde o frontend enviava dados com nomes de propriedades antigos (`data`) e o backend esperava os novos (`data_entrada`, `data_liquidacao`).
+    *   **`public/js/cadastro-servico.js`:** Corrigido o nome da propriedade `data` para `data_liquidacao` no objeto `pagamento_inicial`.
+    *   **`public/js/gerenciar-orcamentos.js`:** Corrigido o uso de `o.data` para `o.data_entrada` na exibição e `orcamentoAtualizado.data` para `data_entrada` no payload de atualização.
+    *   **`public/js/orcamento-mecanico.js`:** Corrigido o uso de `orcamentoData.data` para `data_entrada` no payload de criação.
+    *   **`main.js`:**
+        *   Ajustado o handler `update-servico` para usar `s.dataEntrada` corretamente.
+        *   Corrigido o handler `get-archived-servicos` para usar `s.data_entrada`.
+        *   Corrigido o handler `get-servicos` para usar `s.data_entrada`.
+    *   **`database.js`:** Corrigido `getServicosParaPagamentos` para usar `s.data_entrada`.
+
+#### Estabilização e Melhorias na Geração de PDF:
+*   **Datas Corretas no PDF:** Em `public/js/template-orcamento.js`, corrigido o uso de `data.budget.data` para `data.budget.data_entrada`, garantindo que as datas de emissão e validade no orçamento em PDF sejam exibidas corretamente.
+*   **Carregamento de Imagens no PDF:**
+    *   Implementada uma lógica robusta em `public/js/template-orcamento.js` para aguardar o carregamento completo das imagens (logo e assinatura) antes de acionar a impressão do PDF. Isso resolveu o problema de imagens ausentes no arquivo final.
+    *   A política de segurança de conteúdo (`Content-Security-Policy`) em `main.js` foi temporariamente flexibilizada para `img-src 'self' file: data: *;` para auxiliar no diagnóstico, mas a solução principal foi a lógica de carregamento assíncrono.
+
+#### Funcionalidades de Dashboard e Relatórios:
+*   **Correção de `ReferenceError`:**
+    *   Em `main.js`, importadas as funções `getPlanoContas` e `addDespesa` do `database.js`, resolvendo erros de referência.
+*   **Refatoração do Dashboard de Histórico:**
+    *   **`database.js`:** A função `getFinancialTransactions` foi completamente refatorada para separar corretamente as transações de receita (serviços) e despesa (pagamentos gerais) para os relatórios DRE (regime de competência) e DFC (regime de caixa).
+    *   **`database.js`:** Atualizados os cálculos de DRE e KPIs no `getDadosDashboard` para usar a nova propriedade `tipo_transacao`, garantindo a precisão das métricas.
+*   **Explicação do Loading:** Fornecida uma explicação detalhada ao usuário sobre o propósito e o funcionamento do spinner de carregamento na página de histórico, que indica o processamento de dados complexos.
+
+#### Novas Funcionalidades e Melhorias de UX:
+*   **Página de Lançamento de Despesas:**
+    *   Criada a nova página `despesas.html` para permitir o registro de despesas gerais.
+    *   Adicionado um link para `despesas.html` na barra de navegação de todas as páginas.
+    *   Adicionado um card de acesso rápido para `despesas.html` na página inicial (`index.html`).
+*   **Configuração de Formas de Pagamento:**
+    *   **`configuracoes.html`:** Adicionado um novo campo de texto (`textarea`) para que o usuário possa configurar as formas de pagamento aceitas.
+    *   **`public/js/configuracoes.js`:** Implementada a lógica para carregar e salvar essas configurações.
+    *   **`public/js/template-orcamento.js`:** Atualizado para exibir as formas de pagamento configuradas como uma lista formatada no orçamento em PDF.
+
+#### Gerenciamento de Dados:
+*   **Reset de Banco de Dados:** Orientado o usuário sobre como apagar o arquivo `oficina.db` para reiniciar o banco de dados, uma solução rápida para inconsistências de dados após grandes mudanças de schema.
+
+Esta sessão foi crucial para alinhar o sistema com um modelo financeiro mais robusto e para estabilizar diversas funcionalidades que foram impactadas pelas refatorações anteriores. O sistema agora está mais preparado para fornecer insights financeiros precisos."}}
+```markdown
+### 15. Automação Financeira e Estabilização do Dashboard (03/11/2025)
+
+Nesta sessão, focamos em aprimorar a automação financeira, corrigir bugs de persistência de dados e estabilizar o dashboard de análises.
+
+#### Funcionalidade: Margem de Lucro sobre Peças
+*   **Configuração:** Adicionado um campo "Percentual de Lucro sobre Peças" na tela de Configurações (`configuracoes.html`, `public/js/configuracoes.js`) para definir a margem de lucro padrão.
+*   **Cálculo de Custo:** Implementada a lógica no backend (`main.js`) para calcular e armazenar o `valor_custo` de cada peça na tabela `itens_servico` ao criar ou atualizar serviços/orçamentos. O cálculo é baseado no percentual configurado.
+*   **Lançamento de Custo como Despesa:**
+    *   Adicionado um botão "Lançar Custo" na tela "Gerenciar Serviços" (`gerenciar-servicos.html`, `public/js/gerenciar-servicos.js`) para serviços concluídos com peças.
+    *   Ao clicar, o custo total das peças é armazenado no `sessionStorage` e o usuário é redirecionado para a tela de Lançamento de Despesas (`despesas.html`).
+    *   A tela de Despesas (`public/js/despesas.js`) agora pré-preenche o formulário com o valor, anotação e o Plano de Contas "Custo das Peças Vendidas (CMV)" (ID 311) a partir do `sessionStorage`.
+
+#### Correções e Melhorias no Dashboard de Análises (`historico-servicos.html`, `public/js/historico.js`)
+*   **Remoção de Elementos Obsoletos:** A seção "Histórico de Serviços" (cards de serviço) foi removida de `historico-servicos.html` para alinhar a página com o novo dashboard financeiro.
+*   **Gráfico "Top 10" Reimplementado:**
+    *   A lógica do gráfico "Top 10" foi reimplementada em `public/js/historico.js` para funcionar em conjunto com os gráficos DRE/DFC.
+    *   **Modos de Visualização:**
+        *   "Top 10 Peças por Faturamento": Exibe apenas peças (excluindo "Mão de Obra") com base no faturamento.
+        *   "Top 10 Clientes por Nº de Serviços Pagos": Conta o número de serviços com `statusPagamento === 'Pago'` por cliente.
+        *   "Top 10 Mecânicos por Nº de Serviços Concluídos": Conta o número de serviços com `status === 'Concluído'` por mecânico.
+    *   **Interatividade:** O botão de alternância de visualização e o botão de recolher/expandir do gráfico "Top 10" foram corrigidos e estão funcionais.
+    *   **Filtros Integrados:** Os filtros de cliente, veículo, status e data agora se aplicam corretamente ao gráfico "Top 10".
+    *   **Estilo:** A cor das barras do gráfico "Top 10" foi alterada para um tom de azul.
+
+#### Correções de Persistência de Dados em Serviços
+*   **Campos de Data e Plano de Contas no Modal de Edição:**
+    *   Corrigido o handler `get-servicos` em `main.js` para selecionar corretamente `data_competencia`, `data_vencimento` e `id_plano_contas` do banco de dados.
+    *   Corrigido o handler `update-servico` em `main.js` para salvar corretamente as alterações feitas em `data_competencia`, `data_vencimento` e `id_plano_contas` no banco de dados.
+*   **Criação de Serviço Incompleta (Campos Nulos):**
+    *   Corrigido `public/js/cadastro-servico.js` para incluir o campo `mecanico` no objeto `novoServico` enviado ao backend.
+    *   Corrigido o handler `add-servico` em `main.js` para garantir que todos os campos (incluindo `mecanico_responsavel`, `problema_relatado`, `data_competencia`, `data_vencimento` e `id_plano_contas`) sejam corretamente inseridos no banco de dados, com `id_plano_contas` usando o valor fornecido ou o padrão 111.
+    *   Corrigido o handler `add-orcamento` em `main.js` para incluir `id_plano_contas` com o valor padrão 111.
+*   **Correção de Erro de Sintaxe:** Um erro de sintaxe crítico no handler `add-servico` em `main.js`, causado por uma substituição incompleta, foi identificado e corrigido, restaurando a funcionalidade da aplicação.
+
+Esta sessão foi fundamental para estabilizar o sistema, aprimorar a automação financeira e garantir a integridade dos dados, resolvendo diversos bugs e implementando funcionalidades importantes para a análise de desempenho.

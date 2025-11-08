@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const novoPagamento = {
         servico_id: servicoId,
         valor: valorPago,
-        data: dataPagamento,
+        data_liquidacao: dataPagamento,
         metodo: metodoPagamento,
         anotacao: anotacao,
       };

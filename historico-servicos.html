@@ -30,6 +30,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link active" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       
       <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
@@ -98,61 +99,81 @@
           </div>
       </div>
 
+      <div id="loading-spinner" class="d-flex justify-content-center mt-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
       <!-- KPI Cards -->
-      <div class="row mb-4 g-3">
+      <div class="row mb-4 g-3 mt-4">
         <div class="col-lg-4 col-md-6">
-            <div class="card text-white bg-primary">
+            <div class="card text-white bg-success">
                 <div class="card-body">
-                    <h6 class="card-title">Receita Realizada</h6>
-                    <p class="card-text fs-4" id="kpi-receita-realizada">R$ 0,00</p>
+                    <h6 class="card-title">Lucro Líquido (Competência)</h6>
+                    <p class="card-text fs-4" id="kpi-lucro-liquido">R$ 0,00</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-6">
-            <div class="card text-dark bg-light">
+            <div class="card text-white bg-primary">
                 <div class="card-body">
-                    <h6 class="card-title">Faturamento Bruto (Serviços Concluídos)</h6>
-                    <p class="card-text fs-4" id="kpi-faturamento-bruto">R$ 0,00</p>
+                    <h6 class="card-title">Caixa Gerado</h6>
+                    <p class="card-text fs-4" id="kpi-caixa-gerado">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-dark bg-info">
+                <div class="card-body">
+                    <h6 class="card-title">Ticket Médio</h6>
+                    <p class="card-text fs-4" id="kpi-ticket-medio">R$ 0,00</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-6">
             <div class="card text-dark bg-warning">
                 <div class="card-body">
-                    <h6 class="card-title">Pendente de Recebimento</h6>
-                    <p class="card-text fs-4" id="kpi-pendente">R$ 0,00</p>
+                    <h6 class="card-title">Ponto de Equilíbrio</h6>
+                    <p class="card-text fs-4" id="kpi-ponto-equilibrio">R$ 0,00</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-6">
-            <div class="card text-white bg-success">
+            <div class="card text-white bg-danger">
                 <div class="card-body">
-                    <h6 class="card-title">Serviços Concluídos</h6>
-                    <p class="card-text fs-4" id="kpi-servicos-concluidos">0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4 col-md-6">
-            <div class="card text-white bg-info">
-                <div class="card-body">
-                    <h6 class="card-title">Ticket Médio (por Serviço Concluído)</h6>
-                    <p class="card-text fs-4" id="kpi-ticket-medio">R$ 0,00</p>
+                    <h6 class="card-title">Contas a Receber (Próx. 30 dias)</h6>
+                    <p class="card-text fs-4" id="kpi-contas-a-receber">R$ 0,00</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-6">
             <div class="card text-white bg-secondary">
                 <div class="card-body">
-                    <h6 class="card-title">Taxa de Conversão (Orçamentos)</h6>
-                    <p class="card-text fs-4" id="kpi-taxa-conversao">0%</p>
+                    <h6 class="card-title">Contas a Pagar (Próx. 30 dias)</h6>
+                    <p class="card-text fs-4" id="kpi-contas-a-pagar">R$ 0,00</p>
                 </div>
             </div>
         </div>
       </div>
 
+      <!-- Charts -->
       <div class="row mb-4 g-3">
-        <div class="col-md-8"><div class="chart-container h-100"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><button class="btn btn-sm btn-outline-secondary chart-type-btn" id="toggle-receita-chart-type"><i class="bi bi-graph-up"></i></button><canvas id="receitaRealizadaChart"></canvas></div></div>
-        <div class="col-md-4"><div class="chart-container h-100"><button class="btn btn-sm btn-outline-secondary expand-chart-btn"><i class="bi bi-arrows-fullscreen"></i></button><button class="btn btn-sm btn-outline-secondary analysis-type-btn" id="toggle-tipo-chart-analysis"><i class="bi bi-arrow-repeat"></i></button><canvas id="tipoItemChart"></canvas></div></div>
+        <div class="col-md-12">
+            <div class="chart-container border rounded p-3">
+                <canvas id="dreChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container border rounded p-3">
+                <canvas id="dfcChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container border rounded p-3">
+                <canvas id="projectedCashFlowChart"></canvas>
+            </div>
+        </div>
       </div>
       <div class="row mb-4">
         <div class="col-md-12">
@@ -173,13 +194,7 @@
         </div>
       </div>
       <hr class="my-4">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="text-secondary mb-0">Histórico de Serviços</h4>
-        <nav id="paginacao" style="display: none;"><ul class="pagination justify-content-end pagination-sm mb-0"></ul></nav>
-      </div>
-      <div class="row"><div class="col-md-12"><div id="cards-servicos" class="row"></div></div></div>
     </div>
-    <div class="modal fade" id="modalDetalhesServico" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Detalhes do Serviço - OS #<span id="detalhe-os-id"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="modal-body-content"><div class="row"><div class="col-md-6"><h6>Informações do Cliente</h6><p><strong>Nome:</strong> <span id="detalhe-cliente"></span></p><p><strong>Veículo:</strong> <span id="detalhe-veiculo"></span></p></div><div class="col-md-6"><h6>Informações do Serviço</h6><p><strong>Data Entrada:</strong> <span id="detalhe-data-entrada"></span></p><p><strong>Mecânico:</strong> <span id="detalhe-mecanico"></span></p><p><strong>Status:</strong> <span id="detalhe-status"></span></p><p><strong>Status Pagamento:</strong> <span id="detalhe-status-pagamento"></span></p></div></div><div class="row mt-3"><div class="col-md-12"><h6>Itens do Serviço</h6><table class="table table-sm table-bordered"><thead><tr><th>Descrição</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr></thead><tbody id="detalhe-itens-servico"></tbody></table></div></div><div class="row mt-3"><div class="col-md-12 text-end"><h6>Valor Total do Serviço</h6><div class="alert alert-success d-inline-block p-2"><h4 class="alert-heading mb-0" id="detalhe-valor">R$ 0,00</h4></div></div></div></div><div class="modal-footer"><button type="button" class="btn btn-primary" onclick="imprimirDetalhesServico()"><i class="bi bi-printer"></i> Imprimir</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>
   <footer class="text-center text-muted mt-4 py-3">
       <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
     </footer>

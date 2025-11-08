@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${String(o.id).padStart(6, '0')}</td>
                 <td>${o.cliente_nome}</td>
                 <td>${o.veiculo_placa}</td>
-                <td>${new Date(o.data).toLocaleDateString('pt-BR')}</td>
+                <td>${new Date(o.data_entrada).toLocaleDateString('pt-BR')}</td>
                 <td>R$ ${o.valor_total.toFixed(2)}</td>
                 <td><span class="badge bg-warning text-dark">${o.status}</span></td>
                 <td>
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             itens: itens,
             cliente_id: orcamentoOriginal.cliente_id,
             veiculo_id: orcamentoOriginal.veiculo_id,
-            data: orcamentoOriginal.data,
+            data_entrada: orcamentoOriginal.data_entrada,
         };
 
         try {

@@ -23,11 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
         problemaRelatadoInput: document.getElementById('problemaRelatado'),
         mecanicoInput: document.getElementById('mecanico'),
         statusServicoInput: document.getElementById('statusServico'),
+        dataCompetenciaInput: document.getElementById('dataCompetencia'),
+        dataVencimentoInput: document.getElementById('dataVencimento'),
+        planoContasSelect: document.getElementById('planoContas'),
     };
 
     let listaClientes = [];
     let listaVeiculos = [];
     let config = {};
+    let planoContas = [];
 
     window.removerPeca = (button) => {
         button.closest('tr').remove();
@@ -36,17 +40,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function inicializar() {
         try {
-            [listaClientes, listaVeiculos, config] = await Promise.all([
+            [listaClientes, listaVeiculos, config, planoContas] = await Promise.all([
                 window.api.getClientes(),
                 window.api.getVeiculos(),
-                window.api.getAllConfigs()
+                window.api.getAllConfigs(),
+                window.api.getPlanoContas()
             ]);
             configurarParcelas();
+            popularPlanoContasDropdown();
             vincularEventos();
         } catch (error) {
             console.error("Erro ao carregar dados iniciais:", error);
             showAlert('Falha ao carregar dados. Verifique a conexão com o banco de dados.', 'danger');
         }
+    }
+
+    function popularPlanoContasDropdown() {
+        elements.planoContasSelect.innerHTML = '<option value="">Selecione...</option>';
+        planoContas.forEach(conta => {
+            const option = document.createElement('option');
+            option.value = conta.id;
+            option.textContent = conta.nome_conta;
+            elements.planoContasSelect.appendChild(option);
+        });
     }
 
     function configurarParcelas() {
@@ -228,8 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const novoServico = {
             cliente_id: clienteId,
             veiculo_id: veiculoId,
-            data: elements.dataEntradaInput.value,
+            data_entrada: elements.dataEntradaInput.value,
             problema_relatado: elements.problemaRelatadoInput.value,
+            mecanico: elements.mecanicoInput.value,
             status: elements.statusServicoInput.value,
             valor_original: totalSemDesconto,
             valor_desconto: descontoValor,
@@ -239,7 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
             status_pagamento: 'Pendente',
             quilometragem: novaQuilometragem,
             itens: itens,
-            pagamento_inicial: null
+            pagamento_inicial: null,
+            // Add new fields
+            data_competencia: elements.dataCompetenciaInput.value,
+            data_vencimento: elements.dataVencimentoInput.value,
+            id_plano_contas: parseInt(elements.planoContasSelect.value)
         };
 
         if (formaPagamento === 'Cartão de Crédito') {
@@ -250,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             novoServico.pagamento_inicial = {
                 forma: formaPagamento,
                 valor: novoServico.valor_total,
-                data: getLocalDateAsString(new Date())
+                data_liquidacao: getLocalDateAsString(new Date())
             };
         }
 
