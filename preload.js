@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld('api', {
 
   addDespesa: (despesa) => ipcRenderer.invoke('add-despesa', despesa),
 
+  addReceitaAvulsa: (receita) => ipcRenderer.invoke('add-receita-avulsa', receita),
+
   getAllConfigs: () => ipcRenderer.invoke('get-all-configs'),
   saveConfigs: (configs) => ipcRenderer.invoke('save-configs', configs),
 

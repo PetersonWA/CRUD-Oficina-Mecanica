@@ -23,15 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
         problemaRelatadoInput: document.getElementById('problemaRelatado'),
         mecanicoInput: document.getElementById('mecanico'),
         statusServicoInput: document.getElementById('statusServico'),
-        dataCompetenciaInput: document.getElementById('dataCompetencia'),
-        dataVencimentoInput: document.getElementById('dataVencimento'),
-        planoContasSelect: document.getElementById('planoContas'),
     };
 
     let listaClientes = [];
     let listaVeiculos = [];
     let config = {};
-    let planoContas = [];
 
     window.removerPeca = (button) => {
         button.closest('tr').remove();
@@ -40,29 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function inicializar() {
         try {
-            [listaClientes, listaVeiculos, config, planoContas] = await Promise.all([
+            [listaClientes, listaVeiculos, config] = await Promise.all([
                 window.api.getClientes(),
                 window.api.getVeiculos(),
                 window.api.getAllConfigs(),
-                window.api.getPlanoContas()
             ]);
             configurarParcelas();
-            popularPlanoContasDropdown();
             vincularEventos();
         } catch (error) {
             console.error("Erro ao carregar dados iniciais:", error);
             showAlert('Falha ao carregar dados. Verifique a conexão com o banco de dados.', 'danger');
         }
-    }
-
-    function popularPlanoContasDropdown() {
-        elements.planoContasSelect.innerHTML = '<option value="">Selecione...</option>';
-        planoContas.forEach(conta => {
-            const option = document.createElement('option');
-            option.value = conta.id;
-            option.textContent = conta.nome_conta;
-            elements.planoContasSelect.appendChild(option);
-        });
     }
 
     function configurarParcelas() {
@@ -93,12 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.clienteHiddenInput.value = '';
             return;
         }
-        const clientesFiltrados = listaClientes.filter(c => c.nome.toLowerCase().includes(termo) || c.cpf_cnpj.toLowerCase().includes(termo));
+        const clientesFiltrados = listaClientes.filter(c => c.nome.toLowerCase().includes(termo) || (c.cpf_cnpj && c.cpf_cnpj.toLowerCase().includes(termo)));
         clientesFiltrados.forEach(cliente => {
             const item = document.createElement('a');
             item.href = '#';
             item.className = 'list-group-item list-group-item-action';
-            item.textContent = `${cliente.nome} (${cliente.cpf_cnpj})`;
+            item.textContent = `${cliente.nome} (${cliente.cpf_cnpj || 'N/A'})`;
             item.dataset.id = cliente.id;
             item.dataset.nome = cliente.nome;
             elements.clienteSearchResults.appendChild(item);
@@ -245,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cliente_id: clienteId,
             veiculo_id: veiculoId,
             data_entrada: elements.dataEntradaInput.value,
+            data_competencia: elements.dataEntradaInput.value, // Automação da data de competência
             problema_relatado: elements.problemaRelatadoInput.value,
             mecanico: elements.mecanicoInput.value,
             status: elements.statusServicoInput.value,
@@ -257,23 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
             quilometragem: novaQuilometragem,
             itens: itens,
             pagamento_inicial: null,
-            // Add new fields
-            data_competencia: elements.dataCompetenciaInput.value,
-            data_vencimento: elements.dataVencimentoInput.value,
-            id_plano_contas: parseInt(elements.planoContasSelect.value)
         };
-
-        if (formaPagamento === 'Cartão de Crédito') {
-            const valorParcelaText = elements.numeroParcelasInput.options[elements.numeroParcelasInput.selectedIndex].text;
-            const valorTotalComJuros = getNumericValue(valorParcelaText.split('R$ ')[1]) * numeroParcelas;
-            novoServico.valor_total = valorTotalComJuros || totalFinal; // Atualiza o valor total com juros
-            novoServico.status_pagamento = 'Pago'; // Assume-se pago no crédito
-            novoServico.pagamento_inicial = {
-                forma: formaPagamento,
-                valor: novoServico.valor_total,
-                data_liquidacao: getLocalDateAsString(new Date())
-            };
-        }
 
         // Envio para o Backend
         try {

@@ -3,7 +3,7 @@ console.log("main.js is being executed");
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const database = require("./database.js");
-const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard, getPlanoContas, addDespesa } = database; // Importa a instância do DB
+const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard, getPlanoContas, addDespesa, addReceitaAvulsa } = database; // Importa a instância do DB
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -281,36 +281,42 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
 ipcMain.handle("add-servico", (event, servico) => {
   const transaction = db.transaction((s) => {
+    // Etapa 1: Inserir o serviço principal com dados simplificados
     const servicoStmt = db.prepare(
       `INSERT INTO servicos (
         cliente_id, veiculo_id, data_entrada, descricao_problema, mecanico_responsavel, 
         valor_total, status, valor_original, valor_desconto, forma_pagamento, 
-        numero_parcelas, status_pagamento, data_competencia, data_vencimento, id_plano_contas
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        numero_parcelas, status_pagamento, data_competencia, id_plano_contas
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
+
+    // Define o status de pagamento inicial
+    let statusPagamento = 'Pendente';
+    if (s.forma_pagamento === 'Cartão de Crédito') {
+      statusPagamento = 'Aguardando Liquidação';
+    }
 
     const servicoResult = servicoStmt.run(
       s.cliente_id,
       s.veiculo_id,
       s.data_entrada,
-      s.problema_relatado,      // Frontend sends problema_relatado
-      s.mecanico,               // Frontend sends mecanico
+      s.problema_relatado,
+      s.mecanico,
       s.valor_total,
       s.status,
       s.valor_original,
       s.valor_desconto,
       s.forma_pagamento,
       s.numero_parcelas,
-      s.status_pagamento,
+      statusPagamento, // Novo status de pagamento
       s.data_competencia,
-      s.data_vencimento,
-      s.id_plano_contas || 111 // Use provided or default
+      111 // id_plano_contas hardcoded
     );
     const servicoId = servicoResult.lastInsertRowid;
 
+    // Etapa 2: Inserir os itens do serviço
     const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
-
     const itemStmt = db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
@@ -319,28 +325,69 @@ ipcMain.handle("add-servico", (event, servico) => {
       if (item.tipo === 'Peça' && percentualLucro > 0) {
         valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
       }
-      itemStmt.run(
-        servicoId,
-        item.descricao,
-        item.tipo,
-        item.quantidade,
-        item.valor_unitario,
-        valorCusto
-      );
+      itemStmt.run(servicoId, item.descricao, item.tipo, item.quantidade, item.valor_unitario, valorCusto);
     }
 
-    if (s.pagamento_inicial) {
+    // Etapa 3: Lógica de Pagamento Refatorada
+    if (s.forma_pagamento === 'Cartão de Crédito' && s.numero_parcelas > 0) {
+      const configPrazoRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('prazoLiquidacaoCartao');
+      const prazoLiquidacao = configPrazoRow ? parseInt(configPrazoRow.valor, 10) : 30;
+      
+      const valorTotal = s.valor_total;
+      const valorParcela = parseFloat((valorTotal / s.numero_parcelas).toFixed(2));
+
+      // Ajuste para a última parcela para evitar diferenças de arredondamento
+      let somaParcelas = 0;
+
       const pagtoStmt = db.prepare(
-        "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao) VALUES (?, ?, ?, ?)"
+        "INSERT INTO pagamentos (servico_id, valor, data_vencimento, metodo, anotacao, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       );
-      pagtoStmt.run(
-        servicoId,
-        s.pagamento_inicial.forma,
-        s.pagamento_inicial.valor,
-        s.pagamento_inicial.data_liquidacao
-      );
+
+      for (let i = 1; i <= s.numero_parcelas; i++) {
+        let valorDaParcelaAtual = valorParcela;
+        if (i === s.numero_parcelas) {
+          valorDaParcelaAtual = valorTotal - somaParcelas;
+        }
+        somaParcelas += valorDaParcelaAtual;
+
+        const dataBase = new Date(s.data_entrada + 'T00:00:00');
+        // Adiciona o prazo de liquidação inicial e depois os meses das parcelas
+        dataBase.setDate(dataBase.getDate() + prazoLiquidacao + ((i - 1) * 30));
+        const vencimentoParcela = dataBase.toISOString().split('T')[0];
+
+        pagtoStmt.run(
+          servicoId,
+          valorDaParcelaAtual,
+          vencimentoParcela,
+          'Cartão de Crédito',
+          `Parcela ${i} de ${s.numero_parcelas}`,
+          null, // data_liquidacao é nula até a confirmação
+          s.data_competencia,
+          s.id_plano_contas // O mesmo plano de contas do serviço
+        );
+      }
+    } else if (s.pagamento_inicial) { // Mantém a lógica para outros pagamentos imediatos se necessário
+        const pagtoStmt = db.prepare(
+            "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        pagtoStmt.run(
+            servicoId,
+            s.pagamento_inicial.forma,
+            s.pagamento_inicial.valor,
+            s.pagamento_inicial.data_liquidacao,
+            s.data_competencia,
+            s.id_plano_contas
+        );
+        // Atualiza o status do serviço principal se o pagamento inicial quitar o valor
+        const { totalPago } = db.prepare('SELECT SUM(valor) as totalPago FROM pagamentos WHERE servico_id = ?').get(servicoId);
+        if (totalPago >= s.valor_total) {
+            db.prepare('UPDATE servicos SET status_pagamento = ? WHERE id = ?').run('Pago', servicoId);
+        } else {
+            db.prepare('UPDATE servicos SET status_pagamento = ? WHERE id = ?').run('Parcialmente Pago', servicoId);
+        }
     }
 
+    // Etapa 4: Atualizar quilometragem
     if (s.quilometragem && s.veiculo_id) {
       db.prepare(
         "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
@@ -761,6 +808,15 @@ ipcMain.handle("get-plano-contas", () => {
 
 ipcMain.handle("add-despesa", (event, despesa) => {
   return addDespesa(despesa);
+});
+
+ipcMain.handle('add-receita-avulsa', async (event, receita) => {
+    try {
+        return addReceitaAvulsa(receita);
+    } catch (error) {
+        console.error('Failed to add miscellaneous revenue:', error);
+        return { success: false, error: error.message };
+    }
 });
 
 app.whenReady().then(() => {

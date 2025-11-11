@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('parcelasSemJuros').value = config.parcelasSemJuros || 0;
             document.getElementById('formasPagamento').value = config.formasPagamento || '';
             document.getElementById('percentualLucroPecas').value = config.percentualLucroPecas || 10;
+            document.getElementById('prazoLiquidacaoCartao').value = config.prazoLiquidacaoCartao || 30;
 
             elements.logoPreview.src = config.logoPath ? `${config.logoPath}?t=${new Date().getTime()}` : placeholderLogo;
             elements.assinaturaPreview.src = config.assinaturaPath ? `${config.assinaturaPath}?t=${new Date().getTime()}` : placeholderAssinatura;
@@ -90,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
             parcelasSemJuros: document.getElementById('parcelasSemJuros').value,
             formasPagamento: document.getElementById('formasPagamento').value,
             percentualLucroPecas: document.getElementById('percentualLucroPecas').value,
+            prazoLiquidacaoCartao: document.getElementById('prazoLiquidacaoCartao').value,
         };
 
         try {

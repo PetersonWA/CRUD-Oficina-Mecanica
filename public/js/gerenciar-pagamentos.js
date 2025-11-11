@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return '<span class="badge bg-success">Pago</span>';
       case "Parcialmente Pago":
         return '<span class="badge bg-info">Parcialmente Pago</span>';
+      case "Aguardando Liquidação":
+        return '<span class="badge bg-primary">Aguardando Liquidação</span>';
       case "Pendente":
       default:
         return '<span class="badge bg-warning text-dark">Pendente</span>';
@@ -187,10 +189,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (pagamentos.length > 0) {
         historicoContainer.innerHTML = pagamentos
           .map((p) => {
+            const cardClass = p.liquidado ? 'bg-light' : 'bg-warning bg-opacity-25';
+            const dataLabel = p.liquidado ? 'Data Pag.' : 'Vencimento';
             return `
-            <div class="card card-body mb-2 bg-light">
+            <div class="card card-body mb-2 ${cardClass}">
               <div class="d-flex justify-content-between">
-                <span><strong>Data:</strong> ${new Date(
+                <span><strong>${dataLabel}:</strong> ${new Date(
                   p.data
                 ).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
                 <span><strong>Método:</strong> ${p.metodo}</span>

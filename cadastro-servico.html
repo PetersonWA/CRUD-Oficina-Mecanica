@@ -26,6 +26,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       
@@ -53,22 +54,7 @@
         <div class="form-floating mb-3"><input type="number" class="form-control" id="quilometragemVeiculo" placeholder="Quilometragem Atual"><label for="quilometragemVeiculo">Quilometragem Atual</label></input></div>
         <div class="form-floating mb-3"><input type="date" class="form-control" id="dataEntrada" placeholder="Data de Entrada" required><label for="dataEntrada">Data de Entrada</label></input></div>
 
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Data de Competência</label>
-                <input type="date" class="form-control" id="dataCompetencia" required>
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Data de Vencimento</label>
-                <input type="date" class="form-control" id="dataVencimento">
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Plano de Contas</label>
-                <select class="form-select" id="planoContas" required>
-                    <!-- Options will be populated dynamically -->
-                </select>
-            </div>
-        </div>
+        <!-- As datas financeiras e o plano de contas agora são automatizados -->
 
         <div class="card p-3 mb-4">
             <h5 class="card-title text-primary">Problema Relatado / Observações Iniciais</h5>

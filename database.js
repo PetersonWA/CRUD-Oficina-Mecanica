@@ -53,10 +53,21 @@ function getServicoComPagamentos(servicoId) {
     if (!servico) return null;
 
     servico.pagamentos = db.prepare(`
-        SELECT valor, data_liquidacao as data, metodo, anotacao FROM pagamentos WHERE servico_id = ? ORDER BY data_liquidacao DESC
+        SELECT 
+            valor, 
+            COALESCE(data_liquidacao, data_vencimento) as data,
+            metodo, 
+            anotacao,
+            data_liquidacao IS NOT NULL as liquidado
+        FROM pagamentos 
+        WHERE servico_id = ? 
+        ORDER BY COALESCE(data_liquidacao, data_vencimento) DESC
     `).all(servicoId);
 
-    servico.totalPago = servico.pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    servico.totalPago = servico.pagamentos
+        .filter(p => p.liquidado)
+        .reduce((acc, p) => acc + p.valor, 0);
+        
     servico.saldoDevedor = servico.valorTotal - servico.totalPago;
 
     return servico;
@@ -574,7 +585,7 @@ function initDb() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             servico_id INTEGER,
             valor REAL NOT NULL,
-            data_liquidacao TEXT NOT NULL,
+            data_liquidacao TEXT,
             metodo TEXT NOT NULL,
             anotacao TEXT,
             data_competencia TEXT,
@@ -603,7 +614,7 @@ function initDb() {
 }
 
 function getPlanoContas() {
-    return db.prepare('SELECT id, nome_conta FROM plano_contas ORDER BY nome_conta').all();
+    return db.prepare('SELECT id, nome_conta, tipo, variabilidade, id_pai FROM plano_contas ORDER BY nome_conta').all();
 }
 
 function addDespesa(despesa) {
@@ -623,6 +634,22 @@ function addDespesa(despesa) {
     return { success: true, id: result.lastInsertRowid };
 }
 
+function addReceitaAvulsa(receita) {
+    const stmt = db.prepare(`
+        INSERT INTO servicos (
+            id_plano_contas, valor_total, descricao_problema, data_competencia, 
+            data_vencimento, data_entrada, data_conclusao, status, status_pagamento,
+            cliente_id, veiculo_id, is_deleted
+        ) VALUES (
+            @id_plano_contas, @valor_total, @descricao_problema, @data_competencia,
+            @data_vencimento, @data_entrada, @data_conclusao, @status, @status_pagamento,
+            NULL, NULL, 0
+        )
+    `);
+    const result = stmt.run(receita);
+    return { success: true, id: result.lastInsertRowid };
+}
+
 module.exports = { 
     db, 
     initDb, 
@@ -631,5 +658,6 @@ module.exports = {
     adicionarPagamento,
     getDadosDashboard,
     getPlanoContas,
-    addDespesa
+    addDespesa,
+    addReceitaAvulsa
 };

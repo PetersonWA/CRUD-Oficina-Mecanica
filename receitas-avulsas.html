@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lançar Receita Avulsa</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="public/css/main.css">
+</head>
+<body>
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+<div class="d-flex">
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand"><i class="bi bi-tools me-2"></i> <span>Oficina</span></a>
+      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto p-3">
+      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link active" href="receitas-avulsas.html"><i class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+    </ul>
+    <div class="sidebar-footer mt-auto p-3">
+      <div class="small text-white-50">
+        <p class="mb-1">Versão Beta</p>
+        <p class="mb-1">pweschenfelder@gmail.com</p>
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </div>
+    </div>
+  </nav>
+  <main id="content" class="container-fluid py-4">
+    <div class="container py-4">
+      <h2 class="text-primary mb-4">Lançar Receita Avulsa</h2>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Detalhes da Receita</h5>
+          <form id="form-receita">
+            <div class="row">
+              <div class="col-md-8 mb-3">
+                <label for="planoContas-receita" class="form-label">Tipo de Receita</label>
+                <select class="form-select" id="planoContas-receita" required></select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="valor-receita" class="form-label">Valor (R$)</label>
+                <input type="number" class="form-control" id="valor-receita" step="0.01" placeholder="R$ 0,00" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="descricao-receita" class="form-label">Descrição</label>
+              <textarea class="form-control" id="descricao-receita" rows="2" required></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="dataCompetencia-receita" class="form-label">Data de Competência <i class="bi bi-question-circle-fill text-primary" data-bs-toggle="modal" data-bs-target="#modal-dates-help"></i></label>
+                <input type="date" class="form-control" id="dataCompetencia-receita" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="dataVencimento-receita" class="form-label">Data de Vencimento <i class="bi bi-question-circle-fill text-primary" data-bs-toggle="modal" data-bs-target="#modal-dates-help"></i></label>
+                <input type="date" class="form-control" id="dataVencimento-receita">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="dataLiquidacao-receita" class="form-label">Data de Recebimento <i class="bi bi-question-circle-fill text-primary" data-bs-toggle="modal" data-bs-target="#modal-dates-help"></i></label>
+                <input type="date" class="form-control" id="dataLiquidacao-receita">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Receita</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Ajuda para Datas -->
+    <div class="modal fade" id="modal-dates-help" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Ajuda: Entendendo as Datas</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Cada data tem um propósito específico para a gestão financeira:</p>
+            <ul>
+              <li><strong>Data de Competência:</strong> É a data em que a venda ocorreu ou o serviço foi prestado, independentemente do recebimento. É usada para o DRE (Demonstrativo de Resultados).
+                <br><em>Ex: A data da venda de uma peça no balcão.</em>
+              </li>
+              <li class="mt-2"><strong>Data de Vencimento:</strong> É o prazo combinado para o cliente pagar. Ajuda a controlar o que você tem para receber (contas a receber).
+                <br><em>Ex: O cliente levará o produto e pagará em 30 dias.</em>
+              </li>
+              <li class="mt-2"><strong>Data de Recebimento (Liquidação):</strong> É a data em que o dinheiro de fato entrou no seu caixa. É usada para o DFC (Fluxo de Caixa).
+                <br><em>Ex: O dia em que o cliente efetivamente pagou pela peça.</em>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="renderer.js"></script>
+<script src="public/js/utils.js"></script>
+<script src="public/js/main.js" defer></script>
+<script src="public/js/receitas-avulsas.js" defer></script>
+</body>
+</html>
