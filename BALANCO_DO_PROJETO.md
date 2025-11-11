@@ -382,3 +382,37 @@ Nesta sessão, focamos em aprimorar a automação financeira, corrigir bugs de p
 *   **Correção de Erro de Sintaxe:** Um erro de sintaxe crítico no handler `add-servico` em `main.js`, causado por uma substituição incompleta, foi identificado e corrigido, restaurando a funcionalidade da aplicação.
 
 Esta sessão foi fundamental para estabilizar o sistema, aprimorar a automação financeira e garantir a integridade dos dados, resolvendo diversos bugs e implementando funcionalidades importantes para a análise de desempenho.
+
+---
+
+### 16. Refatoração de Lançamentos Financeiros e Lógica de Pagamento (10/11/2025)
+
+Nesta sessão, focamos em aprimorar a gestão de lançamentos financeiros, simplificar a interface de cadastro de serviços e implementar uma lógica robusta para o parcelamento de pagamentos via cartão de crédito.
+
+#### 1. Refatoração da Tela "Lançar Despesas":
+*   **Redesenho da Interface:** A tela `despesas.html` foi completamente redesenhada, substituindo um formulário único por um acordeão com três seções distintas: "Deduções da Receita e Impostos", "Custos Operacionais" e "Despesas Gerais e Administrativas". Cada seção possui seu próprio formulário, lista de contas filtrada e botão de salvar, tornando o lançamento mais intuitivo.
+*   **Melhorias de UX:** Adicionados ícones de ajuda (?) ao lado dos títulos das seções e dos campos de data, com modais explicativos para cada um. O campo de valor recebeu um placeholder "R$ 0,00".
+*   **Correção de Carregamento:** O `database.js` foi corrigido para que a função `getPlanoContas` retornasse todos os dados necessários (`id_pai`, `tipo`, `variabilidade`), resolvendo o problema de listas de contas vazias no frontend.
+*   **Lógica Frontend:** O `public/js/despesas.js` foi refatorado para gerenciar a nova estrutura de acordeão e popular as listas de contas corretamente.
+
+#### 2. Criação da Tela "Lançar Receita Avulsa":
+*   **Nova Funcionalidade:** Uma nova tela, `receitas-avulsas.html`, foi criada para registrar receitas que não estão ligadas a Ordens de Serviço específicas.
+*   **Lógica Frontend:** O `public/js/receitas-avulsas.js` foi desenvolvido para gerenciar a lógica de frontend, incluindo a filtragem de contas de receita.
+*   **Backend e IPC:** No backend, a função `addReceitaAvulsa` foi adicionada ao `database.js` (inserindo na tabela `servicos` como um serviço simplificado) e exposta via IPC em `main.js` e `preload.js`.
+*   **Navegação:** A navegação (sidebar e cards na `index.html`) foi atualizada em todas as páginas para incluir o link para a nova tela.
+
+#### 3. Simplificação e Automação do "Cadastro de Serviço":
+*   **Interface Simplificada:** Os campos "Data de Competência", "Data de Vencimento" e "Plano de Contas" foram removidos da tela `cadastro-servico.html` para simplificar a interface e reduzir a entrada manual de dados.
+*   **Automação Frontend:** No `public/js/cadastro-servico.js`, a `data_competencia` passou a ser automaticamente preenchida com a `data_entrada`.
+*   **Automação Backend:** No `main.js`, o `id_plano_contas` para serviços foi padronizado para "Serviços de Mecânica Geral" (ID 111), e o handler `add-servico` foi ajustado para não esperar mais a `data_vencimento` do frontend.
+
+#### 4. Implementação da Lógica de Parcelamento de Cartão de Crédito (Fluxo de Caixa Real):
+*   **Configuração:** Um novo campo "Prazo de Liquidação do Cartão (dias)" foi adicionado à tela de "Configurações" (`configuracoes.html` e `public/js/configuracoes.js`) para definir o período de crédito das operadoras.
+*   **Refatoração do Backend (`main.js`):** A lógica de pagamento no handler `add-servico` foi completamente refatorada:
+    *   Para pagamentos com "Cartão de Crédito", o sistema agora cria **múltiplos registros na tabela `pagamentos`**, um para cada parcela, com `data_vencimento` calculada com base no prazo de liquidação e `data_liquidacao` nula (indicando que ainda não foi recebido).
+    *   O `status_pagamento` do serviço é definido como **"Aguardando Liquidação"** para refletir o fluxo de caixa.
+*   **Limpeza Frontend:** O `public/js/cadastro-servico.js` foi ajustado para remover a lógica antiga de pagamento de cartão, que conflitava com o novo backend.
+*   **Correção de Bug Crítico:** O `database.js` foi alterado para permitir valores `NULL` na coluna `pagamentos.data_liquidacao`, resolvendo o erro de `NOT NULL constraint failed` ao salvar parcelas futuras.
+*   **Melhoria de UX na Gestão de Pagamentos:** A tela "Gerenciar Pagamentos" (`public/js/gerenciar-pagamentos.js`) foi aprimorada para exibir as parcelas futuras (contas a receber) com um destaque visual (fundo amarelado) e a etiqueta "Vencimento", diferenciando-as das parcelas já liquidadas. O status "Aguardando Liquidação" também foi adicionado aos badges.
+
+Esta sessão trouxe melhorias significativas na usabilidade, automação e precisão financeira do sistema, especialmente no controle de receitas e despesas e na gestão de pagamentos parcelados.
