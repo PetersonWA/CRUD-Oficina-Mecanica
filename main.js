@@ -3,7 +3,68 @@ console.log("main.js is being executed");
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const database = require("./database.js");
-const { db, getServicosParaPagamentos, getServicoComPagamentos, adicionarPagamento, getDadosDashboard, getPlanoContas, addDespesa, addReceitaAvulsa } = database; // Importa a instância do DB
+const {
+  db,
+  getServicosParaPagamentos,
+  getServicoComPagamentos,
+  adicionarPagamento,
+  getDadosDashboard,
+  getPlanoContas,
+  addDespesa,
+  addReceitaAvulsa,
+  getDespesas,
+  deleteDespesa,
+  getReceitasAvulsas,
+  deleteReceitaAvulsa,
+} = database; // Importa a instância do DB
+
+// Função auxiliar para criar pagamentos parcelados
+function createInstallmentPayments(
+  servicoId,
+  valorTotal,
+  numeroParcelas,
+  dataEntradaServico,
+  dataCompetenciaServico,
+  idPlanoContasServico,
+  metodoPagamento
+) {
+  const configPrazoRow = db
+    .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
+    .get("prazoLiquidacaoCartao");
+  const prazoLiquidacao = configPrazoRow
+    ? parseInt(configPrazoRow.valor, 10)
+    : 30;
+
+  const valorParcela = parseFloat((valorTotal / numeroParcelas).toFixed(2));
+  let somaParcelas = 0;
+
+  const pagtoStmt = db.prepare(
+    "INSERT INTO pagamentos (servico_id, valor, data_vencimento, metodo, anotacao, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  );
+
+  for (let i = 1; i <= numeroParcelas; i++) {
+    let valorDaParcelaAtual = valorParcela;
+    if (i === numeroParcelas) {
+      valorDaParcelaAtual = valorTotal - somaParcelas;
+    }
+    somaParcelas += valorDaParcelaAtual;
+
+    const dataBase = new Date(dataEntradaServico + "T00:00:00");
+    dataBase.setDate(dataBase.getDate() + prazoLiquidacao + (i - 1) * 30);
+    const vencimentoParcela = dataBase.toISOString().split("T")[0];
+
+    pagtoStmt.run(
+      servicoId,
+      valorDaParcelaAtual,
+      vencimentoParcela,
+      metodoPagamento,
+      `Parcela ${i} de ${numeroParcelas}`,
+      null, // data_liquidacao é nula até a confirmação
+      dataCompetenciaServico,
+      idPlanoContasServico
+    );
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -21,7 +82,9 @@ function createWindow() {
 
 // Handlers IPC para Clientes
 ipcMain.handle("get-clientes", () => {
-  const stmt = db.prepare("SELECT * FROM clientes WHERE is_deleted = 0 ORDER BY nome");
+  const stmt = db.prepare(
+    "SELECT * FROM clientes WHERE is_deleted = 0 ORDER BY nome"
+  );
   return stmt.all();
 });
 
@@ -57,12 +120,16 @@ ipcMain.handle("update-cliente", (event, cliente) => {
 ipcMain.handle("delete-cliente", (event, id) => {
   // Soft delete do cliente e dos seus veículos associados
   const transaction = db.transaction((clienteId) => {
-    const stmtVeiculos = db.prepare("UPDATE veiculos SET is_deleted = 1 WHERE cliente_id = ?");
+    const stmtVeiculos = db.prepare(
+      "UPDATE veiculos SET is_deleted = 1 WHERE cliente_id = ?"
+    );
     stmtVeiculos.run(clienteId);
-    
-    const stmtCliente = db.prepare("UPDATE clientes SET is_deleted = 1 WHERE id = ?");
+
+    const stmtCliente = db.prepare(
+      "UPDATE clientes SET is_deleted = 1 WHERE id = ?"
+    );
     const result = stmtCliente.run(clienteId);
-    
+
     return result.changes > 0;
   });
 
@@ -142,7 +209,9 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
     );
     const servicoId = servicoResult.lastInsertRowid;
 
-    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const configRow = db
+      .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
+      .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
     const itemStmt = db.prepare(
@@ -150,8 +219,8 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
     );
     for (const item of orc.itens) {
       let valorCusto = null;
-      if (item.tipo === 'Peça' && percentualLucro > 0) {
-        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      if (item.tipo === "Peça" && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - percentualLucro / 100);
       }
       itemStmt.run(
         servicoId,
@@ -163,11 +232,21 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
       );
     }
 
-    // Atualiza a quilometragem do veículo se a nova for maior
-    if (orc.quilometragem) {
-      db.prepare(
-        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
-      ).run(orc.quilometragem, orc.veiculo_id, orc.quilometragem);
+    // Atualiza a quilometragem do veículo (somente se for maior que a atual)
+    if (orc.quilometragem && orc.veiculo_id) {
+      const kmAtual = db
+        .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
+        .get(orc.veiculo_id);
+      const kmAtualValor =
+        kmAtual && kmAtual.quilometragem ? parseInt(kmAtual.quilometragem) : 0;
+
+      // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
+      if (orc.quilometragem > kmAtualValor) {
+        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+          orc.quilometragem,
+          orc.veiculo_id
+        );
+      }
     }
 
     return servicoId;
@@ -239,7 +318,9 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
     db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(orc.id);
 
-    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const configRow = db
+      .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
+      .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
     const itemStmt = db.prepare(
@@ -247,8 +328,8 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
     );
     for (const item of orc.itens) {
       let valorCusto = null;
-      if (item.tipo === 'Peça' && percentualLucro > 0) {
-        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      if (item.tipo === "Peça" && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - percentualLucro / 100);
       }
       itemStmt.run(
         orc.id,
@@ -260,11 +341,21 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
       );
     }
 
-    // Atualiza a quilometragem do veículo se a nova for maior
-    if (orc.quilometragem) {
-      db.prepare(
-        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
-      ).run(orc.quilometragem, orc.veiculo_id, orc.quilometragem);
+    // Atualiza a quilometragem do veículo (somente se for maior que a atual)
+    if (orc.quilometragem && orc.veiculo_id) {
+      const kmAtual = db
+        .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
+        .get(orc.veiculo_id);
+      const kmAtualValor =
+        kmAtual && kmAtual.quilometragem ? parseInt(kmAtual.quilometragem) : 0;
+
+      // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
+      if (orc.quilometragem > kmAtualValor) {
+        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+          orc.quilometragem,
+          orc.veiculo_id
+        );
+      }
     }
 
     return orc.id;
@@ -291,9 +382,9 @@ ipcMain.handle("add-servico", (event, servico) => {
     );
 
     // Define o status de pagamento inicial
-    let statusPagamento = 'Pendente';
-    if (s.forma_pagamento === 'Cartão de Crédito') {
-      statusPagamento = 'Aguardando Liquidação';
+    let statusPagamento = "Pendente";
+    if (s.forma_pagamento === "Cartão de Crédito") {
+      statusPagamento = "Aguardando Liquidação";
     }
 
     const servicoResult = servicoStmt.run(
@@ -315,83 +406,86 @@ ipcMain.handle("add-servico", (event, servico) => {
     const servicoId = servicoResult.lastInsertRowid;
 
     // Etapa 2: Inserir os itens do serviço
-    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const configRow = db
+      .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
+      .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
     const itemStmt = db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
       let valorCusto = null;
-      if (item.tipo === 'Peça' && percentualLucro > 0) {
-        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      if (item.tipo === "Peça" && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - percentualLucro / 100);
       }
-      itemStmt.run(servicoId, item.descricao, item.tipo, item.quantidade, item.valor_unitario, valorCusto);
+      itemStmt.run(
+        servicoId,
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        item.valor_unitario,
+        valorCusto
+      );
     }
 
     // Etapa 3: Lógica de Pagamento Refatorada
-    if (s.forma_pagamento === 'Cartão de Crédito' && s.numero_parcelas > 0) {
-      const configPrazoRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('prazoLiquidacaoCartao');
-      const prazoLiquidacao = configPrazoRow ? parseInt(configPrazoRow.valor, 10) : 30;
-      
-      const valorTotal = s.valor_total;
-      const valorParcela = parseFloat((valorTotal / s.numero_parcelas).toFixed(2));
-
-      // Ajuste para a última parcela para evitar diferenças de arredondamento
-      let somaParcelas = 0;
-
-      const pagtoStmt = db.prepare(
-        "INSERT INTO pagamentos (servico_id, valor, data_vencimento, metodo, anotacao, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    if (s.forma_pagamento === "Cartão de Crédito" && s.numero_parcelas > 0) {
+      createInstallmentPayments(
+        servicoId,
+        s.valor_total,
+        s.numero_parcelas,
+        s.data_entrada,
+        s.data_competencia,
+        s.id_plano_contas,
+        s.forma_pagamento
       );
-
-      for (let i = 1; i <= s.numero_parcelas; i++) {
-        let valorDaParcelaAtual = valorParcela;
-        if (i === s.numero_parcelas) {
-          valorDaParcelaAtual = valorTotal - somaParcelas;
-        }
-        somaParcelas += valorDaParcelaAtual;
-
-        const dataBase = new Date(s.data_entrada + 'T00:00:00');
-        // Adiciona o prazo de liquidação inicial e depois os meses das parcelas
-        dataBase.setDate(dataBase.getDate() + prazoLiquidacao + ((i - 1) * 30));
-        const vencimentoParcela = dataBase.toISOString().split('T')[0];
-
-        pagtoStmt.run(
-          servicoId,
-          valorDaParcelaAtual,
-          vencimentoParcela,
-          'Cartão de Crédito',
-          `Parcela ${i} de ${s.numero_parcelas}`,
-          null, // data_liquidacao é nula até a confirmação
-          s.data_competencia,
-          s.id_plano_contas // O mesmo plano de contas do serviço
+    } else if (s.pagamento_inicial) {
+      // Mantém a lógica para outros pagamentos imediatos se necessário
+      const pagtoStmt = db.prepare(
+        "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?)"
+      );
+      pagtoStmt.run(
+        servicoId,
+        s.pagamento_inicial.forma,
+        s.pagamento_inicial.valor,
+        s.pagamento_inicial.data_liquidacao,
+        s.data_competencia,
+        s.id_plano_contas
+      );
+      // Atualiza o status do serviço principal se o pagamento inicial quitar o valor
+      const { totalPago } = db
+        .prepare(
+          "SELECT SUM(valor) as totalPago FROM pagamentos WHERE servico_id = ?"
+        )
+        .get(servicoId);
+      if (totalPago >= s.valor_total) {
+        db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
+          "Pago",
+          servicoId
+        );
+      } else {
+        db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
+          "Parcialmente Pago",
+          servicoId
         );
       }
-    } else if (s.pagamento_inicial) { // Mantém a lógica para outros pagamentos imediatos se necessário
-        const pagtoStmt = db.prepare(
-            "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?)"
-        );
-        pagtoStmt.run(
-            servicoId,
-            s.pagamento_inicial.forma,
-            s.pagamento_inicial.valor,
-            s.pagamento_inicial.data_liquidacao,
-            s.data_competencia,
-            s.id_plano_contas
-        );
-        // Atualiza o status do serviço principal se o pagamento inicial quitar o valor
-        const { totalPago } = db.prepare('SELECT SUM(valor) as totalPago FROM pagamentos WHERE servico_id = ?').get(servicoId);
-        if (totalPago >= s.valor_total) {
-            db.prepare('UPDATE servicos SET status_pagamento = ? WHERE id = ?').run('Pago', servicoId);
-        } else {
-            db.prepare('UPDATE servicos SET status_pagamento = ? WHERE id = ?').run('Parcialmente Pago', servicoId);
-        }
     }
 
-    // Etapa 4: Atualizar quilometragem
+    // Etapa 4: Atualizar quilometragem (somente se for maior que a atual)
     if (s.quilometragem && s.veiculo_id) {
-      db.prepare(
-        "UPDATE veiculos SET quilometragem = ? WHERE id = ? AND (? > quilometragem OR quilometragem IS NULL)"
-      ).run(s.quilometragem, s.veiculo_id, s.quilometragem);
+      const kmAtual = db
+        .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
+        .get(s.veiculo_id);
+      const kmAtualValor =
+        kmAtual && kmAtual.quilometragem ? parseInt(kmAtual.quilometragem) : 0;
+
+      // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
+      if (s.quilometragem > kmAtualValor) {
+        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+          s.quilometragem,
+          s.veiculo_id
+        );
+      }
     }
 
     return servicoId;
@@ -406,6 +500,7 @@ ipcMain.handle("add-servico", (event, servico) => {
   }
 });
 
+
 // Handlers para Configurações (Banco de Dados)
 ipcMain.handle("get-all-configs", () => {
   const stmt = db.prepare("SELECT chave, valor FROM configuracoes");
@@ -419,11 +514,11 @@ ipcMain.handle("get-all-configs", () => {
   const userDataPath = app.getPath("userData");
   if (config.logoPath) {
     const absolutePath = path.join(userDataPath, config.logoPath);
-    config.logoPath = require('url').pathToFileURL(absolutePath).href;
+    config.logoPath = require("url").pathToFileURL(absolutePath).href;
   }
   if (config.assinaturaPath) {
     const absolutePath = path.join(userDataPath, config.assinaturaPath);
-    config.assinaturaPath = require('url').pathToFileURL(absolutePath).href;
+    config.assinaturaPath = require("url").pathToFileURL(absolutePath).href;
   }
 
   return config;
@@ -433,22 +528,30 @@ ipcMain.handle("save-configs", (event, configData) => {
   const stmt = db.prepare(
     "INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES (?, ?)"
   );
-      const transaction = db.transaction((configs) => {
-          const userDataPath = app.getPath("userData");
-          // Converte URLs de arquivo de volta para caminhos relativos para armazenamento
-          if (configs.logoPath && configs.logoPath.startsWith('file:///')) {
-              const filePath = require('url').fileURLToPath(configs.logoPath);
-              configs.logoPath = path.relative(userDataPath, filePath).replace(/\\/g, "/");
-          }
-          if (configs.assinaturaPath && configs.assinaturaPath.startsWith('file:///')) {
-              const filePath = require('url').fileURLToPath(configs.assinaturaPath);
-              configs.assinaturaPath = path.relative(userDataPath, filePath).replace(/\\/g, "/");
-          }
-  
-          for (const chave in configs) {
-              stmt.run(chave, configs[chave]);
-          }
-      });  try {
+  const transaction = db.transaction((configs) => {
+    const userDataPath = app.getPath("userData");
+    // Converte URLs de arquivo de volta para caminhos relativos para armazenamento
+    if (configs.logoPath && configs.logoPath.startsWith("file:///")) {
+      const filePath = require("url").fileURLToPath(configs.logoPath);
+      configs.logoPath = path
+        .relative(userDataPath, filePath)
+        .replace(/\\/g, "/");
+    }
+    if (
+      configs.assinaturaPath &&
+      configs.assinaturaPath.startsWith("file:///")
+    ) {
+      const filePath = require("url").fileURLToPath(configs.assinaturaPath);
+      configs.assinaturaPath = path
+        .relative(userDataPath, filePath)
+        .replace(/\\/g, "/");
+    }
+
+    for (const chave in configs) {
+      stmt.run(chave, configs[chave]);
+    }
+  });
+  try {
     transaction(configData);
     return { success: true };
   } catch (error) {
@@ -488,12 +591,21 @@ ipcMain.handle("adicionar-pagamento", (event, pagamento) => {
   return adicionarPagamento(pagamento);
 });
 
+ipcMain.handle("confirmar-pagamento", async (event, pagamentoId) => {
+  try {
+    return database.confirmarPagamento(pagamentoId);
+  } catch (error) {
+    console.error("Failed to confirm payment:", error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle("get-pagamentos", () => {
   const stmt = db.prepare("SELECT * FROM pagamentos ORDER BY data_liquidacao");
   return stmt.all();
 });
 
-ipcMain.handle('get-dados-dashboard', (event, filtros) => {
+ipcMain.handle("get-dados-dashboard", (event, filtros) => {
   return getDadosDashboard(filtros);
 });
 
@@ -531,14 +643,16 @@ ipcMain.handle("get-servicos", () => {
       tipo: item.tipo,
       quantidade: item.quantidade,
       valor_unitario: item.valor_unitario, // Padronizado para valor_unitario
-      valor_custo: item.valor_custo
+      valor_custo: item.valor_custo,
     }));
   }
   return servicos;
 });
 
 ipcMain.handle("get-servico-by-id", (event, id) => {
-  const servico = db.prepare(`
+  const servico = db
+    .prepare(
+      `
     SELECT 
       s.id, s.data as dataEntrada, s.data_conclusao as dataConclusao, s.mecanico_responsavel as mecanico, 
       s.status, s.status_pagamento as statusPagamento, s.valor_total as valorTotal,
@@ -548,11 +662,19 @@ ipcMain.handle("get-servico-by-id", (event, id) => {
     LEFT JOIN clientes c ON s.cliente_id = c.id
     LEFT JOIN veiculos v ON s.veiculo_id = v.id
     WHERE s.id = ?
-  `).get(id);
+  `
+    )
+    .get(id);
 
   if (servico) {
-    servico.itens = db.prepare("SELECT *, valor_unitario FROM itens_servico WHERE servico_id = ?").all(id);
-    servico.pagamentos = db.prepare("SELECT * FROM pagamentos WHERE servico_id = ?").all(id);
+    servico.itens = db
+      .prepare(
+        "SELECT *, valor_unitario FROM itens_servico WHERE servico_id = ?"
+      )
+      .all(id);
+    servico.pagamentos = db
+      .prepare("SELECT * FROM pagamentos WHERE servico_id = ?")
+      .all(id);
   }
   return servico;
 });
@@ -582,7 +704,9 @@ ipcMain.handle("update-servico", (event, servico) => {
     db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(s.id);
 
     // 3. Insere os novos itens
-    const configRow = db.prepare("SELECT valor FROM configuracoes WHERE chave = ?").get('percentualLucroPecas');
+    const configRow = db
+      .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
+      .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
     const itemStmt = db.prepare(
@@ -590,8 +714,8 @@ ipcMain.handle("update-servico", (event, servico) => {
     );
     for (const item of s.itens) {
       let valorCusto = null;
-      if (item.tipo === 'Peça' && percentualLucro > 0) {
-        valorCusto = item.valor_unitario * (1 - (percentualLucro / 100));
+      if (item.tipo === "Peça" && percentualLucro > 0) {
+        valorCusto = item.valor_unitario * (1 - percentualLucro / 100);
       }
       // Mapeia 'valor_unitario' do frontend para 'valor_unitario' do DB
       itemStmt.run(
@@ -620,9 +744,12 @@ ipcMain.handle("delete-servico", (event, id) => {
     const stmt = db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
     const result = stmt.run(id);
     if (result.changes > 0) {
-        return { success: true };
+      return { success: true };
     } else {
-        return { success: false, error: "Serviço não encontrado com o ID fornecido." };
+      return {
+        success: false,
+        error: "Serviço não encontrado com o ID fornecido.",
+      };
     }
   } catch (error) {
     console.error("Erro ao arquivar serviço:", error);
@@ -638,30 +765,36 @@ ipcMain.handle("print-orcamento", async (event, id) => {
   budget.itens = db
     .prepare("SELECT * FROM itens_servico WHERE servico_id = ?")
     .all(id);
-  
+
   let client = {};
   let vehicle = {};
 
   // If a client is linked, fetch their data.
   if (budget.cliente_id) {
-    client = db.prepare("SELECT * FROM clientes WHERE id = ?").get(budget.cliente_id) || {};
-    vehicle = db.prepare("SELECT * FROM veiculos WHERE id = ?").get(budget.veiculo_id) || {};
+    client =
+      db
+        .prepare("SELECT * FROM clientes WHERE id = ?")
+        .get(budget.cliente_id) || {};
+    vehicle =
+      db
+        .prepare("SELECT * FROM veiculos WHERE id = ?")
+        .get(budget.veiculo_id) || {};
   }
 
   // If it's a manual service, overwrite with manual data for the template
   if (budget.cliente_nome_manual) {
     client.nome = budget.cliente_nome_manual;
-    client.cpf_cnpj = '';
-    client.telefone = '';
-    client.email = '';
-    client.endereco = '';
+    client.cpf_cnpj = "";
+    client.telefone = "";
+    client.email = "";
+    client.endereco = "";
   }
   if (budget.veiculo_desc_manual) {
     vehicle.placa = budget.veiculo_desc_manual;
-    vehicle.marca = '';
-    vehicle.modelo = '';
-    vehicle.ano = '';
-    vehicle.cor = '';
+    vehicle.marca = "";
+    vehicle.modelo = "";
+    vehicle.ano = "";
+    vehicle.cor = "";
   }
 
   const configRows = db.prepare("SELECT chave, valor FROM configuracoes").all();
@@ -674,11 +807,11 @@ ipcMain.handle("print-orcamento", async (event, id) => {
   const userDataPath = app.getPath("userData");
   if (config.logoPath) {
     const absolutePath = path.join(userDataPath, config.logoPath);
-    config.logoPath = require('url').pathToFileURL(absolutePath).href;
+    config.logoPath = require("url").pathToFileURL(absolutePath).href;
   }
   if (config.assinaturaPath) {
     const absolutePath = path.join(userDataPath, config.assinaturaPath);
-    config.assinaturaPath = require('url').pathToFileURL(absolutePath).href;
+    config.assinaturaPath = require("url").pathToFileURL(absolutePath).href;
   }
 
   // 2. Create a new hidden window
@@ -686,11 +819,11 @@ ipcMain.handle("print-orcamento", async (event, id) => {
     width: 800,
     height: 600,
     show: true, // Show the window to act as a preview
-        webPreferences: {
-            preload: path.join(__dirname, 'print-preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
+    webPreferences: {
+      preload: path.join(__dirname, "print-preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
   });
 
   printWindow.loadFile("template-orcamento.html");
@@ -706,7 +839,7 @@ ipcMain.handle("print-orcamento", async (event, id) => {
   });
 
   // 4. Listen for ready signal from template
-  ipcMain.removeHandler('ready-to-print');
+  ipcMain.removeHandler("ready-to-print");
   ipcMain.handleOnce("ready-to-print", () => {
     printWindow.webContents.print({}, (success, errorType) => {
       if (!success) console.log(`Print failed: ${errorType}`);
@@ -714,7 +847,7 @@ ipcMain.handle("print-orcamento", async (event, id) => {
     });
   });
 
-  ipcMain.removeHandler('print-error');
+  ipcMain.removeHandler("print-error");
   ipcMain.handleOnce("print-error", (event, error) => {
     console.error("Error in print template:", error);
     printWindow.close();
@@ -725,12 +858,16 @@ ipcMain.handle("print-orcamento", async (event, id) => {
 
 // Handlers for Archived Data
 ipcMain.handle("get-archived-clientes", () => {
-  const stmt = db.prepare("SELECT * FROM clientes WHERE is_deleted = 1 ORDER BY nome");
+  const stmt = db.prepare(
+    "SELECT * FROM clientes WHERE is_deleted = 1 ORDER BY nome"
+  );
   return stmt.all();
 });
 
 ipcMain.handle("get-archived-veiculos", () => {
-  const stmt = db.prepare("SELECT v.*, c.nome as cliente_nome FROM veiculos v JOIN clientes c ON v.cliente_id = c.id WHERE v.is_deleted = 1 ORDER BY c.nome, v.modelo");
+  const stmt = db.prepare(
+    "SELECT v.*, c.nome as cliente_nome FROM veiculos v JOIN clientes c ON v.cliente_id = c.id WHERE v.is_deleted = 1 ORDER BY c.nome, v.modelo"
+  );
   return stmt.all();
 });
 
@@ -753,12 +890,16 @@ ipcMain.handle("get-archived-servicos", () => {
 ipcMain.handle("restore-cliente", (event, id) => {
   // When restoring a client, also restore their vehicles that were not individually archived
   const transaction = db.transaction((clienteId) => {
-    const stmtVeiculos = db.prepare("UPDATE veiculos SET is_deleted = 0 WHERE cliente_id = ?");
+    const stmtVeiculos = db.prepare(
+      "UPDATE veiculos SET is_deleted = 0 WHERE cliente_id = ?"
+    );
     stmtVeiculos.run(clienteId);
-    
-    const stmtCliente = db.prepare("UPDATE clientes SET is_deleted = 0 WHERE id = ?");
+
+    const stmtCliente = db.prepare(
+      "UPDATE clientes SET is_deleted = 0 WHERE id = ?"
+    );
     const result = stmtCliente.run(clienteId);
-    
+
     return result.changes > 0;
   });
 
@@ -810,13 +951,136 @@ ipcMain.handle("add-despesa", (event, despesa) => {
   return addDespesa(despesa);
 });
 
-ipcMain.handle('add-receita-avulsa', async (event, receita) => {
-    try {
-        return addReceitaAvulsa(receita);
-    } catch (error) {
-        console.error('Failed to add miscellaneous revenue:', error);
-        return { success: false, error: error.message };
+ipcMain.handle("add-receita-avulsa", async (event, receita) => {
+  try {
+    // Define o status de pagamento inicial
+    let statusPagamento = "Pendente";
+    if (receita.metodo_pagamento === "Cartão de Crédito") {
+      statusPagamento = "Aguardando Liquidação";
+    } else if (receita.data_conclusao) {
+      statusPagamento = "Pago";
     }
+
+    const servicoResult = db
+      .prepare(
+        `INSERT INTO servicos (
+            id_plano_contas, valor_total, descricao_problema, data_competencia, 
+            data_vencimento, data_entrada, data_conclusao, status, status_pagamento,
+            cliente_id, veiculo_id, is_deleted, metodo_pagamento, numero_parcelas_servico
+        ) VALUES (
+            @id_plano_contas, @valor_total, @descricao_problema, @data_competencia,
+            @data_vencimento, @data_entrada, @data_conclusao, @status, @status_pagamento,
+            NULL, NULL, 0, @metodo_pagamento, @numero_parcelas
+        )`
+      )
+      .run({ ...receita, status_pagamento: statusPagamento });
+    const servicoId = servicoResult.lastInsertRowid;
+
+    if (
+      receita.metodo_pagamento === "Cartão de Crédito" &&
+      receita.numero_parcelas > 0
+    ) {
+      createInstallmentPayments(
+        servicoId,
+        receita.valor_total,
+        receita.numero_parcelas,
+        receita.data_entrada, // Usar data_entrada como base para cálculo
+        receita.data_competencia,
+        receita.id_plano_contas,
+        receita.metodo_pagamento
+      );
+    } else if (receita.data_conclusao) {
+      // Para pagamentos à vista (não cartão de crédito) que já foram liquidados
+      db.prepare(
+        "INSERT INTO pagamentos (servico_id, valor, data_liquidacao, metodo, anotacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      ).run(
+        servicoId,
+        receita.valor_total,
+        receita.data_conclusao,
+        receita.metodo_pagamento,
+        receita.descricao_problema,
+        receita.data_competencia,
+        receita.id_plano_contas
+      );
+    }
+
+    return { success: true, id: servicoId };
+  } catch (error) {
+    console.error("Failed to add miscellaneous revenue:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("get-despesas", async (event, filtros) => {
+  try {
+    console.log("Filtros recebidos no main.js:", filtros);
+    return getDespesas(filtros);
+  } catch (error) {
+    console.error("Failed to get expenses:", error);
+    return [];
+  }
+});
+
+ipcMain.handle("delete-despesa", async (event, id) => {
+  try {
+    return deleteDespesa(id);
+  } catch (error) {
+    console.error("Failed to delete expense:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("get-receitas-avulsas", async (event, filtros) => {
+  try {
+    return getReceitasAvulsas(filtros);
+  } catch (error) {
+    console.error("Failed to get miscellaneous revenues:", error);
+    return [];
+  }
+});
+
+ipcMain.handle("delete-receita-avulsa", async (event, id) => {
+  try {
+    return deleteReceitaAvulsa(id);
+  } catch (error) {
+    console.error("Failed to delete miscellaneous revenue:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("print-relatorio-financeiro", async (event, reportData) => {
+  const printWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    show: false, // Janela oculta
+    webPreferences: {
+      preload: path.join(__dirname, "print-relatorio-preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  printWindow.loadFile("template-relatorio-financeiro.html");
+
+  printWindow.webContents.on("did-finish-load", () => {
+    printWindow.webContents.send("print-data", reportData);
+  });
+
+  ipcMain.removeHandler("ready-to-print");
+  ipcMain.handleOnce("ready-to-print", () => {
+    printWindow.webContents.print({}, (success, errorType) => {
+      if (!success) console.log(`Print failed: ${errorType}`);
+      printWindow.close();
+    });
+  });
+
+  ipcMain.removeHandler("print-error");
+  ipcMain.handleOnce("print-error", (event, error) => {
+    console.error("Error in print template:", error);
+    printWindow.close();
+  });
+
+  return true;
 });
 
 app.whenReady().then(() => {

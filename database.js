@@ -54,6 +54,7 @@ function getServicoComPagamentos(servicoId) {
 
     servico.pagamentos = db.prepare(`
         SELECT 
+            id,
             valor, 
             COALESCE(data_liquidacao, data_vencimento) as data,
             metodo, 
@@ -126,18 +127,26 @@ function adicionarPagamento(pagamento) {
 }
 
 function getFinancialTransactions(filtros) {
-    const { dataInicio, dataFim, reportType } = filtros;
+    const { dataInicio, dataFim, reportType, cliente, veiculo, status, tipoData } = filtros;
+
+    const dateColumn = tipoData === 'data_conclusao' ? 'data_conclusao' : 'data_entrada';
 
     const params = {};
     if (dataInicio) params.dataInicio = dataInicio;
     if (dataFim) params.dataFim = dataFim;
+    if (cliente) params.cliente = `%${cliente}%`;
+    if (veiculo) params.veiculo = `%${veiculo}%`;
+    if (status) params.status = status;
 
     if (reportType === 'DRE') {
         // DRE (Competence Basis)
-        const whereClauses = [];
-        if (dataInicio) whereClauses.push(`data_competencia >= @dataInicio`);
-        if (dataFim) whereClauses.push(`data_competencia <= @dataFim`);
-        const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const revenueWhereClauses = [];
+        if (dataInicio) revenueWhereClauses.push(`s.${dateColumn} >= @dataInicio`);
+        if (dataFim) revenueWhereClauses.push(`s.${dateColumn} <= @dataFim`);
+        if (cliente) revenueWhereClauses.push(`COALESCE(s.cliente_nome_manual, c.nome) LIKE @cliente`);
+        if (veiculo) revenueWhereClauses.push(`COALESCE(s.veiculo_desc_manual, v.placa) LIKE @veiculo`);
+        if (status) revenueWhereClauses.push(`s.status = @status`);
+        const revenueWhereString = revenueWhereClauses.length > 0 ? `WHERE ${revenueWhereClauses.join(' AND ')}` : '';
 
         const revenuesQuery = `
             SELECT
@@ -151,8 +160,15 @@ function getFinancialTransactions(filtros) {
                 pc.id_pai
             FROM servicos s
             JOIN plano_contas pc ON s.id_plano_contas = pc.id
-            ${whereString}
+            LEFT JOIN clientes c ON s.cliente_id = c.id
+            LEFT JOIN veiculos v ON s.veiculo_id = v.id
+            ${revenueWhereString}
         `;
+
+        const expenseWhereClauses = [];
+        if (dataInicio) expenseWhereClauses.push(`p.data_competencia >= @dataInicio`);
+        if (dataFim) expenseWhereClauses.push(`p.data_competencia <= @dataFim`);
+        const expenseWhereString = expenseWhereClauses.length > 0 ? `AND ${expenseWhereClauses.join(' AND ')}` : '';
 
         const expensesQuery = `
             SELECT
@@ -167,7 +183,7 @@ function getFinancialTransactions(filtros) {
             FROM pagamentos p
             JOIN plano_contas pc ON p.id_plano_contas = pc.id
             WHERE p.servico_id IS NULL -- General expenses only
-            ${whereClauses.length > 0 ? `AND ${whereClauses.map(c => 'p.' + c).join(' AND ')}` : ''}
+            ${expenseWhereString}
         `;
 
         const combinedQuery = `
@@ -180,10 +196,13 @@ function getFinancialTransactions(filtros) {
 
     } else if (reportType === 'DFC') {
         // DFC (Cash Basis)
-        const whereClauses = [];
-        if (dataInicio) whereClauses.push(`data_liquidacao >= @dataInicio`);
-        if (dataFim) whereClauses.push(`data_liquidacao <= @dataFim`);
-        const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const cashInWhereClauses = [`p.servico_id IS NOT NULL`];
+        if (dataInicio) cashInWhereClauses.push(`s.${dateColumn} >= @dataInicio`);
+        if (dataFim) cashInWhereClauses.push(`s.${dateColumn} <= @dataFim`);
+        if (cliente) cashInWhereClauses.push(`COALESCE(s.cliente_nome_manual, c.nome) LIKE @cliente`);
+        if (veiculo) cashInWhereClauses.push(`COALESCE(s.veiculo_desc_manual, v.placa) LIKE @veiculo`);
+        if (status) cashInWhereClauses.push(`s.status = @status`);
+        const cashInWhereString = `WHERE ${cashInWhereClauses.join(' AND ')}`;
 
         const cashInQuery = `
             SELECT
@@ -192,9 +211,16 @@ function getFinancialTransactions(filtros) {
                 p.data_liquidacao,
                 'entrada' AS tipo_transacao
             FROM pagamentos p
-            WHERE p.servico_id IS NOT NULL -- Payments for services
-            ${whereClauses.length > 0 ? `AND ${whereClauses.map(c => 'p.' + c).join(' AND ')}` : ''}
+            JOIN servicos s ON p.servico_id = s.id
+            LEFT JOIN clientes c ON s.cliente_id = c.id
+            LEFT JOIN veiculos v ON s.veiculo_id = v.id
+            ${cashInWhereString}
         `;
+
+        const cashOutWhereClauses = [`p.servico_id IS NULL`];
+        if (dataInicio) cashOutWhereClauses.push(`p.data_competencia >= @dataInicio`); // Use competence date for filtering general expenses
+        if (dataFim) cashOutWhereClauses.push(`p.data_competencia <= @dataFim`); // Use competence date for filtering general expenses
+        const cashOutWhereString = `WHERE ${cashOutWhereClauses.join(' AND ')}`;
 
         const cashOutQuery = `
             SELECT
@@ -203,8 +229,8 @@ function getFinancialTransactions(filtros) {
                 p.data_liquidacao,
                 'saida' AS tipo_transacao
             FROM pagamentos p
-            WHERE p.servico_id IS NULL -- General expenses
-            ${whereClauses.length > 0 ? `AND ${whereClauses.map(c => 'p.' + c).join(' AND ')}` : ''}
+            JOIN plano_contas pc ON p.id_plano_contas = pc.id
+            ${cashOutWhereString}
         `;
 
         const combinedQuery = `
@@ -220,13 +246,13 @@ function getFinancialTransactions(filtros) {
 }
 
 function getDadosDashboard(filtros) {
-    const { dataInicio, dataFim, groupBy } = filtros;
+    const { dataInicio, dataFim, groupBy, cliente, veiculo, status, tipoData } = filtros;
 
     // Fetch all transactions for DRE (competence basis)
-    const dreTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DRE' });
+    const dreTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DRE', cliente, veiculo, status, tipoData });
 
     // Fetch all transactions for DFC (cash basis)
-    const dfcTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DFC' });
+    const dfcTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DFC', cliente, veiculo, status, tipoData });
 
     // --- DRE Calculations ---
     const deducoesId = db.prepare("SELECT id FROM plano_contas WHERE nome_conta = 'DEDUÇÕES DA RECEITA BRUTA'").get()?.id;
@@ -554,6 +580,8 @@ function initDb() {
             data_competencia TEXT,
             data_vencimento TEXT,
             id_plano_contas INTEGER,
+            metodo_pagamento TEXT,
+            numero_parcelas_servico INTEGER,
             FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE SET NULL,
             FOREIGN KEY (veiculo_id) REFERENCES veiculos (id) ON DELETE SET NULL,
             FOREIGN KEY (id_plano_contas) REFERENCES plano_contas (id)
@@ -563,6 +591,8 @@ function initDb() {
     try { db.prepare('ALTER TABLE servicos ADD COLUMN data_competencia TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
     try { db.prepare('ALTER TABLE servicos ADD COLUMN data_vencimento TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
     try { db.prepare('ALTER TABLE servicos ADD COLUMN id_plano_contas INTEGER').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
+    try { db.prepare('ALTER TABLE servicos ADD COLUMN metodo_pagamento TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
+    try { db.prepare('ALTER TABLE servicos ADD COLUMN numero_parcelas_servico INTEGER').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
 
     // Tabela de Itens de Serviço/Peças
     db.prepare(`
@@ -625,7 +655,7 @@ function addDespesa(despesa) {
         null, // servico_id is NULL
         despesa.valor,
         despesa.data_liquidacao,
-        despesa.metodo,
+        despesa.metodo || 'N/A', // Provide a default value if metodo is missing
         despesa.anotacao,
         despesa.data_competencia,
         despesa.data_vencimento,
@@ -639,15 +669,191 @@ function addReceitaAvulsa(receita) {
         INSERT INTO servicos (
             id_plano_contas, valor_total, descricao_problema, data_competencia, 
             data_vencimento, data_entrada, data_conclusao, status, status_pagamento,
-            cliente_id, veiculo_id, is_deleted
+            cliente_id, veiculo_id, is_deleted, metodo_pagamento, numero_parcelas_servico
         ) VALUES (
             @id_plano_contas, @valor_total, @descricao_problema, @data_competencia,
             @data_vencimento, @data_entrada, @data_conclusao, @status, @status_pagamento,
-            NULL, NULL, 0
+            NULL, NULL, 0, @metodo_pagamento, @numero_parcelas
         )
     `);
     const result = stmt.run(receita);
     return { success: true, id: result.lastInsertRowid };
+}
+
+function getDespesas(filtros = {}) {
+    const { dataInicio, dataFim, categoriaId } = filtros;
+    let query = `
+        SELECT 
+            p.id,
+            p.valor,
+            p.anotacao,
+            p.data_liquidacao,
+            p.data_competencia,
+            p.data_vencimento,
+            pc.nome_conta
+        FROM pagamentos p
+        JOIN plano_contas pc ON p.id_plano_contas = pc.id
+    `;
+    const params = [];
+
+    let whereClauses = ['p.servico_id IS NULL'];
+
+    if (categoriaId) {
+        query = `
+            WITH RECURSIVE CategoriaContas(id) AS (
+              SELECT id FROM plano_contas WHERE id = ?
+              UNION ALL
+              SELECT pc.id FROM plano_contas pc JOIN CategoriaContas cc ON pc.id_pai = cc.id
+            )
+            ${query}
+        `;
+        whereClauses.push('p.id_plano_contas IN (SELECT id FROM CategoriaContas)');
+        params.push(categoriaId);
+    }
+
+    if (dataInicio) {
+        whereClauses.push('p.data_competencia >= ?');
+        params.push(dataInicio);
+    }
+    if (dataFim) {
+        whereClauses.push('p.data_competencia <= ?');
+        params.push(dataFim);
+    }
+
+    if (whereClauses.length > 0) {
+        query += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    query += ' ORDER BY p.data_competencia DESC';
+    return db.prepare(query).all(params);
+}
+
+function deleteDespesa(id) {
+    const result = db.prepare('DELETE FROM pagamentos WHERE id = ? AND servico_id IS NULL').run(id);
+    return { success: result.changes > 0 };
+}
+
+function getReceitasAvulsas(filtros = {}) {
+    const { dataInicio, dataFim, categoriaId } = filtros;
+    let query = `
+        SELECT 
+            s.id,
+            s.valor_total,
+            s.descricao_problema,
+            s.data_competencia,
+            s.data_conclusao,
+            pc.nome_conta
+        FROM servicos s
+        JOIN plano_contas pc ON s.id_plano_contas = pc.id
+    `;
+    const params = [];
+    let whereClauses = [
+        's.cliente_id IS NULL',
+        's.veiculo_id IS NULL',
+        's.is_deleted = 0'
+    ];
+
+    if (categoriaId) {
+        query = `
+            WITH RECURSIVE CategoriaContas(id) AS (
+              SELECT id FROM plano_contas WHERE id = ?
+              UNION ALL
+              SELECT pc.id FROM plano_contas pc JOIN CategoriaContas cc ON pc.id_pai = cc.id
+            )
+            ${query}
+        `;
+        whereClauses.push('s.id_plano_contas IN (SELECT id FROM CategoriaContas)');
+        params.push(categoriaId);
+    }
+
+    if (dataInicio) {
+        whereClauses.push('s.data_competencia >= ?');
+        params.push(dataInicio);
+    }
+    if (dataFim) {
+        whereClauses.push('s.data_competencia <= ?');
+        params.push(dataFim);
+    }
+    
+    if (whereClauses.length > 0) {
+        query += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    query += ' ORDER BY s.data_competencia DESC';
+    return db.prepare(query).all(params);
+}
+
+function deleteReceitaAvulsa(id) {
+    const result = db.prepare('DELETE FROM servicos WHERE id = ? AND cliente_id IS NULL AND veiculo_id IS NULL').run(id);
+    return { success: result.changes > 0 };
+}
+
+function confirmarPagamento(pagamentoId) {
+    const transaction = db.transaction(() => {
+        // 1. Obter o pagamento e o servico_id associado
+        const pagamento = db.prepare('SELECT servico_id, valor FROM pagamentos WHERE id = ?').get(pagamentoId);
+        if (!pagamento) {
+            throw new Error('Pagamento não encontrado.');
+        }
+        const { servico_id, valor: valorPagamento } = pagamento;
+
+        // 2. Atualizar a data_liquidacao do pagamento
+        const dataAtual = new Date().toISOString().split('T')[0];
+        const updatePagamentoStmt = db.prepare('UPDATE pagamentos SET data_liquidacao = ? WHERE id = ?');
+        updatePagamentoStmt.run(dataAtual, pagamentoId);
+
+        // Se não houver servico_id (despesa avulsa), apenas confirma o pagamento e sai
+        if (!servico_id) {
+            return { success: true, message: 'Pagamento avulso confirmado com sucesso.' };
+        }
+
+        // 3. Recalcular o total pago para o serviço
+        const { totalPago } = db.prepare(
+            'SELECT SUM(valor) as totalPago FROM pagamentos WHERE servico_id = ? AND data_liquidacao IS NOT NULL'
+        ).get(servico_id);
+
+        // 4. Obter o valor total do serviço
+        const { valorTotal } = db.prepare('SELECT valor_total as valorTotal FROM servicos WHERE id = ?').get(servico_id);
+
+        // 5. Determinar o novo status de pagamento do serviço
+        let novoStatus;
+        if (totalPago >= valorTotal) {
+            novoStatus = 'Pago';
+        } else if (totalPago > 0) {
+            novoStatus = 'Parcialmente Pago';
+        } else {
+            novoStatus = 'Pendente'; // Caso todos os pagamentos confirmados sejam estornados, por exemplo
+        }
+
+        // 6. Determinar a forma de pagamento consolidada (apenas para o serviço principal)
+        const metodos = db.prepare('SELECT DISTINCT metodo FROM pagamentos WHERE servico_id = ? AND data_liquidacao IS NOT NULL').all(servico_id);
+        let novaFormaPagamento = '';
+        if (metodos.length === 1) {
+            novaFormaPagamento = metodos[0].metodo;
+        } else if (metodos.length > 1) {
+            novaFormaPagamento = 'Múltiplos';
+        } else {
+            // Se não há pagamentos liquidados, a forma de pagamento pode ser a original do serviço ou 'N/A'
+            const servicoOriginal = db.prepare('SELECT forma_pagamento FROM servicos WHERE id = ?').get(servico_id);
+            novaFormaPagamento = servicoOriginal ? servicoOriginal.forma_pagamento : 'N/A';
+        }
+
+
+        // 7. Atualizar a tabela de serviços
+        const stmtUpdateServico = db.prepare(
+            'UPDATE servicos SET status_pagamento = ?, forma_pagamento = ? WHERE id = ?'
+        );
+        stmtUpdateServico.run(novoStatus, novaFormaPagamento, servico_id);
+
+        return { success: true, message: 'Pagamento confirmado e serviço atualizado com sucesso!' };
+    });
+
+    try {
+        return transaction();
+    } catch (error) {
+        console.error("Erro ao confirmar pagamento:", error);
+        return { success: false, error: error.message };
+    }
 }
 
 module.exports = { 
@@ -659,5 +865,10 @@ module.exports = {
     getDadosDashboard,
     getPlanoContas,
     addDespesa,
-    addReceitaAvulsa
+    addReceitaAvulsa,
+    getDespesas,
+    deleteDespesa,
+    getReceitasAvulsas,
+    deleteReceitaAvulsa,
+    confirmarPagamento
 };

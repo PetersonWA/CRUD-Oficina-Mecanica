@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório Financeiro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            -webkit-print-color-adjust: exact; /* Força a impressão de cores de fundo no Chrome/Safari */
+            color-adjust: exact; /* Padrão */
+        }
+        .header-info {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                margin: 0;
+                font-size: 12px;
+            }
+            .container {
+                width: 100% !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="text-center mb-4">
+            <h1 id="report-title">Relatório</h1>
+            <p class="lead" id="report-period">Período não especificado</p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead id="report-table-head">
+                    <!-- Cabeçalho da tabela será inserido aqui -->
+                </thead>
+                <tbody id="report-table-body">
+                    <!-- Linhas da tabela serão inseridas aqui -->
+                </tbody>
+                <tfoot id="report-table-foot">
+                    <!-- Rodapé com totais será inserido aqui -->
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="text-end mt-3">
+            <p class="small text-muted">Gerado em: <span id="generation-date"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Este script será executado na janela de impressão
+        window.electronAPI.onPrintData((data) => {
+            try {
+                document.title = data.title; // Ex: "Relatório de Despesas"
+                document.getElementById('report-title').textContent = data.title;
+                document.getElementById('report-period').textContent = data.period;
+                document.getElementById('generation-date').textContent = new Date().toLocaleString('pt-BR');
+
+                const thead = document.getElementById('report-table-head');
+                const tbody = document.getElementById('report-table-body');
+                const tfoot = document.getElementById('report-table-foot');
+
+                // Limpa conteúdo anterior
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+                tfoot.innerHTML = '';
+
+                // Cria o cabeçalho
+                const headerRow = document.createElement('tr');
+                data.headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+
+                // Cria as linhas de dados
+                data.rows.forEach(rowData => {
+                    const row = document.createElement('tr');
+                    rowData.forEach(cellData => {
+                        const td = document.createElement('td');
+                        td.textContent = cellData;
+                        row.appendChild(td);
+                    });
+                    tbody.appendChild(row);
+                });
+
+                // Cria o rodapé com o total
+                const footerRow = document.createElement('tr');
+                footerRow.classList.add('fw-bold');
+                const totalLabelCell = document.createElement('td');
+                totalLabelCell.colSpan = data.headers.length - 1;
+                totalLabelCell.textContent = 'Total';
+                totalLabelCell.classList.add('text-end');
+                
+                const totalValueCell = document.createElement('td');
+                totalValueCell.textContent = data.total;
+
+                footerRow.appendChild(totalLabelCell);
+                footerRow.appendChild(totalValueCell);
+                tfoot.appendChild(footerRow);
+
+                // Sinaliza que a janela está pronta para imprimir
+                window.electronAPI.readyToPrint();
+
+            } catch (error) {
+                window.electronAPI.printError(error.stack);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -346,7 +346,8 @@ Nesta sessão, realizamos uma refatoração profunda do modelo financeiro da apl
 *   **Reset de Banco de Dados:** Orientado o usuário sobre como apagar o arquivo `oficina.db` para reiniciar o banco de dados, uma solução rápida para inconsistências de dados após grandes mudanças de schema.
 
 Esta sessão foi crucial para alinhar o sistema com um modelo financeiro mais robusto e para estabilizar diversas funcionalidades que foram impactadas pelas refatorações anteriores. O sistema agora está mais preparado para fornecer insights financeiros precisos."}}
-```markdown
+---
+
 ### 15. Automação Financeira e Estabilização do Dashboard (03/11/2025)
 
 Nesta sessão, focamos em aprimorar a automação financeira, corrigir bugs de persistência de dados e estabilizar o dashboard de análises.
@@ -416,3 +417,92 @@ Nesta sessão, focamos em aprimorar a gestão de lançamentos financeiros, simpl
 *   **Melhoria de UX na Gestão de Pagamentos:** A tela "Gerenciar Pagamentos" (`public/js/gerenciar-pagamentos.js`) foi aprimorada para exibir as parcelas futuras (contas a receber) com um destaque visual (fundo amarelado) e a etiqueta "Vencimento", diferenciando-as das parcelas já liquidadas. O status "Aguardando Liquidação" também foi adicionado aos badges.
 
 Esta sessão trouxe melhorias significativas na usabilidade, automação e precisão financeira do sistema, especialmente no controle de receitas e despesas e na gestão de pagamentos parcelados.
+
+---
+
+### 17. Módulos de Gestão Financeira e Relatórios (12/11/2025)
+
+Nesta sessão, transformamos as páginas de lançamentos financeiros em módulos de gerenciamento completos, adicionando funcionalidades de consulta, filtro e relatórios, além de corrigir bugs e aprimorar a navegação.
+
+#### 1. Aprimoramento das Páginas Financeiras (`despesas.html` e `receitas-avulsas.html`):
+*   **De Formulários a Módulos:** As telas, que antes serviam apenas para entrada de dados, agora funcionam como módulos de gerenciamento, permitindo a visualização e manipulação dos registros.
+*   **Histórico de Lançamentos:** Adicionada uma tabela em cada página que exibe um histórico completo de todos os registros de despesas e receitas avulsas.
+*   **Filtros Avançados:** Implementada uma robusta capacidade de filtragem em ambas as páginas, permitindo ao usuário filtrar os lançamentos por:
+    *   Intervalo de datas (início e fim).
+    *   Categoria financeira (ex: "Custos Operacionais", "Receita com Venda de Peças"), utilizando a estrutura hierárquica do plano de contas.
+*   **Gerenciamento de Registros:**
+    *   Adicionada a funcionalidade de **excluir** lançamentos individuais diretamente da tabela de histórico.
+    *   A lista de registros agora é **atualizada automaticamente** após a adição ou exclusão de um item, fornecendo feedback imediato ao usuário.
+
+#### 2. Funcionalidade de Relatórios Financeiros:
+*   **Template Genérico:** Criado um novo template de impressão (`template-relatorio-financeiro.html`), projetado para ser reutilizável tanto para relatórios de despesas quanto de receitas.
+*   **Geração de Relatórios:** Adicionado um botão "Gerar Relatório" em ambas as páginas financeiras.
+*   **Relatórios Contextuais:** A geração do relatório respeita integralmente os filtros de data e categoria ativos no momento, exibindo apenas os dados que o usuário selecionou.
+*   **Totalização e Formatação:** O relatório gerado inclui uma tabela formatada com os dados, um cabeçalho que resume o período e a categoria do filtro, e uma linha de rodapé com a **soma total** dos valores, facilitando a análise.
+*   **Exportação para PDF:** A funcionalidade de impressão permite que o usuário salve o relatório diretamente como um arquivo PDF.
+
+#### 3. Correções de Bugs e Melhorias de UX:
+*   **Correção de Filtro:** Diagnosticado e corrigido um bug crítico na página de despesas, onde o botão "Filtrar" parou de funcionar após modificações anteriores. A lógica de manipulação de eventos foi refatorada para garantir robustez.
+*   **Navegação:** Adicionado um link para "Lançar Receita" na barra de navegação da página de despesas, melhorando a usabilidade e o acesso entre as funcionalidades financeiras.
+
+#### 4. Melhorias no Backend:
+*   **Novas Funções de Banco de Dados:** Criadas novas funções no `database.js` (`getDespesas`, `deleteDespesa`, `getReceitasAvulsas`, `deleteReceitaAvulsa`) para suportar as novas funcionalidades do frontend.
+*   **Queries Avançadas:** As consultas ao banco de dados foram aprimoradas com o uso de **Common Table Expressions (CTEs) recursivas**, permitindo uma filtragem eficiente por categorias financeiras hierárquicas.
+*   **IPC:** Todas as novas funcionalidades do banco de dados foram expostas de forma segura ao frontend através de novos handlers IPC no `main.js`.
+
+
+### 18. Lançamentos Recorrentes e Melhorias de UX em Despesas (14/11/2025)
+
+Nesta sessão, focamos em adicionar uma funcionalidade de automação para lançamentos financeiros e em melhorar significativamente a usabilidade da página de Lançamento de Despesas.
+
+#### 1. Nova Funcionalidade: Lançamentos Recorrentes:
+*   **Automação de Despesas:** Implementada a capacidade de criar despesas recorrentes (mensais) para custos fixos, como aluguel ou assinaturas.
+*   **Interface:** Adicionada uma caixa de seleção "Repetir este lançamento mensalmente" e um campo para definir o número de meses em todos os formulários de despesa (`Deduções`, `Custos` e `Despesas Gerais`).
+*   **Lógica de Backend:** Ao salvar uma despesa recorrente, o sistema agora cria automaticamente múltiplos registros no banco de dados, um para cada mês, com as datas de competência e vencimento ajustadas.
+*   **Correção de Bug:** Resolvido um erro de `NOT NULL constraint` no `database.js` que ocorria ao salvar despesas, garantindo que um método de pagamento padrão ('N/A') seja atribuído.
+
+#### 2. Melhorias de Usabilidade (UX) na Tela de Despesas:
+*   **Reorganização do Layout:** A estrutura da página `despesas.html` foi invertida. Os formulários de lançamento (acordeão) agora aparecem no topo da página, antes da tabela de histórico, priorizando a ação de entrada de dados.
+*   **Paginação da Tabela:** Implementado um sistema de paginação do lado do cliente para a tabela de "Histórico de Lançamentos". A tabela agora exibe 10 itens por vez, com controles de navegação, melhorando a performance e a clareza com grandes volumes de dados.
+*   **Contador de Itens:** Adicionado um contador ao lado do título "Histórico de Lançamentos" que exibe o número total de itens encontrados pelo filtro atual, fornecendo feedback visual imediato ao usuário.
+*   **Botão "Limpar Filtros":** Adicionado um novo botão que permite ao usuário limpar rapidamente todos os filtros de data e categoria aplicados na tabela de histórico, restaurando a visualização padrão.
+
+---
+
+### 19. Gestão de Receitas e Confirmação de Pagamentos (16/11/2025)
+
+Nesta sessão, o foco foi refinar a experiência do usuário na gestão de receitas, unificar a lógica de parcelamento em toda a aplicação e implementar um fluxo de trabalho crucial para a conciliação financeira.
+
+#### 1. Refatoração da Tela "Lançar Receita Avulsa":
+*   **Consistência de Layout:** A página `receitas-avulsas.html` foi reestruturada para seguir o mesmo padrão da tela de despesas, com o formulário de lançamento no topo e a tabela de histórico abaixo, melhorando a usabilidade.
+*   **Aprimoramento da Tabela:** A tabela de histórico de receitas foi aprimorada com a adição de **paginação**, um **contador de itens** e um botão para **"Limpar Filtros"**, tornando-a mais robusta e fácil de usar com grandes volumes de dados.
+
+#### 2. Unificação da Lógica de Parcelamento com Juros:
+*   **Inteligência de Juros:** A tela de "Lançar Receita" agora utiliza a mesma lógica de cálculo de juros da tela de "Cadastrar Serviço". O sistema busca as taxas das "Configurações" e **atualiza dinamicamente o valor das parcelas** no dropdown, aplicando a Tabela Price e mostrando ao usuário o valor final de cada parcela.
+*   **Consistência de Backend:** A lógica de backend foi refatorada para que tanto os serviços quanto as receitas avulsas utilizem uma **função auxiliar centralizada (`createInstallmentPayments`)** para criar os registros de pagamento parcelado, eliminando a duplicação de código e garantindo um comportamento uniforme.
+
+#### 3. Nova Funcionalidade: Confirmação Manual de Pagamentos:
+*   **Fluxo de Conciliação:** Em resposta a uma dúvida do usuário sobre como pagamentos pendentes são atualizados, foi implementado um fluxo de conciliação manual.
+*   **Interface:** Um botão **"Confirmar Recebimento"** (<i class="bi bi-check-circle"></i>) foi adicionado a cada parcela pendente na tela "Gerenciar Pagamentos".
+*   **Lógica de Backend:** Ao clicar no botão, o sistema:
+    1.  Define a `data_liquidacao` da parcela para a data atual.
+    2.  Recalcula o status de pagamento do serviço ou receita principal.
+    3.  Se todas as parcelas estiverem liquidadas, o status geral do serviço muda para **"Pago"**.
+*   **Polimento de UX:** O diálogo de confirmação nativo do navegador (`confirm()`) foi substituído pelo modal estilizado do projeto (`showConfirm`), e um bug de alerta sem estilo foi corrigido, garantindo uma experiência visual consistente.
+
+Esta sessão solidificou o ciclo de vida financeiro dentro do sistema, desde o lançamento de uma receita parcelada com juros corretos até a sua conciliação final, dando ao usuário controle total e preciso sobre o fluxo de caixa.
+---
+
+### 20. Correções e Melhorias de Usabilidade no Dashboard (16/11/2025)
+
+Nesta sessão, focamos em resolver uma série de bugs e implementar melhorias significativas de usabilidade e layout na página "Histórico", transformando-a em um dashboard de análises mais robusto e intuitivo.
+
+#### 1. Correções de Bugs Críticos no Dashboard:
+*   **Correção da Lógica de Filtros:** Resolvido um bug crítico onde os filtros de Cliente, Veículo e Status não atualizavam os KPIs principais e os gráficos de DRE e DFC. A lógica foi refatorada para que qualquer filtro aplicado recarregue todo o dashboard.
+*   **Reimplementação do "Gerar Relatório":** Corrigido o botão "Gerar Relatório", que não tinha funcionalidade. Agora, ele gera um resumo em texto com os KPIs e dados operacionais baseados nos filtros ativos.
+*   **Consistência de Datas:** Para resolver inconsistências na análise de dados, foi reintroduzido um seletor de data que permite ao usuário alternar a base de filtragem entre "Data de Entrada" e "Data de Conclusão".
+
+#### 2. Melhorias de Layout e Experiência do Usuário (UX):
+*   **Layout dos Gráficos:** Após um ajuste inicial, o layout dos gráficos foi refeito para um formato de 4 linhas de largura total (`col-md-12`), uma para cada gráfico. Isso maximiza o espaço de cada um, melhorando significativamente a legibilidade das informações.
+*   **Funcionalidade de Recolher/Expandir:** A funcionalidade de recolher e expandir, antes presente apenas no gráfico "Top 10", foi estendida para **todos os quatro gráficos** do dashboard (DRE, DFC, Fluxo de Caixa Projetado e Top 10), permitindo que o usuário gerencie melhor o espaço da tela.
+*   **Consistência Visual:** Os títulos dos gráficos foram movidos do canvas para o cabeçalho de seus respectivos contêineres, garantindo uma aparência mais limpa e consistente em todo o dashboard.

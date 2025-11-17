@@ -20,6 +20,27 @@ document.addEventListener("DOMContentLoaded", () => {
   window.limparBusca = limparBusca;
   window.abrirModalPagamentos = abrirModalPagamentos;
   window.mudarPagina = mudarPagina;
+  window.handleConfirmarPagamento = handleConfirmarPagamento; // Expose to global scope
+
+  async function handleConfirmarPagamento(e) {
+    const pagamentoId = parseInt(e.currentTarget.dataset.id);
+    showConfirm('Tem certeza que deseja confirmar o recebimento deste pagamento?', async () => {
+        try {
+            const result = await window.api.confirmarPagamento(pagamentoId);
+            if (result.success) {
+                showAlert('Pagamento confirmado com sucesso!', 'success');
+                // Fecha o modal e recarrega os dados
+                bootstrap.Modal.getInstance(document.getElementById("modalPagamentos")).hide();
+                carregarDados();
+            } else {
+                throw new Error(result.error || 'Erro desconhecido ao confirmar pagamento.');
+            }
+        } catch (error) {
+            console.error("Erro ao confirmar pagamento:", error);
+            showAlert(`Falha ao confirmar pagamento: ${error.message}`, 'danger');
+        }
+    });
+  }
 
   const getStatusPagamentoBadge = (status) => {
     switch (status) {
@@ -191,14 +212,24 @@ document.addEventListener("DOMContentLoaded", () => {
           .map((p) => {
             const cardClass = p.liquidado ? 'bg-light' : 'bg-warning bg-opacity-25';
             const dataLabel = p.liquidado ? 'Data Pag.' : 'Vencimento';
+            const confirmButton = p.liquidado ? '' : `
+                <button class="btn btn-sm btn-success ms-2 btn-confirmar-pagamento" data-id="${p.id}" title="Confirmar Recebimento">
+                    <i class="bi bi-check-circle"></i>
+                </button>
+            `;
             return `
             <div class="card card-body mb-2 ${cardClass}">
-              <div class="d-flex justify-content-between">
-                <span><strong>${dataLabel}:</strong> ${new Date(
-                  p.data
-                ).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
-                <span><strong>Método:</strong> ${p.metodo}</span>
-                <span class="fw-bold">Valor: R$ ${formatarValor(p.valor)}</span>
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span><strong>${dataLabel}:</strong> ${new Date(
+                      p.data
+                    ).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
+                    <span class="ms-3"><strong>Método:</strong> ${p.metodo}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="fw-bold">Valor: R$ ${formatarValor(p.valor)}</span>
+                    ${confirmButton}
+                </div>
               </div>
               ${
                 p.anotacao
@@ -209,6 +240,12 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
           })
           .join("");
+
+        // Adiciona event listeners para os botões de confirmar pagamento
+        historicoContainer.querySelectorAll('.btn-confirmar-pagamento').forEach(button => {
+            button.addEventListener('click', handleConfirmarPagamento);
+        });
+
       } else {
         historicoContainer.innerHTML = "<p>Nenhum pagamento registrado.</p>";
       }

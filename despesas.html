@@ -24,6 +24,7 @@
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+      <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link active" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
       <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
@@ -40,7 +41,7 @@
     <div class="container py-4">
       <h2 class="text-primary mb-4">Lançar Despesas</h2>
 
-      <div class="accordion" id="accordion-despesas">
+      <div class="accordion mb-4" id="accordion-despesas">
 
         <!-- Seção 1: Deduções e Impostos -->
         <div class="accordion-item">
@@ -80,6 +81,16 @@
                     <label for="dataLiquidacao-deducoes" class="form-label">Data de Pagamento <i class="bi bi-question-circle-fill text-primary" data-bs-toggle="modal" data-bs-target="#modal-dates-help"></i></label>
                     <input type="date" class="form-control" id="dataLiquidacao-deducoes">
                   </div>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="repetir-deducoes-check">
+                  <label class="form-check-label" for="repetir-deducoes-check">
+                    Repetir este lançamento mensalmente
+                  </label>
+                </div>
+                <div id="opcoes-recorrencia-deducoes" class="mb-3" style="display: none;">
+                  <label for="numero-meses-deducoes" class="form-label">Nº de meses a repetir</label>
+                  <input type="number" class="form-control" id="numero-meses-deducoes" min="1" max="60" value="12">
                 </div>
                 <button type="submit" class="btn btn-primary">Salvar Lançamento</button>
               </form>
@@ -126,6 +137,16 @@
                     <input type="date" class="form-control" id="dataLiquidacao-custos">
                   </div>
                 </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="repetir-custos-check">
+                  <label class="form-check-label" for="repetir-custos-check">
+                    Repetir este lançamento mensalmente
+                  </label>
+                </div>
+                <div id="opcoes-recorrencia-custos" class="mb-3" style="display: none;">
+                  <label for="numero-meses-custos" class="form-label">Nº de meses a repetir</label>
+                  <input type="number" class="form-control" id="numero-meses-custos" min="1" max="60" value="12">
+                </div>
                 <button type="submit" class="btn btn-primary">Salvar Lançamento</button>
               </form>
             </div>
@@ -171,10 +192,77 @@
                     <input type="date" class="form-control" id="dataLiquidacao-despesas">
                   </div>
                 </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="repetir-despesas-check">
+                  <label class="form-check-label" for="repetir-despesas-check">
+                    Repetir este lançamento mensalmente
+                  </label>
+                </div>
+                <div id="opcoes-recorrencia-despesas" class="mb-3" style="display: none;">
+                  <label for="numero-meses-despesas" class="form-label">Nº de meses a repetir</label>
+                  <input type="number" class="form-control" id="numero-meses-despesas" min="1" max="60" value="12">
+                </div>
                 <button type="submit" class="btn btn-primary">Salvar Lançamento</button>
               </form>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Histórico de Lançamentos <span id="item-count" class="badge bg-secondary ms-2"></span></h5>
+          <div class="row align-items-end g-2">
+            <div class="col-md-3">
+              <label for="data-inicio-filtro" class="form-label">Data Início</label>
+              <input type="date" class="form-control" id="data-inicio-filtro">
+            </div>
+            <div class="col-md-3">
+              <label for="data-fim-filtro" class="form-label">Data Fim</label>
+              <input type="date" class="form-control" id="data-fim-filtro">
+            </div>
+            <div class="col-md-3">
+              <label for="categoria-filtro" class="form-label">Categoria</label>
+              <select id="categoria-filtro" class="form-select">
+                <option value="">Todas as Categorias</option>
+                <option value="2">Deduções e Impostos</option>
+                <option value="3">Custos Operacionais</option>
+                <option value="4">Despesas Gerais e Admin.</option>
+              </select>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-primary w-100" id="btn-filtrar-despesas">Filtrar</button>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-outline-secondary w-100" id="btn-limpar-filtros">Limpar</button>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-secondary w-100" id="btn-gerar-relatorio-despesas">Relatório</button>
+            </div>
+          </div>
+          <hr>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Conta</th>
+                  <th>Anotação</th>
+                  <th>Valor</th>
+                  <th>Data Competência</th>
+                  <th>Data Pagamento</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="despesas-table-body">
+                <!-- Linhas serão inseridas via JS -->
+              </tbody>
+            </table>
+          </div>
+          <nav>
+            <ul class="pagination justify-content-center" id="pagination-controls">
+              <!-- Controles da paginação serão inseridos aqui -->
+            </ul>
+          </nav>
         </div>
       </div>
     </div>

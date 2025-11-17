@@ -9,50 +9,57 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFilteredServices = [];
     let topChartMode = 'itens'; // 'itens', 'clientes', 'mecanicos'
 
-    // Main function to load data and initialize dashboard
-    async function carregarDados() {
+    // --- CORE FUNCTION ---
+    async function atualizarDashboardCompleto() {
         const spinner = document.getElementById('loading-spinner');
-        spinner.style.display = 'block'; // Show spinner
+        spinner.style.display = 'block';
 
         const filtros = {
             dataInicio: document.getElementById("filtro-data-inicio").value,
             dataFim: document.getElementById("filtro-data-fim").value,
             groupBy: document.querySelector('input[name="groupBy"]:checked').value || 'month',
+            cliente: document.getElementById('filtro-cliente').value,
+            veiculo: document.getElementById('filtro-veiculo').value,
+            status: document.getElementById('filtro-status').value,
+            tipoData: document.getElementById('filtro-tipo-data').value
         };
 
         try {
-            // Fetch both dashboard data and raw services data in parallel
             const [dashboardData, servicesData] = await Promise.all([
                 window.api.getDadosDashboard(filtros),
-                window.api.getServicos() // Fetches all services for client-side filtering
+                window.api.getServicos()
             ]);
 
             allServices = servicesData;
-
             atualizarDashboard(dashboardData.kpis, dashboardData.charts);
-            aplicarFiltros(); // Apply initial filters (which might be none)
+            filtrarServicosLocalmente();
 
         } catch (error) {
             console.error("Erro ao carregar dados do dashboard:", error);
-            showAlert("Falha ao carregar dados do dashboard. Verifique o console.", "danger");
+            // Assuming showAlert is defined globally or in another script
+            // showAlert("Falha ao carregar dados do dashboard. Verifique o console.", "danger");
         } finally {
-            spinner.style.display = 'none'; // Hide spinner
+            spinner.style.display = 'none';
         }
     }
 
-    function aplicarFiltros() {
+    function filtrarServicosLocalmente() {
         const filtroCliente = document.getElementById('filtro-cliente').value.toLowerCase();
         const filtroVeiculo = document.getElementById('filtro-veiculo').value.toLowerCase();
         const filtroStatus = document.getElementById('filtro-status').value;
         const filtroDataInicio = document.getElementById('filtro-data-inicio').value;
         const filtroDataFim = document.getElementById('filtro-data-fim').value;
+        const tipoData = document.getElementById('filtro-tipo-data').value; // New
 
         currentFilteredServices = allServices.filter(service => {
-            const matchCliente = !filtroCliente || service.clienteNome.toLowerCase().includes(filtroCliente);
-            const matchVeiculo = !filtroVeiculo || service.placaVeiculo.toLowerCase().includes(filtroVeiculo);
+            const matchCliente = !filtroCliente || (service.clienteNome && service.clienteNome.toLowerCase().includes(filtroCliente));
+            const matchVeiculo = !filtroVeiculo || (service.placaVeiculo && service.placaVeiculo.toLowerCase().includes(filtroVeiculo));
             const matchStatus = !filtroStatus || service.status === filtroStatus;
             
-            const dataServico = new Date(service.dataEntrada + 'T00:00:00');
+            const dataCampo = tipoData === 'data_conclusao' ? service.dataConclusao : service.dataEntrada;
+            if (!dataCampo) return false; // If the required date field is null, filter it out
+
+            const dataServico = new Date(dataCampo + 'T00:00:00');
             const matchDataInicio = !filtroDataInicio || dataServico >= new Date(filtroDataInicio + 'T00:00:00');
             const matchDataFim = !filtroDataFim || dataServico <= new Date(filtroDataFim + 'T00:00:00');
 
@@ -69,11 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filtro-status').value = '';
         document.getElementById('filtro-data-inicio').value = '';
         document.getElementById('filtro-data-fim').value = '';
-        aplicarFiltros();
+        atualizarDashboardCompleto();
     }
-
-    window.aplicarFiltros = aplicarFiltros;
-    window.limparFiltros = limparFiltros;
 
     function renderTop10Chart(services) {
         const data = {};
@@ -116,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             datasets: [{
                 label: datasetLabel,
                 data: sortedData.map(([, value]) => value),
-                backgroundColor: 'rgba(54, 162, 235, 0.7)', // Azul fraco
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
                 borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
             }]
@@ -140,31 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    document.getElementById('toggle-top-chart-mode').addEventListener('click', () => {
-        if (topChartMode === 'itens') {
-            topChartMode = 'clientes';
-        } else if (topChartMode === 'clientes') {
-            topChartMode = 'mecanicos';
-        } else {
-            topChartMode = 'itens';
-        }
-        renderTop10Chart(currentFilteredServices);
-    });
-
-    document.querySelector('.collapse-chart-btn[data-target-canvas="topItensChart"]').addEventListener('click', function() {
-        const canvas = document.getElementById('topItensChart');
-        const icon = this.querySelector('i');
-        if (canvas.style.display === 'none') {
-            canvas.style.display = 'block';
-            icon.classList.remove('bi-chevron-down');
-            icon.classList.add('bi-chevron-up');
-        } else {
-            canvas.style.display = 'none';
-            icon.classList.remove('bi-chevron-up');
-            icon.classList.add('bi-chevron-down');
-        }
-    });
 
     function atualizarDashboard(kpis, charts) {
         atualizarKpis(kpis);
@@ -206,14 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: 'Demonstrativo de Resultado do Exercício (DRE)' }
+                    title: { display: false }
                 },
                 onClick: (event, elements) => {
                     if (elements.length > 0) {
                         const elementIndex = elements[0].index;
                         const label = dreChart.data.labels[elementIndex];
                         const value = dreChart.data.datasets[0].data[elementIndex];
-                        alert(`${label}: R$ ${formatarValor(value)}`);
+                        // Assuming showAlert is defined
+                        // alert(`${label}: R$ ${formatarValor(value)}`);
                     }
                 }
             }
@@ -248,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 plugins: {
                     legend: { position: 'top' },
-                    title: { display: true, text: 'Demonstrativo de Fluxo de Caixa (DFC)' }
+                    title: { display: false }
                 }
             }
         });
@@ -278,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 plugins: {
                     legend: { position: 'top' },
-                    title: { display: true, text: 'Fluxo de Caixa Projetado (Próximos 30 dias)' }
+                    title: { display: false }
                 },
                 scales: {
                     x: { stacked: true },
@@ -289,17 +269,108 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatarValor(valor) {
+        if (typeof valor !== 'number') {
+            return '0,00';
+        }
         return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // Event Listeners
-    document.getElementById('btn-gerar-relatorio').addEventListener('click', carregarDados);
-    document.getElementById('filtro-data-inicio').addEventListener('change', carregarDados);
-    document.getElementById('filtro-data-fim').addEventListener('change', carregarDados);
+    function gerarRelatorio() {
+        const kpiLucro = document.getElementById("kpi-lucro-liquido").textContent;
+        const kpiCaixa = document.getElementById("kpi-caixa-gerado").textContent;
+        const kpiTicket = document.getElementById("kpi-ticket-medio").textContent;
+        const kpiPontoEquilibrio = document.getElementById("kpi-ponto-equilibrio").textContent;
+        const kpiContasAReceber = document.getElementById("kpi-contas-a-receber").textContent;
+        const kpiContasAPagar = document.getElementById("kpi-contas-a-pagar").textContent;
+
+        const dataInicio = document.getElementById("filtro-data-inicio").value || 'N/A';
+        const dataFim = document.getElementById("filtro-data-fim").value || 'N/A';
+        const totalServicos = currentFilteredServices.length;
+
+        const servicosConcluidos = currentFilteredServices.filter(s => s.status === 'Concluído').length;
+        const servicosPagos = currentFilteredServices.filter(s => s.statusPagamento === 'Pago').length;
+
+        let relatorio = `
+## Relatório de Análise de Desempenho
+
+**Período de Análise:** de ${dataInicio} a ${dataFim}
+**Total de Serviços no Período:** ${totalServicos}
+
+---
+
+### Indicadores Chave de Performance (KPIs)
+
+- **Lucro Líquido (Competência):** ${kpiLucro}
+- **Caixa Gerado no Período:** ${kpiCaixa}
+- **Ticket Médio por Serviço:** ${kpiTicket}
+- **Ponto de Equilíbrio (Estimado):** ${kpiPontoEquilibrio}
+- **Contas a Receber (Próx. 30 dias):** ${kpiContasAReceber}
+- **Contas a Pagar (Próx. 30 dias):** ${kpiContasAPagar}
+
+---
+
+### Análise Operacional
+
+- **Serviços Concluídos:** ${servicosConcluidos} de ${totalServicos}
+- **Serviços com Pagamento Confirmado:** ${servicosPagos} de ${totalServicos}
+
+---
+        `;
+
+        document.getElementById('relatorio-texto').textContent = relatorio.trim();
+        document.getElementById('relatorio-container').style.display = 'block';
+    }
+
+    // --- EVENT LISTENERS ---
+    document.getElementById('btn-gerar-relatorio').addEventListener('click', gerarRelatorio);
+    document.getElementById('btn-fechar-relatorio').addEventListener('click', () => {
+        document.getElementById('relatorio-container').style.display = 'none';
+    });
+    document.getElementById('btn-aplicar-filtros').addEventListener('click', (e) => {
+        e.preventDefault();
+        atualizarDashboardCompleto();
+    });
+    
+    document.getElementById('btn-limpar-filtros').addEventListener('click', (e) => {
+        e.preventDefault();
+        limparFiltros();
+    });
+
+    document.getElementById('filtro-data-inicio').addEventListener('change', atualizarDashboardCompleto);
+    document.getElementById('filtro-data-fim').addEventListener('change', atualizarDashboardCompleto);
+    document.getElementById('filtro-tipo-data').addEventListener('change', atualizarDashboardCompleto);
     document.querySelectorAll('input[name="groupBy"]').forEach(radio => {
-        radio.addEventListener('change', carregarDados);
+        radio.addEventListener('change', atualizarDashboardCompleto);
+    });
+
+    document.getElementById('toggle-top-chart-mode').addEventListener('click', () => {
+        if (topChartMode === 'itens') {
+            topChartMode = 'clientes';
+        } else if (topChartMode === 'clientes') {
+            topChartMode = 'mecanicos';
+        } else {
+            topChartMode = 'itens';
+        }
+        renderTop10Chart(currentFilteredServices);
+    });
+
+    document.querySelectorAll('.collapse-chart-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetCanvasId = this.dataset.targetCanvas;
+            const canvas = document.getElementById(targetCanvasId);
+            const icon = this.querySelector('i');
+            if (canvas.style.display === 'none') {
+                canvas.style.display = 'block';
+                icon.classList.remove('bi-chevron-down');
+                icon.classList.add('bi-chevron-up');
+            } else {
+                canvas.style.display = 'none';
+                icon.classList.remove('bi-chevron-up');
+                icon.classList.add('bi-chevron-down');
+            }
+        });
     });
 
     // Initial load
-    carregarDados();
+    atualizarDashboardCompleto();
 });

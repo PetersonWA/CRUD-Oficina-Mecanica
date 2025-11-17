@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('api', {
   getServicosParaPagamentos: (busca) => ipcRenderer.invoke('get-servicos-para-pagamentos', busca),
   getServicoComPagamentos: (servicoId) => ipcRenderer.invoke('get-servico-com-pagamentos', servicoId),
   adicionarPagamento: (pagamento) => ipcRenderer.invoke('adicionar-pagamento', pagamento),
+  confirmarPagamento: (pagamentoId) => ipcRenderer.invoke('confirmar-pagamento', pagamentoId),
 
   getPagamentos: () => ipcRenderer.invoke('get-pagamentos'),
 
@@ -49,7 +50,15 @@ contextBridge.exposeInMainWorld('api', {
 
   addDespesa: (despesa) => ipcRenderer.invoke('add-despesa', despesa),
 
+  getDespesas: (filtros) => ipcRenderer.invoke('get-despesas', filtros),
+  deleteDespesa: (id) => ipcRenderer.invoke('delete-despesa', id),
+
   addReceitaAvulsa: (receita) => ipcRenderer.invoke('add-receita-avulsa', receita),
+
+  getReceitasAvulsas: (filtros) => ipcRenderer.invoke('get-receitas-avulsas', filtros),
+  deleteReceitaAvulsa: (id) => ipcRenderer.invoke('delete-receita-avulsa', id),
+
+  printRelatorioFinanceiro: (reportData) => ipcRenderer.invoke('print-relatorio-financeiro', reportData),
 
   getAllConfigs: () => ipcRenderer.invoke('get-all-configs'),
   saveConfigs: (configs) => ipcRenderer.invoke('save-configs', configs),
