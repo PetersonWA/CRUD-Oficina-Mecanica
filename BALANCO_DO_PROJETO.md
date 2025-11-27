@@ -506,3 +506,64 @@ Nesta sessão, focamos em resolver uma série de bugs e implementar melhorias si
 *   **Layout dos Gráficos:** Após um ajuste inicial, o layout dos gráficos foi refeito para um formato de 4 linhas de largura total (`col-md-12`), uma para cada gráfico. Isso maximiza o espaço de cada um, melhorando significativamente a legibilidade das informações.
 *   **Funcionalidade de Recolher/Expandir:** A funcionalidade de recolher e expandir, antes presente apenas no gráfico "Top 10", foi estendida para **todos os quatro gráficos** do dashboard (DRE, DFC, Fluxo de Caixa Projetado e Top 10), permitindo que o usuário gerencie melhor o espaço da tela.
 *   **Consistência Visual:** Os títulos dos gráficos foram movidos do canvas para o cabeçalho de seus respectivos contêineres, garantindo uma aparência mais limpa e consistente em todo o dashboard.
+
+---
+
+### 21. Sessão de 19/11/2025: Correção de Bugs Críticos de Build e Inicialização
+
+Nesta sessão, uma série de problemas críticos que impediam a inicialização e o funcionamento do aplicativo após o build foram diagnosticados e resolvidos.
+
+1.  **Resolução de Dependências Nativas (`better-sqlite3`):**
+    *   O problema inicial de `Cannot find module 'better-sqlite3'` foi resolvido com a instalação correta das dependências.
+    *   Um erro subsequente de `NODE_MODULE_VERSION` mismatch foi corrigido recompilando o módulo nativo com `electron-rebuild` para alinhá-lo com a versão do Node.js do Electron.
+
+2.  **Refatoração da Inicialização do Banco de Dados:**
+    *   O erro principal, `SqliteError: unable to open database file`, foi identificado. Ele ocorria porque o aplicativo tentava escrever no banco de dados dentro do pacote `app.asar`, que é somente leitura.
+    *   A solução foi alterar a lógica para que o arquivo do banco de dados (`oficina.db`) seja criado e gerenciado em um diretório gravável (`userData` do Electron).
+    *   Foi implementada uma rotina para migrar (copiar) automaticamente o banco de dados existente para o novo local na primeira execução da nova versão, garantindo que os dados não sejam perdidos.
+
+3.  **Correção de Bugs de "Timing" no Acesso ao DB:**
+    *   Após a refatoração do caminho do banco de dados, o aplicativo ainda falhava ao iniciar. Um logger de arquivo foi adicionado para capturar o erro silencioso.
+    *   O log revelou um `TypeError: Cannot read properties of undefined (reading 'prepare')`. A causa raiz era um erro de temporização (timing): o código em `main.js` tentava usar a instância do banco de dados antes que a conexão fosse estabelecida.
+    *   A exportação do módulo de banco de dados foi corrigida usando um `getter`, e todas as chamadas diretas ao banco de dados no `main.js` foram refatoradas para usar este getter, garantindo que a instância conectada do banco de dados seja sempre acessada.
+
+4.  **Customização do Instalador (NSIS):**
+    *   Atendendo a um pedido, o instalador do Windows foi aprimorado.
+    *   A instalação "one-click" foi desativada para dar lugar a um assistente que agora inclui:
+        *   Exibição de um termo de licença (`LICENSE.txt`).
+        *   Opção para o usuário escolher o diretório de instalação.
+        *   Opção para criar um atalho na área de trabalho.
+
+**Estado Final:** Após múltiplas versões de depuração (2.0.0 a 2.0.4), o aplicativo foi compilado com sucesso e o usuário confirmou que está iniciando e funcionando corretamente.
+
+### 22. Refinamento do Dashboard, Documentação e Expansão de Testes Unitários (26/11/2025)
+
+Nesta sessão, focamos em estabilizar o dashboard financeiro, aprimorar a documentação e expandir significativamente a cobertura e a robustez dos testes unitários da aplicação.
+
+#### Correções e Melhorias no Dashboard Financeiro:
+*   **Correção de Lógica do Fluxo de Caixa Projetado:** Resolvido um bug crítico onde receitas futuras de cartão de crédito eram erroneamente classificadas como despesas no gráfico "Fluxo de Caixa Projetado". A lógica de consulta (`database.js`) foi ajustada para distinguir corretamente "Contas a Receber" de "Contas a Pagar".
+*   **Aprimoramento Visual do Gráfico de Projeção:** O gráfico "Fluxo de Caixa Projetado" (`historico.js`) foi alterado de barras empilhadas para barras lado a lado, proporcionando uma comparação visual mais clara entre as entradas e saídas diárias futuras.
+*   **Correção do Spinner de Carregamento Infinito:** Diagnosticado e corrigido um bug onde o spinner de carregamento no dashboard (`historico.js`) permanecia ativo indefinidamente devido a um conflito entre estilos inline e classes Bootstrap `!important`. A lógica foi refatorada para usar a classe `d-none` para controlar a visibilidade.
+*   **Clareza sobre o KPI "Ponto de Equilíbrio":** Esclarecido o funcionamento do KPI "Ponto de Equilíbrio", explicando que seu cálculo é baseado nos dados completos do mês anterior para garantir estabilidade e relevância estratégica.
+
+#### Atualização Abrangente da Documentação:
+*   **Reescrita do `README.md`:** O arquivo `README.md` foi completamente reescrito para refletir as funcionalidades atuais do sistema, incluindo os módulos financeiros avançados e uma explicação detalhada de todos os KPIs e gráficos do dashboard.
+
+#### Expansão e Refatoração dos Testes Unitários (Jest):
+*   **Validação (public/js/validation.js):**
+    *   Expandida a suíte de testes existente (`validation.test.js`) de 14 para 37 testes, cobrindo funções de validação que estavam sem cobertura (ex: `validateVehicleYear`, `validateVehiclePlate`, `validatePositiveNumber`, `validatePercentage`).
+    *   Corrigida uma inconsistência na formatação de moeda: a função `formatCurrency` foi ajustada para gerar um espaço regular, não um espaço não-separável, garantindo consistência com o restante do sistema. O teste correspondente foi atualizado.
+*   **Utilitários (public/js/utils.js):**
+    *   Criada uma nova suíte de testes (`utils.test.js`) para funções utilitárias, adicionando 8 testes para `formatarValor` e `getLocalDateAsString`.
+    *   As funções de utilidade foram expostas globalmente no objeto `window` (apenas em ambiente de navegador) para uso em scripts frontend, mantendo compatibilidade com testes Jest.
+*   **Cálculos Financeiros (public/js/utils.js):**
+    *   Extraída a complexa lógica de cálculo da Tabela Price de `cadastro-servico.js` para uma nova função pura e testável (`calcularTabelaPrice`) em `utils.js`.
+    *   Criada uma nova suíte de testes (`finance.test.js`) com 6 testes robustos para `calcularTabelaPrice`, cobrindo cenários com e sem juros e casos de borda.
+    *   Resolvidos problemas de precisão de ponto flutuante nos testes usando `toBeCloseTo()`.
+*   **Refatoração do Código de Produção:**
+    *   O script `cadastro-servico.js` foi refatorado para utilizar as funções `window.formatarValor` e `window.calcularTabelaPrice` de forma consistente.
+*   **Estabilização do Ambiente de Testes:**
+    *   Resolvido o `ReferenceError: window is not defined` que ocorria ao rodar testes Jest, garantindo que o código se comporte corretamente em ambientes Node.js.
+    *   Fornecidas instruções para resolver o erro de política de execução do PowerShell, que impedia a execução dos testes em alguns sistemas.
+
+Ao final desta sessão, o número total de testes unitários passou de 14 para **51 testes aprovados**, com uma base de código mais limpa, modular e com maior cobertura de testes.

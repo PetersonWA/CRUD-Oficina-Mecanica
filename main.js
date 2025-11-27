@@ -1,10 +1,57 @@
-console.log("main.js is being executed");
-
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
+const fs = require("fs");
+
+// --- Início do Logger de Arquivo Simples ---
+// Cuidado: app só está disponível depois de 'ready'. Usaremos um caminho de log provisório se necessário.
+let logStream;
+function initializeLogger(userDataPath) {
+    if (logStream) return; // Logger já inicializado
+    const logPath = path.join(userDataPath, 'main.log');
+    logStream = fs.createWriteStream(logPath, { flags: 'a' });
+    
+    const logToFile = (message) => {
+        if (logStream) {
+            logStream.write(`${new Date().toISOString()} - ${message}\n`);
+        }
+    };
+
+    // Redireciona console.log/error
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    console.log = (...args) => {
+        originalConsoleLog(...args);
+        logToFile(`LOG: ${args.join(' ')}`);
+    };
+    console.error = (...args) => {
+        originalConsoleError(...args);
+        logToFile(`ERROR: ${args.join(' ')}`);
+    };
+
+    // Captura exceções não tratadas
+    process.on('uncaughtException', (error, origin) => {
+        console.error('--- UNCAUGHT EXCEPTION ---');
+        console.error(error.stack || error);
+        console.error('--- ORIGIN ---');
+        console.error(origin);
+        // Garante que o log seja escrito antes de sair
+        if (logStream) {
+            logStream.end(() => {
+                app.quit();
+            });
+        } else {
+            app.quit();
+        }
+    });
+
+    console.log('Logger inicializado.');
+}
+// --- Fim do Logger de Arquivo Simples ---
+
+console.log("main.js is being executed");
+
 const database = require("./database.js");
 const {
-  db,
   getServicosParaPagamentos,
   getServicoComPagamentos,
   adicionarPagamento,
@@ -28,7 +75,7 @@ function createInstallmentPayments(
   idPlanoContasServico,
   metodoPagamento
 ) {
-  const configPrazoRow = db
+  const configPrazoRow = database.db
     .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
     .get("prazoLiquidacaoCartao");
   const prazoLiquidacao = configPrazoRow
@@ -38,7 +85,7 @@ function createInstallmentPayments(
   const valorParcela = parseFloat((valorTotal / numeroParcelas).toFixed(2));
   let somaParcelas = 0;
 
-  const pagtoStmt = db.prepare(
+  const pagtoStmt = database.db.prepare(
     "INSERT INTO pagamentos (servico_id, valor, data_vencimento, metodo, anotacao, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
   );
 
@@ -82,14 +129,14 @@ function createWindow() {
 
 // Handlers IPC para Clientes
 ipcMain.handle("get-clientes", () => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "SELECT * FROM clientes WHERE is_deleted = 0 ORDER BY nome"
   );
   return stmt.all();
 });
 
 ipcMain.handle("add-cliente", (event, cliente) => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "INSERT INTO clientes (nome, cpf_cnpj, telefone, email, endereco) VALUES (?, ?, ?, ?, ?)"
   );
   const result = stmt.run(
@@ -103,7 +150,7 @@ ipcMain.handle("add-cliente", (event, cliente) => {
 });
 
 ipcMain.handle("update-cliente", (event, cliente) => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "UPDATE clientes SET nome = ?, cpf_cnpj = ?, telefone = ?, email = ?, endereco = ? WHERE id = ?"
   );
   const result = stmt.run(
@@ -119,13 +166,13 @@ ipcMain.handle("update-cliente", (event, cliente) => {
 
 ipcMain.handle("delete-cliente", (event, id) => {
   // Soft delete do cliente e dos seus veículos associados
-  const transaction = db.transaction((clienteId) => {
-    const stmtVeiculos = db.prepare(
+  const transaction = database.db.transaction((clienteId) => {
+    const stmtVeiculos = database.db.prepare(
       "UPDATE veiculos SET is_deleted = 1 WHERE cliente_id = ?"
     );
     stmtVeiculos.run(clienteId);
 
-    const stmtCliente = db.prepare(
+    const stmtCliente = database.db.prepare(
       "UPDATE clientes SET is_deleted = 1 WHERE id = ?"
     );
     const result = stmtCliente.run(clienteId);
@@ -143,7 +190,7 @@ ipcMain.handle("delete-cliente", (event, id) => {
 
 // Handlers IPC para Veículos
 ipcMain.handle("get-veiculos", () => {
-  const stmt = db.prepare(`
+  const stmt = database.db.prepare(`
     SELECT v.*, c.nome as cliente_nome 
     FROM veiculos v
     JOIN clientes c ON v.cliente_id = c.id
@@ -154,7 +201,7 @@ ipcMain.handle("get-veiculos", () => {
 });
 
 ipcMain.handle("add-veiculo", (event, veiculo) => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "INSERT INTO veiculos (cliente_id, placa, marca, modelo, ano, cor, quilometragem) VALUES (?, ?, ?, ?, ?, ?, ?)"
   );
   const result = stmt.run(
@@ -170,7 +217,7 @@ ipcMain.handle("add-veiculo", (event, veiculo) => {
 });
 
 ipcMain.handle("update-veiculo", (event, veiculo) => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "UPDATE veiculos SET cliente_id = ?, placa = ?, marca = ?, modelo = ?, ano = ?, cor = ?, quilometragem = ? WHERE id = ?"
   );
   const result = stmt.run(
@@ -187,15 +234,15 @@ ipcMain.handle("update-veiculo", (event, veiculo) => {
 });
 
 ipcMain.handle("delete-veiculo", (event, id) => {
-  const stmt = db.prepare("UPDATE veiculos SET is_deleted = 1 WHERE id = ?");
+  const stmt = database.db.prepare("UPDATE veiculos SET is_deleted = 1 WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 // Handlers IPC para Orçamentos/Serviços
 ipcMain.handle("add-orcamento", (event, orcamento) => {
-  const transaction = db.transaction((orc) => {
-    const servicoStmt = db.prepare(
+  const transaction = database.db.transaction((orc) => {
+    const servicoStmt = database.db.prepare(
       "INSERT INTO servicos (cliente_id, veiculo_id, data_entrada, descricao_problema, valor_total, status, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     const servicoResult = servicoStmt.run(
@@ -209,12 +256,12 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
     );
     const servicoId = servicoResult.lastInsertRowid;
 
-    const configRow = db
+    const configRow = database.db
       .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
       .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
-    const itemStmt = db.prepare(
+    const itemStmt = database.db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of orc.itens) {
@@ -234,7 +281,7 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
 
     // Atualiza a quilometragem do veículo (somente se for maior que a atual)
     if (orc.quilometragem && orc.veiculo_id) {
-      const kmAtual = db
+      const kmAtual = database.db
         .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
         .get(orc.veiculo_id);
       const kmAtualValor =
@@ -242,7 +289,7 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
 
       // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
       if (orc.quilometragem > kmAtualValor) {
-        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+        database.db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
           orc.quilometragem,
           orc.veiculo_id
         );
@@ -262,7 +309,7 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
 });
 
 ipcMain.handle("get-orcamentos", () => {
-  const stmt = db.prepare(`
+  const stmt = database.db.prepare(`
     SELECT s.*, c.nome as cliente_nome, v.placa as veiculo_placa
     FROM servicos s
     JOIN clientes c ON s.cliente_id = c.id
@@ -274,27 +321,27 @@ ipcMain.handle("get-orcamentos", () => {
 });
 
 ipcMain.handle("update-orcamento-status", (event, { id, status }) => {
-  const stmt = db.prepare("UPDATE servicos SET status = ? WHERE id = ?");
+  const stmt = database.db.prepare("UPDATE servicos SET status = ? WHERE id = ?");
   const result = stmt.run(status, id);
   return result.changes > 0;
 });
 
 ipcMain.handle("delete-orcamento", (event, id) => {
   // Orçamentos são apenas serviços com status específico, então apenas arquivamos
-  const stmt = db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
+  const stmt = database.db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 ipcMain.handle("get-orcamento-itens", (event, servicoId) => {
-  const stmt = db.prepare("SELECT * FROM itens_servico WHERE servico_id = ?");
+  const stmt = database.db.prepare("SELECT * FROM itens_servico WHERE servico_id = ?");
   return stmt.all(servicoId);
 });
 
 ipcMain.handle("get-orcamento-by-id", (event, id) => {
-  const orcamento = db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
+  const orcamento = database.db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
   if (orcamento) {
-    orcamento.itens = db
+    orcamento.itens = database.db
       .prepare("SELECT * FROM itens_servico WHERE servico_id = ?")
       .all(id);
   }
@@ -302,8 +349,8 @@ ipcMain.handle("get-orcamento-by-id", (event, id) => {
 });
 
 ipcMain.handle("update-orcamento", (event, orcamento) => {
-  const transaction = db.transaction((orc) => {
-    const servicoStmt = db.prepare(
+  const transaction = database.db.transaction((orc) => {
+    const servicoStmt = database.db.prepare(
       "UPDATE servicos SET cliente_id = ?, veiculo_id = ?, data_entrada = ?, descricao_problema = ?, valor_total = ?, status = ? WHERE id = ?"
     );
     servicoStmt.run(
@@ -316,14 +363,14 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
       orc.id
     );
 
-    db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(orc.id);
+    database.db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(orc.id);
 
-    const configRow = db
+    const configRow = database.db
       .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
       .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
-    const itemStmt = db.prepare(
+    const itemStmt = database.db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of orc.itens) {
@@ -343,7 +390,7 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
     // Atualiza a quilometragem do veículo (somente se for maior que a atual)
     if (orc.quilometragem && orc.veiculo_id) {
-      const kmAtual = db
+      const kmAtual = database.db
         .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
         .get(orc.veiculo_id);
       const kmAtualValor =
@@ -351,7 +398,7 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 
       // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
       if (orc.quilometragem > kmAtualValor) {
-        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+        database.db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
           orc.quilometragem,
           orc.veiculo_id
         );
@@ -371,9 +418,9 @@ ipcMain.handle("update-orcamento", (event, orcamento) => {
 });
 
 ipcMain.handle("add-servico", (event, servico) => {
-  const transaction = db.transaction((s) => {
+  const transaction = database.db.transaction((s) => {
     // Etapa 1: Inserir o serviço principal com dados simplificados
-    const servicoStmt = db.prepare(
+    const servicoStmt = database.db.prepare(
       `INSERT INTO servicos (
         cliente_id, veiculo_id, data_entrada, descricao_problema, mecanico_responsavel, 
         valor_total, status, valor_original, valor_desconto, forma_pagamento, 
@@ -406,11 +453,11 @@ ipcMain.handle("add-servico", (event, servico) => {
     const servicoId = servicoResult.lastInsertRowid;
 
     // Etapa 2: Inserir os itens do serviço
-    const configRow = db
+    const configRow = database.db
       .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
       .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
-    const itemStmt = db.prepare(
+    const itemStmt = database.db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
@@ -441,7 +488,7 @@ ipcMain.handle("add-servico", (event, servico) => {
       );
     } else if (s.pagamento_inicial) {
       // Mantém a lógica para outros pagamentos imediatos se necessário
-      const pagtoStmt = db.prepare(
+      const pagtoStmt = database.db.prepare(
         "INSERT INTO pagamentos (servico_id, metodo, valor, data_liquidacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?)"
       );
       pagtoStmt.run(
@@ -453,18 +500,18 @@ ipcMain.handle("add-servico", (event, servico) => {
         s.id_plano_contas
       );
       // Atualiza o status do serviço principal se o pagamento inicial quitar o valor
-      const { totalPago } = db
+      const { totalPago } = database.db
         .prepare(
           "SELECT SUM(valor) as totalPago FROM pagamentos WHERE servico_id = ?"
         )
         .get(servicoId);
       if (totalPago >= s.valor_total) {
-        db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
+        database.db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
           "Pago",
           servicoId
         );
       } else {
-        db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
+        database.db.prepare("UPDATE servicos SET status_pagamento = ? WHERE id = ?").run(
           "Parcialmente Pago",
           servicoId
         );
@@ -473,7 +520,7 @@ ipcMain.handle("add-servico", (event, servico) => {
 
     // Etapa 4: Atualizar quilometragem (somente se for maior que a atual)
     if (s.quilometragem && s.veiculo_id) {
-      const kmAtual = db
+      const kmAtual = database.db
         .prepare("SELECT quilometragem FROM veiculos WHERE id = ?")
         .get(s.veiculo_id);
       const kmAtualValor =
@@ -481,7 +528,7 @@ ipcMain.handle("add-servico", (event, servico) => {
 
       // Só atualiza se a nova quilometragem for maior (se igual, não atualiza mas não gera erro)
       if (s.quilometragem > kmAtualValor) {
-        db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
+        database.db.prepare("UPDATE veiculos SET quilometragem = ? WHERE id = ?").run(
           s.quilometragem,
           s.veiculo_id
         );
@@ -503,7 +550,7 @@ ipcMain.handle("add-servico", (event, servico) => {
 
 // Handlers para Configurações (Banco de Dados)
 ipcMain.handle("get-all-configs", () => {
-  const stmt = db.prepare("SELECT chave, valor FROM configuracoes");
+  const stmt = database.db.prepare("SELECT chave, valor FROM configuracoes");
   const rows = stmt.all();
   const config = {};
   for (const row of rows) {
@@ -525,10 +572,10 @@ ipcMain.handle("get-all-configs", () => {
 });
 
 ipcMain.handle("save-configs", (event, configData) => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES (?, ?)"
   );
-  const transaction = db.transaction((configs) => {
+  const transaction = database.db.transaction((configs) => {
     const userDataPath = app.getPath("userData");
     // Converte URLs de arquivo de volta para caminhos relativos para armazenamento
     if (configs.logoPath && configs.logoPath.startsWith("file:///")) {
@@ -601,7 +648,7 @@ ipcMain.handle("confirmar-pagamento", async (event, pagamentoId) => {
 });
 
 ipcMain.handle("get-pagamentos", () => {
-  const stmt = db.prepare("SELECT * FROM pagamentos ORDER BY data_liquidacao");
+  const stmt = database.db.prepare("SELECT * FROM pagamentos ORDER BY data_liquidacao");
   return stmt.all();
 });
 
@@ -611,7 +658,7 @@ ipcMain.handle("get-dados-dashboard", (event, filtros) => {
 
 ipcMain.handle("get-servicos", () => {
   // A consulta principal busca os serviços
-  const stmt = db.prepare(`
+  const stmt = database.db.prepare(`
     SELECT 
       s.id,
       COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
@@ -634,7 +681,7 @@ ipcMain.handle("get-servicos", () => {
   const servicos = stmt.all();
 
   // A função de edição no frontend precisa dos itens, então vamos buscá-los
-  const stmtItens = db.prepare(
+  const stmtItens = database.db.prepare(
     "SELECT * FROM itens_servico WHERE servico_id = ?"
   );
   for (const servico of servicos) {
@@ -650,7 +697,7 @@ ipcMain.handle("get-servicos", () => {
 });
 
 ipcMain.handle("get-servico-by-id", (event, id) => {
-  const servico = db
+  const servico = database.db
     .prepare(
       `
     SELECT 
@@ -667,12 +714,12 @@ ipcMain.handle("get-servico-by-id", (event, id) => {
     .get(id);
 
   if (servico) {
-    servico.itens = db
+    servico.itens = database.db
       .prepare(
         "SELECT *, valor_unitario FROM itens_servico WHERE servico_id = ?"
       )
       .all(id);
-    servico.pagamentos = db
+    servico.pagamentos = database.db
       .prepare("SELECT * FROM pagamentos WHERE servico_id = ?")
       .all(id);
   }
@@ -680,10 +727,10 @@ ipcMain.handle("get-servico-by-id", (event, id) => {
 });
 
 ipcMain.handle("update-servico", (event, servico) => {
-  const transaction = db.transaction((s) => {
+  const transaction = database.db.transaction((s) => {
     // 1. Atualiza a tabela principal de serviços
     // Mapeia os nomes do frontend (ex: dataEntrada) para os nomes do DB (ex: data)
-    const servicoStmt = db.prepare(
+    const servicoStmt = database.db.prepare(
       `UPDATE servicos 
        SET data_entrada = ?, mecanico_responsavel = ?, status = ?, valor_total = ?, data_conclusao = ?, data_competencia = ?, data_vencimento = ?, id_plano_contas = ?
        WHERE id = ?`
@@ -701,15 +748,15 @@ ipcMain.handle("update-servico", (event, servico) => {
     );
 
     // 2. Apaga os itens antigos para substituir pelos novos
-    db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(s.id);
+    database.db.prepare("DELETE FROM itens_servico WHERE servico_id = ?").run(s.id);
 
     // 3. Insere os novos itens
-    const configRow = db
+    const configRow = database.db
       .prepare("SELECT valor FROM configuracoes WHERE chave = ?")
       .get("percentualLucroPecas");
     const percentualLucro = configRow ? parseFloat(configRow.valor) : 0;
 
-    const itemStmt = db.prepare(
+    const itemStmt = database.db.prepare(
       "INSERT INTO itens_servico (servico_id, descricao, tipo, quantidade, valor_unitario, valor_custo) VALUES (?, ?, ?, ?, ?, ?)"
     );
     for (const item of s.itens) {
@@ -741,7 +788,7 @@ ipcMain.handle("update-servico", (event, servico) => {
 
 ipcMain.handle("delete-servico", (event, id) => {
   try {
-    const stmt = db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
+    const stmt = database.db.prepare("UPDATE servicos SET is_deleted = 1 WHERE id = ?");
     const result = stmt.run(id);
     if (result.changes > 0) {
       return { success: true };
@@ -759,10 +806,10 @@ ipcMain.handle("delete-servico", (event, id) => {
 
 ipcMain.handle("print-orcamento", async (event, id) => {
   // 1. Get all data
-  const budget = db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
+  const budget = database.db.prepare("SELECT * FROM servicos WHERE id = ?").get(id);
   if (!budget) return false;
 
-  budget.itens = db
+  budget.itens = database.db
     .prepare("SELECT * FROM itens_servico WHERE servico_id = ?")
     .all(id);
 
@@ -772,11 +819,11 @@ ipcMain.handle("print-orcamento", async (event, id) => {
   // If a client is linked, fetch their data.
   if (budget.cliente_id) {
     client =
-      db
+      database.db
         .prepare("SELECT * FROM clientes WHERE id = ?")
         .get(budget.cliente_id) || {};
     vehicle =
-      db
+      database.db
         .prepare("SELECT * FROM veiculos WHERE id = ?")
         .get(budget.veiculo_id) || {};
   }
@@ -797,7 +844,7 @@ ipcMain.handle("print-orcamento", async (event, id) => {
     vehicle.cor = "";
   }
 
-  const configRows = db.prepare("SELECT chave, valor FROM configuracoes").all();
+  const configRows = database.db.prepare("SELECT chave, valor FROM configuracoes").all();
   const config = configRows.reduce((acc, row) => {
     acc[row.chave] = row.valor;
     return acc;
@@ -858,21 +905,21 @@ ipcMain.handle("print-orcamento", async (event, id) => {
 
 // Handlers for Archived Data
 ipcMain.handle("get-archived-clientes", () => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "SELECT * FROM clientes WHERE is_deleted = 1 ORDER BY nome"
   );
   return stmt.all();
 });
 
 ipcMain.handle("get-archived-veiculos", () => {
-  const stmt = db.prepare(
+  const stmt = database.db.prepare(
     "SELECT v.*, c.nome as cliente_nome FROM veiculos v JOIN clientes c ON v.cliente_id = c.id WHERE v.is_deleted = 1 ORDER BY c.nome, v.modelo"
   );
   return stmt.all();
 });
 
 ipcMain.handle("get-archived-servicos", () => {
-  const stmt = db.prepare(`
+  const stmt = database.db.prepare(`
     SELECT 
       s.id,
       COALESCE(s.cliente_nome_manual, c.nome) as clienteNome,
@@ -889,13 +936,13 @@ ipcMain.handle("get-archived-servicos", () => {
 
 ipcMain.handle("restore-cliente", (event, id) => {
   // When restoring a client, also restore their vehicles that were not individually archived
-  const transaction = db.transaction((clienteId) => {
-    const stmtVeiculos = db.prepare(
+  const transaction = database.db.transaction((clienteId) => {
+    const stmtVeiculos = database.db.prepare(
       "UPDATE veiculos SET is_deleted = 0 WHERE cliente_id = ?"
     );
     stmtVeiculos.run(clienteId);
 
-    const stmtCliente = db.prepare(
+    const stmtCliente = database.db.prepare(
       "UPDATE clientes SET is_deleted = 0 WHERE id = ?"
     );
     const result = stmtCliente.run(clienteId);
@@ -912,33 +959,33 @@ ipcMain.handle("restore-cliente", (event, id) => {
 });
 
 ipcMain.handle("restore-veiculo", (event, id) => {
-  const stmt = db.prepare("UPDATE veiculos SET is_deleted = 0 WHERE id = ?");
+  const stmt = database.db.prepare("UPDATE veiculos SET is_deleted = 0 WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 ipcMain.handle("restore-servico", (event, id) => {
-  const stmt = db.prepare("UPDATE servicos SET is_deleted = 0 WHERE id = ?");
+  const stmt = database.db.prepare("UPDATE servicos SET is_deleted = 0 WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 ipcMain.handle("permanently-delete-cliente", (event, id) => {
   // ON DELETE CASCADE will handle vehicles
-  const stmt = db.prepare("DELETE FROM clientes WHERE id = ?");
+  const stmt = database.db.prepare("DELETE FROM clientes WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 ipcMain.handle("permanently-delete-veiculo", (event, id) => {
-  const stmt = db.prepare("DELETE FROM veiculos WHERE id = ?");
+  const stmt = database.db.prepare("DELETE FROM veiculos WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
 
 ipcMain.handle("permanently-delete-servico", (event, id) => {
   // ON DELETE CASCADE will handle items and payments
-  const stmt = db.prepare("DELETE FROM servicos WHERE id = ?");
+  const stmt = database.db.prepare("DELETE FROM servicos WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 });
@@ -961,7 +1008,7 @@ ipcMain.handle("add-receita-avulsa", async (event, receita) => {
       statusPagamento = "Pago";
     }
 
-    const servicoResult = db
+    const servicoResult = database.db
       .prepare(
         `INSERT INTO servicos (
             id_plano_contas, valor_total, descricao_problema, data_competencia, 
@@ -991,7 +1038,7 @@ ipcMain.handle("add-receita-avulsa", async (event, receita) => {
       );
     } else if (receita.data_conclusao) {
       // Para pagamentos à vista (não cartão de crédito) que já foram liquidados
-      db.prepare(
+      database.db.prepare(
         "INSERT INTO pagamentos (servico_id, valor, data_liquidacao, metodo, anotacao, data_competencia, id_plano_contas) VALUES (?, ?, ?, ?, ?, ?, ?)"
       ).run(
         servicoId,
@@ -1084,7 +1131,10 @@ ipcMain.handle("print-relatorio-financeiro", async (event, reportData) => {
 });
 
 app.whenReady().then(() => {
-  database.initDb();
+  initializeLogger(app.getPath('userData'));
+  console.log('App is ready. Initializing DB...');
+  database.initDb(app.getPath('userData'));
+  console.log('DB initialized successfully.');
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({

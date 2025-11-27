@@ -1,8 +1,8 @@
 const path = require('path');
+const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const dbPath = path.resolve(__dirname, 'data', 'oficina.db');
-const db = new Database(dbPath, { verbose: console.log });
+let db;
 
 function getServicosParaPagamentos(busca) {
     const { termo, campo, sortKey, sortOrder } = busca;
@@ -323,24 +323,22 @@ function getDadosDashboard(filtros) {
     const futureDateStr = futureDate.toISOString().split('T')[0];
 
     const contasAReceberQuery = `
-        SELECT s.data_vencimento, SUM(s.valor_total) as total
-        FROM servicos s
-        LEFT JOIN (
-            SELECT servico_id, SUM(valor) as total_pago
-            FROM pagamentos
-            GROUP BY servico_id
-        ) p ON s.id = p.servico_id
-        WHERE (p.total_pago IS NULL OR s.valor_total > p.total_pago)
-        AND s.data_vencimento BETWEEN ? AND ?
-        GROUP BY s.data_vencimento
-        ORDER BY s.data_vencimento
+        SELECT data_vencimento, SUM(valor) as total
+        FROM pagamentos
+        WHERE data_liquidacao IS NULL 
+        AND servico_id IS NOT NULL 
+        AND data_vencimento BETWEEN ? AND ?
+        GROUP BY data_vencimento
+        ORDER BY data_vencimento
     `;
     const contasAReceberData = db.prepare(contasAReceberQuery).all(todayStr, futureDateStr);
 
     const contasAPagarQuery = `
         SELECT data_vencimento, SUM(valor) as total
         FROM pagamentos
-        WHERE data_liquidacao IS NULL AND data_vencimento BETWEEN ? AND ?
+        WHERE data_liquidacao IS NULL 
+        AND servico_id IS NULL 
+        AND data_vencimento BETWEEN ? AND ?
         GROUP BY data_vencimento
         ORDER BY data_vencimento
     `;
@@ -513,8 +511,30 @@ function seedPlanoContas() {
     console.log('Plano de Contas seeded successfully.');
 }
 
-function initDb() {
-    console.log('Initializing the database...');
+function initDb(userDataPath) {
+    const dbName = 'oficina.db';
+    const dbPath = path.join(userDataPath, dbName);
+    const oldDbPath = path.resolve(__dirname, 'data', dbName);
+    const isFirstRun = !fs.existsSync(dbPath);
+
+    // Se o banco de dados não existe no userData, mas existe na pasta de dados antiga (empacotada),
+    // copie-o para a nova localização. Isso migra os dados do usuário na primeira execução após a atualização.
+    if (isFirstRun && fs.existsSync(oldDbPath)) {
+        try {
+            // Garante que o diretório de destino exista
+            fs.mkdirSync(userDataPath, { recursive: true });
+            fs.copyFileSync(oldDbPath, dbPath);
+            console.log(`Database copied from ${oldDbPath} to ${dbPath}`);
+        } catch (error) {
+            console.error('Failed to copy database:', error);
+            // Se a cópia falhar, podemos decidir continuar com um DB vazio ou lançar um erro.
+            // Por enquanto, ele continuará e criará um banco de dados vazio no dbPath.
+        }
+    }
+
+    db = new Database(dbPath, { verbose: console.log });
+
+    console.log('Initializing the database schema...');
 
     // Tabela de Clientes
     db.prepare(`
@@ -857,7 +877,7 @@ function confirmarPagamento(pagamentoId) {
 }
 
 module.exports = { 
-    db, 
+    get db() { return db; }, 
     initDb, 
     getServicosParaPagamentos,
     getServicoComPagamentos,

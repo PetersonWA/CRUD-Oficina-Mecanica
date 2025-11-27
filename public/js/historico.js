@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CORE FUNCTION ---
     async function atualizarDashboardCompleto() {
         const spinner = document.getElementById('loading-spinner');
-        spinner.style.display = 'block';
+        spinner.classList.remove('d-none');
 
         const filtros = {
             dataInicio: document.getElementById("filtro-data-inicio").value,
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Assuming showAlert is defined globally or in another script
             // showAlert("Falha ao carregar dados do dashboard. Verifique o console.", "danger");
         } finally {
-            spinner.style.display = 'none';
+            spinner.classList.add('d-none');
         }
     }
 
@@ -261,8 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: { display: false }
                 },
                 scales: {
-                    x: { stacked: true },
-                    y: { stacked: true }
+                    x: { stacked: false },
+                    y: { stacked: false }
                 }
             }
         });

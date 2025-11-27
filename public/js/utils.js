@@ -53,3 +53,40 @@ function getLocalDateAsString(date) {
   const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
   return adjustedDate.toISOString().split('T')[0];
 }
+
+/**
+ * Calcula o valor de uma parcela usando a fórmula da Tabela Price.
+ * @param {number} valorTotal - O valor total do financiamento.
+ * @param {number} numeroParcelas - O número de parcelas.
+ * @param {number} taxaJuros - A taxa de juros mensal (ex: 0.05 para 5%).
+ * @returns {number} O valor da parcela.
+ */
+function calcularTabelaPrice(valorTotal, numeroParcelas, taxaJuros) {
+    if (numeroParcelas <= 0) return valorTotal;
+    if (taxaJuros <= 0) {
+        return valorTotal / numeroParcelas;
+    }
+    
+    const i = taxaJuros;
+    const n = numeroParcelas;
+    
+    const parcela = valorTotal * ( (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1) );
+    return parcela;
+}
+
+
+// Exporta as funções puras para que possam ser usadas pelo Jest nos testes
+// E as expõe globalmente para uso no lado do cliente no navegador
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    formatarValor,
+    getLocalDateAsString,
+    calcularTabelaPrice,
+  };
+  // Expõe as funções globalmente para o ambiente do navegador SOMENTE se window existir
+  if (typeof window !== 'undefined') {
+    window.formatarValor = formatarValor;
+    window.getLocalDateAsString = getLocalDateAsString;
+    window.calcularTabelaPrice = calcularTabelaPrice;
+  }
+}

@@ -130,6 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
             id_plano_contas: parseInt(document.getElementById(`planoContas-${formId}`).value),
         };
 
+        // Garante que uma data de liquidação vazia seja salva como NULL
+        if (baseDespesa.data_liquidacao === '') {
+            baseDespesa.data_liquidacao = null;
+        }
+
         if (!baseDespesa.id_plano_contas || !baseDespesa.valor || !baseDespesa.data_competencia) {
             showAlert('Por favor, preencha o tipo, valor e data de competência.', 'warning');
             return;

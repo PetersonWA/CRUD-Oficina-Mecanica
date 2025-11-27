@@ -181,19 +181,38 @@ function validateVehiclePlate(plate) {
 // Funções para Orçamento e OS
 // -----------------------------------------------------------------------------------
 
-function maskCurrency(inputElement) {
-    let value = inputElement.value.replace(/\D/g, '');
-    if (value === '') {
-        inputElement.value = '';
-        return;
+/**
+ * Formata um valor numérico (em string) para o formato de moeda BRL.
+ * Esta é uma função pura: recebe um valor e retorna um valor formatado.
+ * @param {string} value - O valor a ser formatado (ex: "12345" para R$123,45).
+ * @returns {string} O valor formatado como moeda (ex: "R$ 123,45").
+ */
+function formatCurrency(value) {
+    let cleanValue = String(value).replace(/\D/g, '');
+    if (cleanValue === '') {
+        return '';
     }
     // Converte para número, divide por 100
-    let numericValue = parseFloat(value) / 100;
+    let numericValue = parseFloat(cleanValue) / 100;
     // Formata de volta para string de moeda
-    inputElement.value = new Intl.NumberFormat('pt-BR', {
+    const formatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
     }).format(numericValue);
+    
+    // Garante consistência, trocando o non-breaking space por um espaço regular
+    return formatted.replace('\u00A0', ' ');
+}
+
+/**
+ * Aplica a máscara de moeda diretamente em um elemento de input HTML.
+ * Esta função manipula o DOM e usa a função pura formatCurrency.
+ * @param {HTMLInputElement} inputElement - O elemento input cujo valor será mascarado.
+ */
+function maskCurrency(inputElement) {
+    if (inputElement && inputElement.value !== undefined) {
+        inputElement.value = formatCurrency(inputElement.value);
+    }
 }
 
 function validatePositiveNumber(value) {
@@ -223,6 +242,7 @@ if (typeof module !== 'undefined' && module.exports) {
     maskPhone,
     maskCep,
     maskPlate,
-    maskCurrency
+    formatCurrency, // Export the new pure function
+    maskCurrency    // Keep exporting the DOM manipulation function for app usage
   };
 }

@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let sortKey = 'id';
   let sortOrder = 'desc';
-  let planoContas = [];
 
   const modalConfirmacaoEl = document.getElementById("modalConfirmarExclusao");
   const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
@@ -51,39 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.excluirServico = excluirServico;
   window.mudarPagina = mudarPagina;
   window.editRemoverItem = editRemoverItem;
-
-  btnConfirmarExclusao.addEventListener("click", () => {
-    if (confirmacaoCallback) confirmacaoCallback();
-    modalConfirmacao.hide();
-  });
-
-  async function carregarPlanoContas() {
-    try {
-      planoContas = await window.api.getPlanoContas();
-    } catch (error) {
-      console.error("Erro ao carregar plano de contas:", error);
-      showAlert("Falha ao carregar plano de contas.", "danger");
-    }
-  }
-
-  function popularPlanoContasDropdown(selectElement, selectedId) {
-    selectElement.innerHTML = '<option value="">Selecione...</option>';
-    planoContas.forEach(conta => {
-      const option = document.createElement('option');
-      option.value = conta.id;
-      option.textContent = conta.nome_conta;
-      if (conta.id === selectedId) {
-        option.selected = true;
-      }
-      selectElement.appendChild(option);
-    });
-  }
-
-  function showConfirm(message, callback) {
-    corpoModalConfirmacao.textContent = message;
-    confirmacaoCallback = callback;
-    modalConfirmacao.show();
-  }
 
   window.showConfirm = showConfirm;
 
@@ -363,12 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
       editServicoDataEntrada.value = servico.dataEntrada;
       editServicoMecanico.value = servico.mecanico;
       editServicoStatus.value = servico.status;
-
-      // Populate new fields
-      document.getElementById('editServicoDataCompetencia').value = servico.data_competencia || '';
-      document.getElementById('editServicoDataVencimento').value = servico.data_vencimento || '';
-      const planoContasSelect = document.getElementById('editServicoPlanoContas');
-      popularPlanoContasDropdown(planoContasSelect, servico.id_plano_contas);
+      document.getElementById('editServicoDataConclusao').value = servico.dataConclusao || '';
 
       editItensBody.innerHTML = "";
       servico.itens.forEach((item) => editAdicionarItem(item));
@@ -470,10 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
       status: editServicoStatus.value,
       itens: itens,
       valorTotal: valorTotal,
-      // Add new fields
-      data_competencia: document.getElementById('editServicoDataCompetencia').value,
-      data_vencimento: document.getElementById('editServicoDataVencimento').value,
-      id_plano_contas: parseInt(document.getElementById('editServicoPlanoContas').value)
+      dataConclusao: document.getElementById('editServicoDataConclusao').value,
     };
 
     if (
@@ -536,5 +494,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   carregarServicos();
-  carregarPlanoContas();
 });

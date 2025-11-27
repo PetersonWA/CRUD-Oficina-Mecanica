@@ -11,6 +11,7 @@
 # production
 /build
 /dist
+/dist_v1.0.0.0
 /arquivos_retirados_do_projeto
 
 # misc

@@ -2,6 +2,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("servico-form");
   if (!form) return; // Sai se não estiver na página correta
 
+  // Funções Utilitárias locais (ou globais de utils.js)
+  const getNumericValue = (str) =>
+    parseFloat(
+      String(str)
+        .replace(/R\$\s?/, "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+    ) || 0;
+
   // Mapeamento de Elementos
   const elements = {
     searchClienteInput: document.getElementById("search-cliente-input"),
@@ -221,12 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const taxa =
             (jurosInicial + (i - parcelasSemJuros - 1) * acrescimoParcela) /
             100;
-          valorParcela =
-            taxa > 0
-              ? (total * (taxa * Math.pow(1 + taxa, i))) /
-                (Math.pow(1 + taxa, i) - 1)
-              : total / i;
-          opt.textContent = `${i}x de R$ ${formatarValor(valorParcela)}`;
+          valorParcela = window.calcularTabelaPrice(total, i, taxa);
+          opt.textContent = `${i}x de R$ ${window.formatarValor(valorParcela)}`;
         }
       }
     }
@@ -349,20 +354,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showAlert("Falha ao salvar o serviço.", "danger");
     }
   }
-
-  // Funções Utilitárias Globais (devem vir de utils.js)
-  const getNumericValue = (str) =>
-    parseFloat(
-      String(str)
-        .replace(/R\$\s?/, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    ) || 0;
-  const formatarValor = (val) =>
-    val.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
 
   inicializar();
 });
