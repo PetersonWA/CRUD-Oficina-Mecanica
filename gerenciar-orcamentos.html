@@ -1,201 +1,229 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <title>Gerenciar Orçamentos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  
-  <!-- Estilos Globais -->
   <link rel="stylesheet" href="public/css/main.css">
 </head>
+
 <body>
-<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
-<div class="d-flex">
-  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
-        <div class="sidebar-header">
-      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
-      <a href="index.html" class="navbar-brand">
-        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
-      </a>
-    </div>
-    <ul class="nav nav-pills flex-column mb-auto p-3">
-      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link active" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
-    </ul>
-    <div class="sidebar-footer mt-auto p-3">
-      <div class="small text-white-50">
-        <p class="mb-1">Versão Beta</p>
-        <p class="mb-1">pweschenfelder@gmail.com</p>
-        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+  <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+  <div class="d-flex">
+    <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+      <div class="sidebar-header">
+        <a href="index.html" class="navbar-brand"><i class="bi bi-tools me-2"></i> <span>Oficina</span></a>
+        <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
       </div>
-    </div>
-  </nav>
-  <main id="content" class="container-fluid py-4">
-    <div class="container py-4">
-      <div class="d-flex justify-content-between align-items-center mb-4"><h2 class="text-primary">Gerenciar Orçamentos</h2></div>
-      <h4 class="text-secondary mb-3 mt-5">Buscar Orçamentos</h4>
-      <div class="row g-3 mb-4">
-        <div class="col-md-4 form-floating"><select class="form-select" id="campoBusca"><option value="">Buscar em...</option><option value="clienteNome">Cliente</option><option value="placaVeiculo">Veículo</option><option value="status">Status</option></select><label for="campoBusca">Buscar em...</label></div>
-        <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBusca" placeholder="Termo de busca"><label for="inputBusca">Termo de busca</label></div>
-        <div class="col-md-4"><button type="button" class="btn btn-info" onclick="realizarBusca()">Buscar</button><button type="button" class="btn btn-secondary ms-2" onclick="limparBusca()">Limpar</button></div>
+      <ul class="nav nav-pills flex-column mb-auto p-3">
+        <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i
+              class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i
+              class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i
+              class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i
+              class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i
+              class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link active" href="gerenciar-orcamentos.html"><i
+              class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i
+              class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i
+              class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i
+              class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i
+              class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i
+              class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="configuracoes.html"><i
+              class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+      </ul>
+      <div class="sidebar-footer mt-auto p-3">
+        <div class="small text-white-50">
+          <p class="mb-1">Versão Beta</p>
+          <p class="mb-1">pweschenfelder@gmail.com</p>
+          <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+        </div>
       </div>
-      <table class="table table-hover table-bordered">
-        <thead class="table-primary">
-          <tr>
-            <th class="sortable-header" data-sort-key="id">ID</th>
-            <th class="sortable-header" data-sort-key="clienteNome">Cliente</th>
-            <th class="sortable-header" data-sort-key="placaVeiculo">Veículo</th>
-            <th class="sortable-header" data-sort-key="data">Data</th>
-            <th class="sortable-header" data-sort-key="valor">Valor (R$)</th>
-            <th class="sortable-header" data-sort-key="status">Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="lista-orcamentos"></tbody>
-      </table>
-      <nav><ul class="pagination" id="paginacao-orcamentos"></ul></nav>
-    </div>
-    <!-- Modal de Visualização de Itens -->
-    <div class="modal fade" id="modalVerItens" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Itens do Orçamento - #<span id="orcamento-id-modal"></span></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p><strong>Problema Relatado:</strong> <span id="problema-relatado-modal"></span></p>
-            <hr>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Quantidade</th>
-                  <th>Valor Unit. (R$)</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody id="itens-orcamento-modal-body"></tbody>
-            </table>
+    </nav>
+    <main id="content" class="container-fluid py-4">
+      <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="text-primary">Gerenciar Orçamentos</h2>
+        </div>
+        <h4 class="text-secondary mb-3 mt-5">Buscar Orçamentos</h4>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4 form-floating"><select class="form-select" id="campoBusca">
+              <option value="">Buscar em...</option>
+              <option value="clienteNome">Cliente</option>
+              <option value="veiculoPlaca">Veículo</option>
+              <option value="status">Status</option>
+            </select><label for="campoBusca">Buscar em...</label></div>
+          <div class="col-md-4 form-floating"><input type="text" class="form-control" id="inputBusca"
+              placeholder="Termo de busca"><label for="inputBusca">Termo de busca</label></div>
+          <div class="col-md-4"><button type="button" class="btn btn-info"
+              onclick="realizarBusca()">Buscar</button><button type="button" class="btn btn-secondary ms-2"
+              onclick="limparBusca()">Limpar</button></div>
+        </div>
+        <table class="table table-hover table-bordered">
+          <thead class="table-primary">
+            <tr>
+              <th class="sortable-header" data-sort-key="id" style="cursor: pointer;">ID <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th class="sortable-header" data-sort-key="clienteNome" style="cursor: pointer;">Cliente <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th class="sortable-header" data-sort-key="veiculoPlaca" style="cursor: pointer;">Veículo <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th class="sortable-header" data-sort-key="dataEntrada" style="cursor: pointer;">Data <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th class="sortable-header" data-sort-key="valorTotal" style="cursor: pointer;">Valor (R$) <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th class="sortable-header" data-sort-key="status" style="cursor: pointer;">Status <i
+                  class="bi bi-arrow-down-up small"></i></th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lista-orcamentos"></tbody>
+        </table>
+      </div>
+      <!-- Modals -->
+      <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirmar Exclusão</h5><button type="button" class="btn-close"
+                data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="corpoModalConfirmacao"></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-danger"
+                id="btnConfirmarExclusao">Confirmar</button></div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Modal de Confirmação de Exclusão -->
-    <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" id="corpoModalConfirmacao">
-            <!-- Mensagem de confirmação será inserida aqui -->
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
+      <div class="modal fade" id="modalVerItens" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Itens do Orçamento</h5><button type="button" class="btn-close"
+                data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p><strong>Problema Relatado:</strong> <span id="problema-relatado-modal"></span></p>
+              <hr>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Descrição</th>
+                    <th>Quantidade</th>
+                    <th>Valor Unit. (R$)</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody id="itens-orcamento-modal-body"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-        <!-- Modal de Edição de Orçamento -->
-    <div class="modal fade" id="modalEditarOrcamento" tabindex="-1" aria-labelledby="modalEditarOrcamentoLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalEditarOrcamentoLabel">Editar Orçamento</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="form-editar-orcamento">
-              <input type="hidden" id="editOrcamentoId">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="editClienteNome" class="form-label">Cliente</label>
-                  <input type="text" class="form-control" id="editClienteNome" readonly>
-                </div>
-                <div class="col-md-6">
-                  <label for="editPlacaVeiculo" class="form-label">Veículo (Placa)</label>
-                  <input type="text" class="form-control" id="editPlacaVeiculo" readonly>
-                </div>
-                <div class="col-12">
-                  <label for="editProblemaRelatado" class="form-label">Problema Relatado</label>
-                  <textarea class="form-control" id="editProblemaRelatado" rows="3"></textarea>
-                </div>
-                <div class="col-md-6">
+      <div class="modal fade" id="modalEditarOrcamento" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Editar Orçamento</h5><button type="button" class="btn-close"
+                data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <form id="form-editar-orcamento">
+                <input type="hidden" id="editOrcamentoId">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" class="form-control" id="editClienteNome" readonly>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Veículo (Placa)</label>
+                    <input type="text" class="form-control" id="editPlacaVeiculo" readonly>
+                  </div>
+                  <div class="col-12">
+                    <label for="editProblemaRelatado" class="form-label">Problema Relatado</label>
+                    <textarea class="form-control" id="editProblemaRelatado" rows="3"></textarea>
+                  </div>
+                  <div class="col-md-4">
                     <label for="editStatus" class="form-label">Status</label>
                     <select class="form-select" id="editStatus">
                       <option value="Pendente">Pendente</option>
                       <option value="Aprovado">Aprovado</option>
                       <option value="Recusado">Recusado</option>
                     </select>
+                  </div>
                 </div>
 
                 <hr class="my-4">
                 <h5>Itens do Orçamento</h5>
-                <div id="edit-itens-orcamento-container">
-                  <!-- Itens do orçamento serão inseridos aqui dinamicamente -->
+                <div id="edit-itens-orcamento-container" class="mb-3">
+                  <!-- Itens serão adicionados dinamicamente aqui -->
                 </div>
-                <div class="col-12">
-                    <button type="button" class="btn btn-outline-success" id="btnAdicionarItem">Adicionar Item</button>
+                <div class="col-12 mb-3">
+                  <button type="button" class="btn btn-outline-success btn-sm" id="btn-adicionar-item-edicao">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Item
+                  </button>
                 </div>
+
                 <hr class="my-4">
-                <div class="row justify-content-end">
-                    <div class="col-md-5">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="h5">Subtotal:</span>
-                            <span id="edit-subtotal-orcamento" class="h5">R$ 0,00</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label for="edit-desconto-percentual" class="form-label h5 me-2">Desconto (%):</label>
-                            <input type="number" class="form-control" id="edit-desconto-percentual" style="width: 100px;" value="0" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="h5 text-danger">Valor do Desconto:</span>
-                            <span id="edit-valor-desconto" class="h5 text-danger">- R$ 0,00</span>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="h4">Total Final:</span>
-                            <span id="edit-total-final-orcamento" class="total-display">R$ 0,00</span>
-                        </div>
-                    </div>
+
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label for="edit-mao-de-obra" class="form-label">Mão de Obra (R$)</label>
+                    <input type="text" class="form-control" id="edit-mao-de-obra" placeholder="R$ 0,00">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="edit-desconto-percentual" class="form-label">Desconto (%)</label>
+                    <input type="number" class="form-control" id="edit-desconto-percentual" value="0" min="0" max="100"
+                      placeholder="0%">
+                  </div>
                 </div>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                <button type="button" class="btn btn-success" id="btnSalvarServico" disabled>Salvar Serviço</button>
-              </div>
-            </form>
+
+                <div class="row justify-content-end mt-4">
+                  <div class="col-md-5">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">Subtotal:</h5>
+                      <span id="edit-subtotal" class="fs-5">R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 text-danger">
+                      <h5 class="mb-0">Desconto:</h5>
+                      <span id="edit-valor-desconto" class="fs-5">- R$ 0,00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <h4 class="mb-0">Total:</h4>
+                      <span id="edit-total-final" class="fs-4 fw-bold text-primary">R$ 0,00</span>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" form="form-editar-orcamento" class="btn btn-primary"><i
+                  class="bi bi-save me-2"></i>Salvar Alterações</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <footer class="text-center text-muted mt-4 py-3">
-      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
-    </footer>
+  </div>
   </main>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="renderer.js" defer></script>
-
-<!-- Scripts da Aplicação -->
-<script src="public/js/utils.js" defer></script>
-<script src="public/js/main.js" defer></script>
-<script src="public/js/gerenciar-orcamentos.js" defer></script>
-
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="renderer.js" defer></script>
+  <script src="public/js/utils.js" defer></script>
+  <script src="public/js/main.js" defer></script>
+  <script src="public/js/gerenciar-orcamentos.js" defer></script>
 </body>
+
 </html>

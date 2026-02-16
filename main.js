@@ -6,45 +6,45 @@ const fs = require("fs");
 // Cuidado: app só está disponível depois de 'ready'. Usaremos um caminho de log provisório se necessário.
 let logStream;
 function initializeLogger(userDataPath) {
-    if (logStream) return; // Logger já inicializado
-    const logPath = path.join(userDataPath, 'main.log');
-    logStream = fs.createWriteStream(logPath, { flags: 'a' });
-    
-    const logToFile = (message) => {
-        if (logStream) {
-            logStream.write(`${new Date().toISOString()} - ${message}\n`);
-        }
-    };
+  if (logStream) return; // Logger já inicializado
+  const logPath = path.join(userDataPath, 'main.log');
+  logStream = fs.createWriteStream(logPath, { flags: 'a' });
 
-    // Redireciona console.log/error
-    const originalConsoleLog = console.log;
-    const originalConsoleError = console.error;
-    console.log = (...args) => {
-        originalConsoleLog(...args);
-        logToFile(`LOG: ${args.join(' ')}`);
-    };
-    console.error = (...args) => {
-        originalConsoleError(...args);
-        logToFile(`ERROR: ${args.join(' ')}`);
-    };
+  const logToFile = (message) => {
+    if (logStream) {
+      logStream.write(`${new Date().toISOString()} - ${message}\n`);
+    }
+  };
 
-    // Captura exceções não tratadas
-    process.on('uncaughtException', (error, origin) => {
-        console.error('--- UNCAUGHT EXCEPTION ---');
-        console.error(error.stack || error);
-        console.error('--- ORIGIN ---');
-        console.error(origin);
-        // Garante que o log seja escrito antes de sair
-        if (logStream) {
-            logStream.end(() => {
-                app.quit();
-            });
-        } else {
-            app.quit();
-        }
-    });
+  // Redireciona console.log/error
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+  console.log = (...args) => {
+    originalConsoleLog(...args);
+    logToFile(`LOG: ${args.join(' ')}`);
+  };
+  console.error = (...args) => {
+    originalConsoleError(...args);
+    logToFile(`ERROR: ${args.join(' ')}`);
+  };
 
-    console.log('Logger inicializado.');
+  // Captura exceções não tratadas
+  process.on('uncaughtException', (error, origin) => {
+    console.error('--- UNCAUGHT EXCEPTION ---');
+    console.error(error.stack || error);
+    console.error('--- ORIGIN ---');
+    console.error(origin);
+    // Garante que o log seja escrito antes de sair
+    if (logStream) {
+      logStream.end(() => {
+        app.quit();
+      });
+    } else {
+      app.quit();
+    }
+  });
+
+  console.log('Logger inicializado.');
 }
 // --- Fim do Logger de Arquivo Simples ---
 
@@ -61,6 +61,7 @@ const {
   addReceitaAvulsa,
   getDespesas,
   deleteDespesa,
+  updateDespesa,
   getReceitasAvulsas,
   deleteReceitaAvulsa,
 } = database; // Importa a instância do DB
@@ -113,10 +114,18 @@ function createInstallmentPayments(
   }
 }
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+
+
+let mainWindow = null; // Global reference
+let currentUser = null; // Global auth state
+
+function createLoginWindow() {
+  mainWindow = new BrowserWindow({
+    width: 400,
+    height: 550, // Slightly taller to fit
+    frame: false, // Frameless
+    resizable: false,
+    transparent: true, // Transparent for rounded corners effect
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -124,8 +133,78 @@ function createWindow() {
     },
   });
 
-  win.loadFile("index.html");
+  mainWindow.loadFile("login.html");
+  // Remove menu for login
+  mainWindow.setMenu(null);
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
+
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    frame: false, // Custom frame for Win 10 rounding
+    transparent: true, // Allow transparency for rounded corners
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mainWindow.loadFile("index.html");
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+// Window Control Handlers
+ipcMain.handle('minimize-app', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.minimize();
+});
+
+ipcMain.handle('maximize-app', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+
+ipcMain.handle('close-app', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.close();
+});
+
+// ... (rest of the file) ...
+
+ipcMain.handle("logout", async () => {
+  currentUser = null;
+
+  // Close all windows to ensure no artifacts remain
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach(win => win.close());
+
+  // Reset the global reference safely
+  mainWindow = null;
+
+  createLoginWindow(); // Open login window on logout
+  return { success: true };
+});
+
+
+// Utility Handlers
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
 
 // Handlers IPC para Clientes
 ipcMain.handle("get-clientes", () => {
@@ -191,7 +270,7 @@ ipcMain.handle("delete-cliente", (event, id) => {
 // Handlers IPC para Veículos
 ipcMain.handle("get-veiculos", () => {
   const stmt = database.db.prepare(`
-    SELECT v.*, c.nome as cliente_nome 
+    SELECT v.*, c.nome as clienteNome 
     FROM veiculos v
     JOIN clientes c ON v.cliente_id = c.id
     WHERE v.is_deleted = 0 AND c.is_deleted = 0
@@ -310,11 +389,19 @@ ipcMain.handle("add-orcamento", (event, orcamento) => {
 
 ipcMain.handle("get-orcamentos", () => {
   const stmt = database.db.prepare(`
-    SELECT s.*, c.nome as cliente_nome, v.placa as veiculo_placa
+    SELECT 
+      s.id,
+      s.cliente_id,
+      s.veiculo_id,
+      s.data_entrada AS dataEntrada,
+      s.valor_total AS valorTotal,
+      s.status,
+      c.nome AS clienteNome,
+      v.placa AS veiculoPlaca
     FROM servicos s
-    JOIN clientes c ON s.cliente_id = c.id
-    JOIN veiculos v ON s.veiculo_id = v.id
-    WHERE s.is_deleted = 0 AND s.status IN ('Pendente', 'Aprovado', 'Recusado')
+    LEFT JOIN clientes c ON s.cliente_id = c.id
+    LEFT JOIN veiculos v ON s.veiculo_id = v.id
+    WHERE s.is_deleted = 0 AND s.status IN ('Pendente', 'Aprovado', 'Recusado', 'Convertido')
     ORDER BY s.data_entrada DESC
   `);
   return stmt.all();
@@ -535,6 +622,15 @@ ipcMain.handle("add-servico", (event, servico) => {
       }
     }
 
+    // Etapa 5: Se o serviço foi originado de um orçamento, atualiza o status do orçamento para 'Convertido'
+    if (s.idOrcamentoOrigem) {
+      // Atualiza o orcamento_origem_id no novo serviço
+      database.db.prepare("UPDATE servicos SET orcamento_origem_id = ? WHERE id = ?").run(s.idOrcamentoOrigem, servicoId);
+
+      // Marca o orçamento original como Convertido
+      database.db.prepare("UPDATE servicos SET status = 'Convertido' WHERE id = ?").run(s.idOrcamentoOrigem);
+    }
+
     return servicoId;
   });
 
@@ -656,6 +752,16 @@ ipcMain.handle("get-dados-dashboard", (event, filtros) => {
   return getDadosDashboard(filtros);
 });
 
+ipcMain.handle("update-despesa", (event, despesa) => {
+  try {
+    const result = database.updateDespesa(despesa);
+    return result;
+  } catch (error) {
+    console.error("Erro ao atualizar despesa:", error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle("get-servicos", () => {
   // A consulta principal busca os serviços
   const stmt = database.db.prepare(`
@@ -671,11 +777,13 @@ ipcMain.handle("get-servicos", () => {
       s.status_pagamento as statusPagamento,
       s.data_competencia as data_competencia,
       s.data_vencimento as data_vencimento,
-      s.id_plano_contas as id_plano_contas
+      s.id_plano_contas as id_plano_contas,
+      s.forma_pagamento as forma_pagamento
     FROM servicos s
     LEFT JOIN clientes c ON s.cliente_id = c.id
     LEFT JOIN veiculos v ON s.veiculo_id = v.id
-    WHERE s.is_deleted = 0 AND s.status NOT IN ('Pendente', 'Recusado')
+    -- Fix: Exclude Aprovado and Convertido from Service List to avoid duplication
+    WHERE s.is_deleted = 0 AND s.status NOT IN ('Pendente', 'Recusado', 'Aprovado', 'Convertido')
     ORDER BY s.id DESC
   `);
   const servicos = stmt.all();
@@ -1147,11 +1255,11 @@ app.whenReady().then(() => {
     });
   });
 
-  createWindow();
+  createLoginWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      createLoginWindow();
     }
   });
 });
@@ -1159,5 +1267,124 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
+  }
+});
+const { verifyPassword, hasPermission, ROLES } = require('./auth');
+
+// --- Auth State ---
+// currentUser is now declared globally at the top
+
+
+// --- Auth IPC Handlers ---
+ipcMain.handle("login", async (event, { username, password }) => {
+  try {
+    const user = database.db.prepare('SELECT * FROM users WHERE username = ? AND is_active = 1').get(username);
+
+    if (!user) {
+      return { success: false, message: "Usuário não encontrado." };
+    }
+
+    if (!verifyPassword(password, user.password_hash)) {
+      return { success: false, message: "Senha incorreta." };
+    }
+
+    // Login successful
+    currentUser = {
+      id: user.id,
+      nome: user.nome,
+      username: user.username,
+      role: user.role
+    };
+
+    console.log(`User logged in: ${currentUser.username} (${currentUser.role})`);
+
+    // Switch to Main Window
+    if (mainWindow) {
+      mainWindow.close();
+      mainWindow = null;
+    }
+    createMainWindow();
+
+    return { success: true, user: currentUser };
+
+  } catch (error) {
+    console.error("Login error:", error);
+    return { success: false, message: "Erro interno ao realizar login." };
+  }
+});
+
+// ... (logout handler is already updated) ...
+
+// ... (skipping to app.whenReady) ...
+
+// Update app logic to use createLoginWindow
+
+
+
+
+ipcMain.handle("get-current-user", async () => {
+  return currentUser;
+});
+
+// Helper to check permission in IPC handlers
+function checkPermission(role, requiredPermission) {
+  if (!role) return false;
+  return hasPermission(role, requiredPermission);
+}
+
+// Example of protecting critical actions (Soft Protection - UI should handle most, but backend must verify)
+// We will wrap critical DELETE operations
+// ...
+
+// --- User Management IPC ---
+
+ipcMain.handle("get-users", async () => {
+  if (!currentUser) return [];
+  // Allow all logged users to see user list? Or only admin?
+  // Let's restrict to Admin for now, or maybe not strict.
+  // Actually, implementation plan says Admin only.
+  if (currentUser.role !== ROLES.ADMIN) {
+    console.warn("Access denied: get-users");
+    return [];
+  }
+  return database.getUsers();
+});
+
+ipcMain.handle("add-user", async (event, user) => {
+  if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+    return { success: false, message: "Acesso negado." };
+  }
+  try {
+    const result = database.addUser(user);
+    return result;
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle("update-user", async (event, user) => {
+  if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+    return { success: false, message: "Acesso negado." };
+  }
+  try {
+    const result = database.updateUser(user);
+    return result;
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle("delete-user", async (event, id) => {
+  if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+    return { success: false, message: "Acesso negado." };
+  }
+  if (id === currentUser.id) {
+    return { success: false, message: "Não é possível excluir o próprio usuário." };
+  }
+  try {
+    const result = database.deleteUser(id);
+    return result;
+  } catch (error) {
+    return { success: false, message: error.message };
   }
 });

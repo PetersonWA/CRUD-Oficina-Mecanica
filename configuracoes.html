@@ -1,238 +1,356 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Configurações - Sistema Oficina</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  
+
   <!-- Estilos Globais -->
   <link rel="stylesheet" href="public/css/main.css">
 </head>
+
 <body>
-<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+  <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
 
-<div class="d-flex">
-  <!-- Sidebar -->
-  <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
-    <div class="sidebar-header">
-      <a href="index.html" class="navbar-brand">
-        <i class="bi bi-tools me-2"></i> <span>Oficina</span>
-      </a>
-      <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
-    </div>
-    
-    <ul class="nav nav-pills flex-column mb-auto p-3">
-      <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-2"></i><span>Início</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
-      <li class="nav-item mb-2"><a class="nav-link active" href="configuracoes.html"><i class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
-    </ul>
-    <div class="sidebar-footer mt-auto p-3">
-      <div class="small text-white-50">
-        <p class="mb-1">Versão Beta</p>
-        <p class="mb-1">pweschenfelder@gmail.com</p>
-        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Conteúdo Principal -->
-  <main id="content" class="container-fluid py-4">
-    <div class="container">
-      <h2 class="text-primary mb-4">Configurações da Oficina</h2>
-
-      <div class="card p-4">
-        <form id="config-form">
-          <div class="row">
-            <div class="col-md-12">
-              <div class="mb-3">
-                <label for="nomeOficina" class="form-label">Nome da Oficina</label>
-                <input type="text" class="form-control" id="nomeOficina" required>
-              </div>
-              <div class="mb-3">
-                <label for="endereco" class="form-label">Endereço</label>
-                <input type="text" class="form-control" id="endereco">
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="telefone" class="form-label">Telefone / WhatsApp</label>
-                  <input type="text" class="form-control" id="telefone">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="email" class="form-label">Email</label>
-                  <input type="email" class="form-control" id="email">
-                </div>
-              </div>
-              <div class="mb-3">
-                <label for="cnpj" class="form-label">CNPJ / CPF</label>
-                <input type="text" class="form-control" id="cnpj">
-              </div>
-              <div class="mb-3">
-                <label for="nomeResponsavel" class="form-label">Nome do Responsável Técnico</label>
-                <input type="text" class="form-control" id="nomeResponsavel">
-              </div>
-            </div>
-          </div>
-
-          <hr class="my-4">
-
-          <div class="row">
-            <div class="col-12">
-              <h5 class="text-primary mb-3">Configurações de Pagamento</h5>
-            </div>
-            <div class="col-md-3 mb-3">
-              <label for="maxParcelas" class="form-label">Nº máximo de parcelas</label>
-              <input type="number" class="form-control" id="maxParcelas" min="1" value="12">
-            </div>
-            <div class="col-md-3 mb-3">
-              <label for="parcelasSemJuros" class="form-label">Nº de parcelas sem juros</label>
-              <input type="number" class="form-control" id="parcelasSemJuros" min="0" value="1">
-            </div>
-            <div class="col-md-3 mb-3">
-              <label for="jurosInicial" class="form-label">Taxa de Juros Inicial (%)</label>
-              <input type="number" class="form-control" id="jurosInicial" min="0" step="0.01" value="2.99">
-            </div>
-            <div class="col-md-3 mb-3">
-              <label for="acrescimoParcela" class="form-label">Acréscimo por Parcela (%)</label>
-              <input type="number" class="form-control" id="acrescimoParcela" min="0" step="0.01" value="0.5">
-            </div>
-            <div class="col-md-3 mb-3">
-                <label for="percentualLucroPecas" class="form-label">Percentual de Lucro sobre Peças (%)</label>
-                <input type="number" class="form-control" id="percentualLucroPecas" min="0" step="0.1" value="10">
-            </div>
-            <div class="col-md-3 mb-3">
-                <label for="prazoLiquidacaoCartao" class="form-label">Prazo de Liquidação do Cartão (dias)</label>
-                <input type="number" class="form-control" id="prazoLiquidacaoCartao" min="0" value="30">
-            </div>
-          </div>
-
-          <div class="col-12 mb-3">
-            <label for="formasPagamento" class="form-label">Formas de Pagamento Aceitas</label>
-            <textarea class="form-control" id="formasPagamento" rows="3" placeholder="Ex: Dinheiro, Cartão de Crédito, PIX, Boleto Bancário"></textarea>
-            <div class="form-text">Separe as formas de pagamento por vírgula. Elas aparecerão no rodapé do orçamento.</div>
-          </div>
-
-          <hr class="my-6">
-
-          <div class="row text-center">
-            <div class="col-md-6 mb-6">
-              <label class="form-label fw-bold">Logotipo</label>
-              <br></br>
-              <img id="logo-preview" src="https://via.placeholder.com/200x150.png?text=Logo" class="img-thumbnail mb-3" alt="Preview do Logo" style="max-height: 150px;">
-              <div class="d-flex justify-content-center">
-                <label for="logo" class="btn btn-sm btn-outline-primary me-2">
-                    <i class="bi bi-upload"></i> Enviar Nova Imagem
-                </label>
-                <button type="button" class="btn btn-sm btn-outline-danger" id="delete-logo">
-                    <i class="bi bi-trash"></i> Excluir
-                </button>
-                <input type="file" id="logo" accept="image/*" class="d-none">
-              </div>
-              <div class="form-text mt-1">Selecione uma imagem para o logotipo.</div>
-            </div>
-            <div class="col-md-6 mb-6">
-              <label class="form-label fw-bold">Assinatura Digitalizada</label>
-              <br></br>
-              <img id="assinatura-preview" src="https://via.placeholder.com/200x80.png?text=Assinatura" class="img-thumbnail mb-3" alt="Preview da Assinatura" style="max-height: 80px;">
-               <div class="d-flex justify-content-center">
-                <label for="assinatura" class="btn btn-sm btn-outline-primary me-2">
-                    <i class="bi bi-upload"></i> Enviar Nova Imagem
-                </label>
-                <button type="button" class="btn btn-sm btn-outline-danger" id="delete-assinatura">
-                    <i class="bi bi-trash"></i> Excluir
-                </button>
-                <input type="file" id="assinatura" accept="image/*" class="d-none">
-              </div>
-              <div class="form-text mt-1">Fundo transparente é recomendado.</div>
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-center mt-4">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Salvar Alterações</button>
-          </div>
-        </form>
+  <div class="d-flex">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="d-flex flex-column flex-shrink-0">
+      <div class="sidebar-header">
+        <a href="index.html" class="navbar-brand">
+          <i class="bi bi-tools me-2"></i> <span>Oficina</span>
+        </a>
+        <button id="sidebar-toggle"><i class="bi bi-x-lg"></i></button>
       </div>
 
-      <div class="card mt-4">
-        <div class="card-header">
-          <h5 class="mb-0">Itens Arquivados</h5>
-        </div>
-        <div class="card-body">
-          <p class="card-text">Gerencie itens que foram arquivados (excluídos). Você pode restaurá-los ou excluí-los permanentemente.</p>
-          <div class="d-grid gap-2 d-md-flex">
-              <button class="btn btn-secondary" id="btn-gerenciar-clientes-arquivados"><i class="bi bi-people-fill me-2"></i>Gerenciar Clientes Arquivados</button>
-              <button class="btn btn-secondary" id="btn-gerenciar-veiculos-arquivados"><i class="bi bi-car-front-fill me-2"></i>Gerenciar Veículos Arquivados</button>
-              <button class="btn btn-secondary" id="btn-gerenciar-servicos-arquivados"><i class="bi bi-gear-wide-connected me-2"></i>Gerenciar Serviços Arquivados</button>
-          </div>
+      <ul class="nav nav-pills flex-column mb-auto p-3">
+        <li class="nav-item mb-2"><a class="nav-link" href="index.html"><i
+              class="bi bi-house-door me-2"></i><span>Início</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="cadastro-servico.html"><i
+              class="bi bi-plus-circle me-2"></i><span>Cadastrar Serviço</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="os-manual.html"><i
+              class="bi bi-file-earmark-text me-2"></i><span>OS Manual</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="clientes-veiculos.html"><i
+              class="bi bi-people me-2"></i><span>Clientes e Veículos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="orcamento-mecanico.html"><i
+              class="bi bi-calculator me-2"></i><span>Orçamento</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-orcamentos.html"><i
+              class="bi bi-card-list me-2"></i><span>Gerenciar Orçamentos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-servicos.html"><i
+              class="bi bi-gear me-2"></i><span>Gerenciar Serviços</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="gerenciar-pagamentos.html"><i
+              class="bi bi-cash-coin me-2"></i><span>Gerenciar Pagamentos</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="receitas-avulsas.html"><i
+              class="bi bi-cash-stack me-2"></i><span>Lançar Receita</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="despesas.html"><i
+              class="bi bi-wallet2 me-2"></i><span>Lançar Despesa</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link" href="historico-servicos.html"><i
+              class="bi bi-clock-history me-2"></i><span>Histórico</span></a></li>
+        <li class="nav-item mb-2"><a class="nav-link active" href="configuracoes.html"><i
+              class="bi bi-gear-fill me-2"></i><span>Configurações</span></a></li>
+      </ul>
+      <div class="sidebar-footer mt-auto p-3">
+        <div class="small text-white-50">
+          <p class="mb-1">Versão Beta</p>
+          <p class="mb-1">pweschenfelder@gmail.com</p>
+          <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
         </div>
       </div>
+    </nav>
 
-      <!-- Modal Genérico para Itens Arquivados -->
-      <div class="modal fade" id="modalArquivados" tabindex="-1" aria-labelledby="modalArquivadosLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <!-- Conteúdo Principal -->
+    <main id="content" class="container-fluid py-4">
+      <div class="container">
+        <h2 class="text-primary mb-4">Configurações da Oficina</h2>
+
+        <div class="card p-4">
+          <!-- Nav Tabs -->
+          <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="geral-tab" data-bs-toggle="tab" data-bs-target="#geral" type="button"
+                role="tab" aria-selected="true">Geral</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button"
+                role="tab" aria-selected="false">Usuários</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="configTabsContent">
+            <!-- Tab Geral (Formulário Existente) -->
+            <div class="tab-pane fade show active" id="geral" role="tabpanel" aria-labelledby="geral-tab">
+              <form id="config-form">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="mb-3">
+                      <label for="nomeOficina" class="form-label">Nome da Oficina</label>
+                      <input type="text" class="form-control" id="nomeOficina" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="endereco" class="form-label">Endereço</label>
+                      <input type="text" class="form-control" id="endereco">
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="telefone" class="form-label">Telefone / WhatsApp</label>
+                        <input type="text" class="form-control" id="telefone">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email">
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="cnpj" class="form-label">CNPJ / CPF</label>
+                      <input type="text" class="form-control" id="cnpj">
+                    </div>
+                    <div class="mb-3">
+                      <label for="nomeResponsavel" class="form-label">Nome do Responsável Técnico</label>
+                      <input type="text" class="form-control" id="nomeResponsavel">
+                    </div>
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="row">
+                  <div class="col-12">
+                    <h5 class="text-primary mb-3">Configurações de Pagamento</h5>
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="maxParcelas" class="form-label">Nº máximo de parcelas</label>
+                    <input type="number" class="form-control" id="maxParcelas" min="1" value="12">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="parcelasSemJuros" class="form-label">Nº de parcelas sem juros</label>
+                    <input type="number" class="form-control" id="parcelasSemJuros" min="0" value="1">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="jurosInicial" class="form-label">Taxa de Juros Inicial (%)</label>
+                    <input type="number" class="form-control" id="jurosInicial" min="0" step="0.01" value="2.99">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="acrescimoParcela" class="form-label">Acréscimo por Parcela (%)</label>
+                    <input type="number" class="form-control" id="acrescimoParcela" min="0" step="0.01" value="0.5">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="percentualLucroPecas" class="form-label">Percentual de Lucro sobre Peças (%)</label>
+                    <input type="number" class="form-control" id="percentualLucroPecas" min="0" step="0.1" value="10">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="prazoLiquidacaoCartao" class="form-label">Prazo de Liquidação do Cartão (dias)</label>
+                    <input type="number" class="form-control" id="prazoLiquidacaoCartao" min="0" value="30">
+                  </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                  <label for="formasPagamento" class="form-label">Formas de Pagamento Aceitas</label>
+                  <textarea class="form-control" id="formasPagamento" rows="3"
+                    placeholder="Ex: Dinheiro, Cartão de Crédito, PIX, Boleto Bancário"></textarea>
+                  <div class="form-text">Separe as formas de pagamento por vírgula. Elas aparecerão no rodapé do
+                    orçamento.</div>
+                </div>
+
+                <hr class="my-6">
+
+                <div class="row text-center">
+                  <div class="col-md-6 mb-6">
+                    <label class="form-label fw-bold">Logotipo</label>
+                    <br></br>
+                    <img id="logo-preview" src="https://via.placeholder.com/200x150.png?text=Logo"
+                      class="img-thumbnail mb-3" alt="Preview do Logo" style="max-height: 150px;">
+                    <div class="d-flex justify-content-center">
+                      <label for="logo" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="bi bi-upload"></i> Enviar Nova Imagem
+                      </label>
+                      <button type="button" class="btn btn-sm btn-outline-danger" id="delete-logo">
+                        <i class="bi bi-trash"></i> Excluir
+                      </button>
+                      <input type="file" id="logo" accept="image/*" class="d-none">
+                    </div>
+                    <div class="form-text mt-1">Selecione uma imagem para o logotipo.</div>
+                  </div>
+                  <div class="col-md-6 mb-6">
+                    <label class="form-label fw-bold">Assinatura Digitalizada</label>
+                    <br></br>
+                    <img id="assinatura-preview" src="https://via.placeholder.com/200x80.png?text=Assinatura"
+                      class="img-thumbnail mb-3" alt="Preview da Assinatura" style="max-height: 80px;">
+                    <div class="d-flex justify-content-center">
+                      <label for="assinatura" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="bi bi-upload"></i> Enviar Nova Imagem
+                      </label>
+                      <button type="button" class="btn btn-sm btn-outline-danger" id="delete-assinatura">
+                        <i class="bi bi-trash"></i> Excluir
+                      </button>
+                      <input type="file" id="assinatura" accept="image/*" class="d-none">
+                    </div>
+                    <div class="form-text mt-1">Fundo transparente é recomendado.</div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-center mt-4">
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Salvar
+                    Alterações</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Tab Usuários -->
+            <div class="tab-pane fade" id="usuarios" role="tabpanel" aria-labelledby="usuarios-tab">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Gerenciar Usuários</h5>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalUsuario"
+                  onclick="abrirModalUsuario()">
+                  <i class="bi bi-person-plus"></i> Novo Usuário
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Usuário</th>
+                      <th>Função</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lista-usuarios">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Helper: Add Modals immediately after if needed, but they are already in file bottom -->
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="mb-0">Itens Arquivados</h5>
+          </div>
+          <div class="card-body">
+            <p class="card-text">Gerencie itens que foram arquivados (excluídos). Você pode restaurá-los ou excluí-los
+              permanentemente.</p>
+            <div class="d-grid gap-2 d-md-flex">
+              <button class="btn btn-secondary" id="btn-gerenciar-clientes-arquivados"><i
+                  class="bi bi-people-fill me-2"></i>Gerenciar Clientes Arquivados</button>
+              <button class="btn btn-secondary" id="btn-gerenciar-veiculos-arquivados"><i
+                  class="bi bi-car-front-fill me-2"></i>Gerenciar Veículos Arquivados</button>
+              <button class="btn btn-secondary" id="btn-gerenciar-servicos-arquivados"><i
+                  class="bi bi-gear-wide-connected me-2"></i>Gerenciar Serviços Arquivados</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Usuário -->
+        <div class="modal fade" id="modalUsuario" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalUsuarioLabel">Novo Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="form-usuario">
+                  <input type="hidden" id="usuario-id">
+                  <div class="mb-3">
+                    <label for="usuario-nome" class="form-label">Nome Completo</label>
+                    <input type="text" class="form-control" id="usuario-nome" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="usuario-username" class="form-label">Nome de Usuário (Login)</label>
+                    <input type="text" class="form-control" id="usuario-username" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="usuario-senha" class="form-label">Senha</label>
+                    <input type="password" class="form-control" id="usuario-senha"
+                      placeholder="Deixe em branco para manter a atual (edição)">
+                  </div>
+                  <div class="mb-3">
+                    <label for="usuario-role" class="form-label">Função (Permissão)</label>
+                    <select class="form-select" id="usuario-role" required>
+                      <option value="mecanico">Mecânico</option>
+                      <option value="financeiro">Financeiro</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                    <div class="form-text">
+                      <strong>Administrador:</strong> Acesso total.<br>
+                      <strong>Financeiro:</strong> Gestão de contas e serviços.<br>
+                      <strong>Mecânico:</strong> Apenas ordem de serviço e dados técnicos.
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarUsuario()">Salvar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Genérico para Itens Arquivados -->
+        <div class="modal fade" id="modalArquivados" tabindex="-1" aria-labelledby="modalArquivadosLabel"
+          aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalArquivadosLabel">Itens Arquivados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <table class="table table-hover">
+                  <thead id="modal-arquivados-thead">
+                    <!-- Cabeçalho da tabela será inserido dinamicamente -->
+                  </thead>
+                  <tbody id="modal-arquivados-tbody">
+                    <!-- Itens arquivados serão inseridos dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Modal de Confirmação de Exclusão -->
+      <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="modalArquivadosLabel">Itens Arquivados</h5>
+              <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-              <table class="table table-hover">
-                <thead id="modal-arquivados-thead">
-                  <!-- Cabeçalho da tabela será inserido dinamicamente -->
-                </thead>
-                <tbody id="modal-arquivados-tbody">
-                  <!-- Itens arquivados serão inseridos dinamicamente -->
-                </tbody>
-              </table>
+            <div class="modal-body" id="corpoModalConfirmacao">
+              <!-- Mensagem de confirmação será inserida aqui -->
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Modal de Confirmação de Exclusão -->
-    <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalConfirmarExclusaoLabel">Confirmar Exclusão</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" id="corpoModalConfirmacao">
-            <!-- Mensagem de confirmação será inserida aqui -->
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Confirmar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <footer class="text-center text-muted mt-4 py-3">
-      <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
-    </footer>
-  </main>
-</div>
+      <footer class="text-center text-muted mt-4 py-3">
+        <p class="mb-0">&copy; 2025 PWA Soluções Inteligentes</p>
+      </footer>
+    </main>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="renderer.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="renderer.js" defer></script>
 
-<!-- Scripts da Aplicação -->
-<script src="public/js/utils.js" defer></script>
-<script src="public/js/main.js" defer></script>
-<script src="public/js/configuracoes.js" defer></script>
+  <!-- Scripts da Aplicação -->
+  <script src="public/js/utils.js" defer></script>
+  <script src="public/js/main.js" defer></script>
+  <script src="public/js/configuracoes.js" defer></script>
 
 </body>
+
 </html>

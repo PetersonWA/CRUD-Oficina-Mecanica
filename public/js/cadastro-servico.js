@@ -1,15 +1,69 @@
+// Definição de `adicionarPeca` no escopo global para testabilidade
+function adicionarPeca(descricao = '', quantidade = 1, valor = 0) {
+  const elements = { // Definir elements no escopo da função para teste
+    pecasBody: document.getElementById("pecas-servico-body"),
+  };
+  if (!elements.pecasBody) return;
+
+  const row = elements.pecasBody.insertRow();
+  row.className = "peca-row";
+
+  const cellDesc = row.insertCell(0);
+  const inputDesc = document.createElement('input');
+  inputDesc.type = 'text';
+  inputDesc.className = 'form-control form-control-sm';
+  inputDesc.name = 'descricao';
+  inputDesc.placeholder = 'Descrição da peça/serviço';
+  inputDesc.value = descricao;
+  cellDesc.appendChild(inputDesc);
+
+  const cellQtd = row.insertCell(1);
+  const inputQtd = document.createElement('input');
+  inputQtd.type = 'number';
+  inputQtd.className = 'form-control form-control-sm';
+  inputQtd.name = 'quantidade';
+  inputQtd.value = quantidade;
+  inputQtd.min = '1';
+  cellQtd.appendChild(inputQtd);
+
+  const cellValor = row.insertCell(2);
+  const inputValor = document.createElement('input');
+  inputValor.type = 'text';
+  inputValor.className = 'form-control form-control-sm';
+  inputValor.name = 'valor';
+  inputValor.placeholder = 'R$ 0,00';
+  inputValor.value = window.formatCurrencyForInput(valor);
+  cellValor.appendChild(inputValor);
+
+  const cellAcoes = row.insertCell(3);
+  const btnRemover = document.createElement('button');
+  btnRemover.type = 'button';
+  btnRemover.className = 'btn btn-danger btn-sm';
+  btnRemover.innerHTML = '<i class="bi bi-trash"></i>';
+  btnRemover.addEventListener('click', () => removerPeca(btnRemover));
+  cellAcoes.appendChild(btnRemover);
+
+  row
+    .querySelector("[name=valor]")
+    .addEventListener("input", (e) => maskCurrency(e.target));
+
+  // Fix: Use window.calcularTotal to access the function defined inside DOMContentLoaded
+  row
+    .querySelectorAll("input")
+    .forEach((input) => input.addEventListener("input", () => {
+      if (window.calcularTotal) window.calcularTotal();
+    }));
+}
+
+if (typeof window.testHooks === 'undefined') {
+  window.testHooks = {};
+}
+window.testHooks.adicionarPecaServico = adicionarPeca;
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("servico-form");
   if (!form) return; // Sai se não estiver na página correta
-
-  // Funções Utilitárias locais (ou globais de utils.js)
-  const getNumericValue = (str) =>
-    parseFloat(
-      String(str)
-        .replace(/R\$\s?/, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    ) || 0;
+  let idOrcamentoOrigem = null; // Variável para rastrear o orçamento de origem
 
   // Mapeamento de Elementos
   const elements = {
@@ -40,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.removerPeca = (button) => {
     button.closest("tr").remove();
-    calcularTotal();
+    if (window.calcularTotal) window.calcularTotal();
   };
 
   async function inicializar() {
@@ -52,12 +106,65 @@ document.addEventListener("DOMContentLoaded", () => {
       ]);
       configurarParcelas();
       vincularEventos();
+      await preencherComOrcamento();
     } catch (error) {
       console.error("Erro ao carregar dados iniciais:", error);
       showAlert(
         "Falha ao carregar dados. Verifique a conexão com o banco de dados.",
         "danger"
       );
+    }
+  }
+
+  async function preencherComOrcamento() {
+    const orcamentoId = sessionStorage.getItem('orcamentoParaServicoId');
+    if (!orcamentoId) return;
+
+    idOrcamentoOrigem = parseInt(orcamentoId);
+    sessionStorage.removeItem('orcamentoParaServicoId');
+
+    try {
+      const orcamento = await window.api.getOrcamentoById(idOrcamentoOrigem);
+      if (!orcamento) {
+        showAlert('Orçamento para conversão não encontrado.', 'warning');
+        return;
+      }
+
+      const cliente = listaClientes.find(c => c.id === orcamento.cliente_id);
+      if (cliente) {
+        elements.searchClienteInput.value = cliente.nome;
+        elements.clienteHiddenInput.value = cliente.id;
+        carregarVeiculosDoCliente(cliente.id);
+
+        setTimeout(() => {
+          elements.selectVeiculo.value = orcamento.veiculo_id;
+          handleSelecaoVeiculo();
+        }, 100);
+      }
+
+      elements.problemaRelatadoInput.value = orcamento.descricao_problema || '';
+      elements.statusServicoInput.value = 'Em andamento';
+      elements.mecanicoInput.value = orcamento.mecanico_responsavel || '';
+      elements.dataEntradaInput.value = new Date(orcamento.data_entrada).toISOString().split('T')[0];
+
+      elements.pecasBody.innerHTML = '';
+      let maoDeObraValor = 0;
+      orcamento.itens.forEach(item => {
+        if (item.tipo === 'Mão de Obra') {
+          maoDeObraValor += item.valor_unitario * item.quantidade;
+        } else {
+          adicionarPeca(item.descricao, item.quantidade, item.valor_unitario);
+        }
+      });
+
+      elements.maoDeObraInput.value = window.formatCurrencyForInput(maoDeObraValor);
+      if (window.calcularTotal) window.calcularTotal();
+
+    } catch (error) {
+      console.error('Erro ao preencher formulário com orçamento:', error);
+      showAlert('Falha ao carregar dados do orçamento.', 'danger');
+    } finally {
+      sessionStorage.removeItem('orcamentoParaServicoId');
     }
   }
 
@@ -79,16 +186,15 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSelecaoCliente
     );
     elements.selectVeiculo.addEventListener("change", handleSelecaoVeiculo);
-    elements.btnAdicionarPeca.addEventListener("click", adicionarPeca);
+    elements.btnAdicionarPeca.addEventListener("click", () => adicionarPeca());
     elements.formaPagamentoSelect.addEventListener(
       "change",
       handleMudancaPagamento
     );
-    [
-      elements.descontoInput,
-      elements.maoDeObraInput,
-      elements.numeroParcelasInput,
-    ].forEach((el) => el.addEventListener("input", calcularTotal));
+    elements.maoDeObraInput.addEventListener("input", () => {
+      maskCurrency(elements.maoDeObraInput);
+      if (window.calcularTotal) window.calcularTotal();
+    });
     form.addEventListener("submit", salvarServico);
   }
 
@@ -145,7 +251,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showAlert("Este cliente não possui veículos cadastrados.", "warning");
     }
   }
-
   function handleSelecaoVeiculo() {
     const veiculoId = parseInt(elements.selectVeiculo.value);
     if (veiculoId) {
@@ -157,33 +262,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function adicionarPeca() {
-    const row = document.createElement("tr");
-    row.className = "peca-row";
-    row.innerHTML = `
-            <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição da peça/serviço"></td>
-            <td><input type="number" class="form-control form-control-sm" name="quantidade" value="1" min="1"></td>
-            <td><input type="text" class="form-control form-control-sm" name="valor" placeholder="R$ 0,00"></td>
-            <td><button type="button" class="btn btn-danger btn-sm" onclick="removerPeca(this)"><i class="bi bi-trash"></i></button></td>
-        `;
-    elements.pecasBody.appendChild(row);
-    row
-      .querySelector("[name=valor]")
-      .addEventListener("input", (e) => maskCurrency(e.target));
-    row
-      .querySelectorAll("input")
-      .forEach((input) => input.addEventListener("input", calcularTotal));
-  }
-
-  function calcularTotal() {
+  // Expose calcularTotal globally
+  window.calcularTotal = function () {
     let subtotal = 0;
     elements.pecasBody.querySelectorAll(".peca-row").forEach((row) => {
       const quantidade =
         parseFloat(row.querySelector("[name=quantidade]").value) || 0;
-      const valor = getNumericValue(row.querySelector("[name=valor]").value);
+      const valor = window.parseCurrency(row.querySelector("[name=valor]").value);
       subtotal += quantidade * valor;
     });
-    subtotal += getNumericValue(elements.maoDeObraInput.value);
+    subtotal += window.parseCurrency(elements.maoDeObraInput.value);
     const descontoPercentual = parseFloat(elements.descontoInput.value) || 0;
     const descontoValor = subtotal * (descontoPercentual / 100);
     const totalFinal = subtotal - descontoValor;
@@ -290,14 +378,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const descricao = row.querySelector("[name=descricao]").value.trim();
       const quantidade =
         parseFloat(row.querySelector("[name=quantidade]").value) || 0;
-      const valor_unitario = getNumericValue(
+      const valor_unitario = window.parseCurrency(
         row.querySelector("[name=valor]").value
       );
       if (descricao && quantidade > 0 && valor_unitario > 0) {
         itens.push({ descricao, tipo: "Peça", quantidade, valor_unitario });
       }
     });
-    const maoDeObra = getNumericValue(elements.maoDeObraInput.value);
+    const maoDeObra = window.parseCurrency(elements.maoDeObraInput.value);
     if (maoDeObra > 0)
       itens.push({
         descricao: "Mão de Obra",
@@ -309,11 +397,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return showAlert("Adicione pelo menos um item ao serviço.", "warning");
 
     // Montagem do Objeto
-    const totalSemDesconto = getNumericValue(
+    const totalSemDesconto = window.parseCurrency(
       elements.subtotalDisplay.textContent
     );
-    const descontoValor = getNumericValue(elements.descontoDisplay.textContent);
-    const totalFinal = getNumericValue(elements.totalDisplay.textContent);
+    const descontoValor = window.parseCurrency(elements.descontoDisplay.textContent);
+    const totalFinal = window.parseCurrency(elements.totalDisplay.textContent);
     const formaPagamento = elements.formaPagamentoSelect.value;
     const numeroParcelas = parseInt(elements.numeroParcelasInput.value);
 
@@ -335,6 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
       quilometragem: novaQuilometragem,
       itens: itens,
       pagamento_inicial: null,
+      idOrcamentoOrigem: idOrcamentoOrigem,
     };
 
     // Envio para o Backend
@@ -346,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
         handleMudancaPagamento();
         elements.pecasBody.innerHTML = "";
         calcularTotal();
+        idOrcamentoOrigem = null; // Limpa o ID do orçamento
       } else {
         throw new Error(result.error);
       }
@@ -357,3 +447,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   inicializar();
 });
+
+if (typeof window.testHooks === 'undefined') {
+  window.testHooks = {};
+}
+window.testHooks.adicionarPeca = adicionarPeca;

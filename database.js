@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
+const { migrate } = require('@blackglory/better-sqlite3-migrations');
+
+const { hashPassword, ROLES } = require('./auth');
 
 let db;
 
@@ -19,7 +22,7 @@ function getServicosParaPagamentos(busca) {
         FROM servicos s
         LEFT JOIN clientes c ON s.cliente_id = c.id
         LEFT JOIN veiculos v ON s.veiculo_id = v.id
-        WHERE s.is_deleted = 0 AND s.status NOT IN ('Pendente', 'Recusado')
+        WHERE s.is_deleted = 0 AND s.status NOT IN ('Pendente', 'Recusado', 'Aprovado', 'Convertido')
     `;
 
     const params = [];
@@ -30,8 +33,8 @@ function getServicosParaPagamentos(busca) {
         if (campo === 'clienteNome') campoSql = 'COALESCE(s.cliente_nome_manual, c.nome)';
         else if (campo === 'placaVeiculo') campoSql = 'COALESCE(s.veiculo_desc_manual, v.placa)';
         else if (campo === 'status') campoSql = 's.status_pagamento';
-        
-        if(campoSql){
+
+        if (campoSql) {
             query += ` AND ${campoSql} LIKE ?`;
             params.push(`%${termo}%`);
         }
@@ -68,7 +71,7 @@ function getServicoComPagamentos(servicoId) {
     servico.totalPago = servico.pagamentos
         .filter(p => p.liquidado)
         .reduce((acc, p) => acc + p.valor, 0);
-        
+
     servico.saldoDevedor = servico.valorTotal - servico.totalPago;
 
     return servico;
@@ -127,7 +130,7 @@ function adicionarPagamento(pagamento) {
 }
 
 function getFinancialTransactions(filtros) {
-    const { dataInicio, dataFim, reportType, cliente, veiculo, status, tipoData } = filtros;
+    const { dataInicio, dataFim, reportType, cliente, veiculo, status, tipoData, mecanico, pagamento } = filtros;
 
     const dateColumn = tipoData === 'data_conclusao' ? 'data_conclusao' : 'data_entrada';
 
@@ -137,6 +140,8 @@ function getFinancialTransactions(filtros) {
     if (cliente) params.cliente = `%${cliente}%`;
     if (veiculo) params.veiculo = `%${veiculo}%`;
     if (status) params.status = status;
+    if (mecanico) params.mecanico = mecanico;
+    if (pagamento) params.pagamento = pagamento;
 
     if (reportType === 'DRE') {
         // DRE (Competence Basis)
@@ -146,6 +151,9 @@ function getFinancialTransactions(filtros) {
         if (cliente) revenueWhereClauses.push(`COALESCE(s.cliente_nome_manual, c.nome) LIKE @cliente`);
         if (veiculo) revenueWhereClauses.push(`COALESCE(s.veiculo_desc_manual, v.placa) LIKE @veiculo`);
         if (status) revenueWhereClauses.push(`s.status = @status`);
+        if (mecanico) revenueWhereClauses.push(`s.mecanico_responsavel = @mecanico`);
+        if (pagamento) revenueWhereClauses.push(`s.forma_pagamento = @pagamento`);
+
         const revenueWhereString = revenueWhereClauses.length > 0 ? `WHERE ${revenueWhereClauses.join(' AND ')}` : '';
 
         const revenuesQuery = `
@@ -168,6 +176,9 @@ function getFinancialTransactions(filtros) {
         const expenseWhereClauses = [];
         if (dataInicio) expenseWhereClauses.push(`p.data_competencia >= @dataInicio`);
         if (dataFim) expenseWhereClauses.push(`p.data_competencia <= @dataFim`);
+        // Note: Expenses are NOT filtered by client/vehicle/mechanic as they are general costs.
+        // If specific logic is needed effectively allocating costs to mechanics, we would need a different model.
+
         const expenseWhereString = expenseWhereClauses.length > 0 ? `AND ${expenseWhereClauses.join(' AND ')}` : '';
 
         const expensesQuery = `
@@ -202,6 +213,9 @@ function getFinancialTransactions(filtros) {
         if (cliente) cashInWhereClauses.push(`COALESCE(s.cliente_nome_manual, c.nome) LIKE @cliente`);
         if (veiculo) cashInWhereClauses.push(`COALESCE(s.veiculo_desc_manual, v.placa) LIKE @veiculo`);
         if (status) cashInWhereClauses.push(`s.status = @status`);
+        if (mecanico) cashInWhereClauses.push(`s.mecanico_responsavel = @mecanico`);
+        if (pagamento) cashInWhereClauses.push(`s.forma_pagamento = @pagamento`);
+
         const cashInWhereString = `WHERE ${cashInWhereClauses.join(' AND ')}`;
 
         const cashInQuery = `
@@ -246,13 +260,13 @@ function getFinancialTransactions(filtros) {
 }
 
 function getDadosDashboard(filtros) {
-    const { dataInicio, dataFim, groupBy, cliente, veiculo, status, tipoData } = filtros;
+    const { dataInicio, dataFim, groupBy, cliente, veiculo, status, tipoData, mecanico, pagamento } = filtros;
 
     // Fetch all transactions for DRE (competence basis)
-    const dreTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DRE', cliente, veiculo, status, tipoData });
+    const dreTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DRE', cliente, veiculo, status, tipoData, mecanico, pagamento });
 
     // Fetch all transactions for DFC (cash basis)
-    const dfcTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DFC', cliente, veiculo, status, tipoData });
+    const dfcTransactions = getFinancialTransactions({ dataInicio, dataFim, reportType: 'DFC', cliente, veiculo, status, tipoData, mecanico, pagamento });
 
     // --- DRE Calculations ---
     const deducoesId = db.prepare("SELECT id FROM plano_contas WHERE nome_conta = 'DEDUÇÕES DA RECEITA BRUTA'").get()?.id;
@@ -264,9 +278,18 @@ function getDadosDashboard(filtros) {
     let despesasVariaveis = 0;
     let despesasFixas = 0;
 
+    // Set to track distinct services involved in revenue for Ticket Médio calculation
+    const servicosComReceita = new Set();
+
     dreTransactions.forEach(t => {
         if (t.tipo_transacao === 'receita') {
             receitaBruta += t.valor;
+            if (t.transaction_id) {
+                // Assuming transaction_id maps to service_id for 'receita' from services
+                // We must ensure that we are counting services.
+                // In database.js queries (line 154), transaction_id IS servicos.id.
+                servicosComReceita.add(t.transaction_id);
+            }
         } else if (t.tipo_transacao === 'despesa') {
             if (t.id_pai === deducoesId) {
                 deducoesReceita += t.valor;
@@ -289,6 +312,17 @@ function getDadosDashboard(filtros) {
     const receitaLiquida = receitaBruta - deducoesReceita;
     const margemContribuicao = receitaLiquida - custosVariaveis - despesasVariaveis;
     const lucroLiquido = margemContribuicao - custosFixos - despesasFixas;
+
+    // --- Ticket Médio (Corrected Logic) ---
+    // Uses the count of distinct services found in the Filtered DRE Revenue transactions
+    const numServicosNoPeriodo = servicosComReceita.size;
+    const ticketMedio = numServicosNoPeriodo > 0 ? receitaBruta / numServicosNoPeriodo : 0;
+
+    // --- Ponto de Equilíbrio (Corrected Logic) ---
+    // Uses the FIXED costs of the SELECTED PERIOD and the MARGIN of the SELECTED PERIOD.
+    const totalFixos = custosFixos + despesasFixas;
+    const indiceMC = receitaLiquida > 0 ? margemContribuicao / receitaLiquida : 0;
+    const pontoEquilibrio = indiceMC > 0 ? totalFixos / indiceMC : 0;
 
     // --- DFC Calculations & Chart Data ---
     let totalEntradas = 0;
@@ -315,12 +349,18 @@ function getDadosDashboard(filtros) {
     const dfcChartEntradas = dfcChartLabels.map(date => dfcChartData[date].entradas);
     const dfcChartSaidas = dfcChartLabels.map(date => dfcChartData[date].saidas);
 
-    // --- Projected Cash Flow (Contas a Receber / Pagar) & Chart Data ---
+    // --- Projected Cash Flow ---
     const today = new Date();
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + 30); // 30 days projection
     const todayStr = today.toISOString().split('T')[0];
     const futureDateStr = futureDate.toISOString().split('T')[0];
+
+    // TODO: We could filter this by the selected date range if needed,
+    // but typically "Accounts Payable/Receivable" implies "Open items" which are future-oriented.
+    // However, if the user sees 'History', maybe they want to see what WAS open back then?
+    // That's complex time-travel logic. For now, sticking to "Open Items (Upcoming)" is standard,
+    // but the Frontend will hide these cards if we are looking at the distant past.
 
     const contasAReceberQuery = `
         SELECT data_vencimento, SUM(valor) as total
@@ -362,61 +402,28 @@ function getDadosDashboard(filtros) {
     const projectedCashFlowAReceber = projectedCashFlowLabels.map(date => projectedCashFlowData[date].aReceber);
     const projectedCashFlowAPagar = projectedCashFlowLabels.map(date => projectedCashFlowData[date].aPagar);
 
+    // --- Retrabalho KPI ---
+    // Must also be filtered by the same period
+    // The previous implementation was Global. Fixing it.
+    let retraWhere = `status = 'Em Garantia/Retrabalho' AND is_deleted = 0`;
+    const retraParams = [];
+    if (dataInicio) {
+        retraWhere += ` AND data_entrada >= ?`;
+        retraParams.push(dataInicio);
+    }
+    if (dataFim) {
+        retraWhere += ` AND data_entrada <= ?`;
+        retraParams.push(dataFim);
+    }
+    const servicosRetrabalho = db.prepare(`SELECT COUNT(id) as count FROM servicos WHERE ${retraWhere}`).get(...retraParams).count;
 
-    // --- KPIs ---
-    const todayForKpi = new Date();
-    const priorMonth = new Date(todayForKpi.getFullYear(), todayForKpi.getMonth() - 1, 1);
-    const priorMonthEnd = new Date(todayForKpi.getFullYear(), todayForKpi.getMonth(), 0);
+    // We compare reworks against the TOTAL services in that period (numServicosNoPeriodo) or concluded?
+    // Usually against total concluded.
+    // Let's use numServicosNoPeriodo which is services with revenue (likely concluded or partially paid).
+    // Or we can count concluded specifically if needed.
+    // Let's stick to numServicosNoPeriodo as a proxy for "Volume of work".
+    const indiceRetrabalho = numServicosNoPeriodo > 0 ? (servicosRetrabalho / numServicosNoPeriodo) * 100 : 0;
 
-    const priorMonthFiltros = {
-        dataInicio: priorMonth.toISOString().split('T')[0],
-        dataFim: priorMonthEnd.toISOString().split('T')[0],
-        reportType: 'DRE'
-    };
-    const priorMonthTransactions = getFinancialTransactions(priorMonthFiltros);
-
-    let priorMonthReceitaBruta = 0;
-    let priorMonthDeducoesReceita = 0;
-    let priorMonthCustosVariaveis = 0;
-    let priorMonthCustosFixos = 0;
-    let priorMonthDespesasVariaveis = 0;
-    let priorMonthDespesasFixas = 0;
-
-    priorMonthTransactions.forEach(t => {
-        if (t.tipo_transacao === 'receita') {
-            priorMonthReceitaBruta += t.valor;
-        } else if (t.tipo_transacao === 'despesa') {
-            if (t.id_pai === 2) { // This is a hardcoded ID for 'DEDUÇÕES DA RECEITA BRUTA'
-                priorMonthDeducoesReceita += t.valor;
-            } else if (t.tipo === 'Custo') {
-                if (t.variabilidade === 'Variável') {
-                    priorMonthCustosVariaveis += t.valor;
-                } else if (t.variabilidade === 'Fixo') {
-                    priorMonthCustosFixos += t.valor;
-                }
-            } else if (t.tipo === 'Despesa') {
-                if (t.variabilidade === 'Variável') {
-                    priorMonthDespesasVariaveis += t.valor;
-                } else if (t.variabilidade === 'Fixo') {
-                    priorMonthDespesasFixas += t.valor;
-                }
-            }
-        }
-    });
-
-    const priorMonthReceitaLiquida = priorMonthReceitaBruta - priorMonthDeducoesReceita;
-    const priorMonthMargemContribuicao = priorMonthReceitaLiquida - priorMonthCustosVariaveis - priorMonthDespesasVariaveis;
-    const priorMonthTotalFixos = priorMonthCustosFixos + priorMonthDespesasFixas;
-    const priorMonthIndiceMC = priorMonthReceitaLiquida > 0 ? priorMonthMargemContribuicao / priorMonthReceitaLiquida : 0;
-    const pontoEquilibrio = priorMonthIndiceMC > 0 ? priorMonthTotalFixos / priorMonthIndiceMC : 0;
-
-    const allServicos = db.prepare(`SELECT id, valor_total, status FROM servicos WHERE is_deleted = 0 AND status = 'Concluído'`).all();
-    const totalFaturamento = allServicos.reduce((sum, s) => sum + s.valor_total, 0);
-    const totalOSConcluidos = allServicos.length;
-    const ticketMedio = totalOSConcluidos > 0 ? totalFaturamento / totalOSConcluidos : 0;
-
-    const servicosRetrabalho = db.prepare(`SELECT COUNT(id) as count FROM servicos WHERE status = 'Em Garantia/Retrabalho' AND is_deleted = 0`).get().count;
-    const indiceRetrabalho = totalOSConcluidos > 0 ? (servicosRetrabalho / totalOSConcluidos) * 100 : 0;
 
     // --- Chart Data ---
     const charts = {
@@ -517,148 +524,42 @@ function initDb(userDataPath) {
     const oldDbPath = path.resolve(__dirname, 'data', dbName);
     const isFirstRun = !fs.existsSync(dbPath);
 
-    // Se o banco de dados não existe no userData, mas existe na pasta de dados antiga (empacotada),
-    // copie-o para a nova localização. Isso migra os dados do usuário na primeira execução após a atualização.
     if (isFirstRun && fs.existsSync(oldDbPath)) {
         try {
-            // Garante que o diretório de destino exista
             fs.mkdirSync(userDataPath, { recursive: true });
             fs.copyFileSync(oldDbPath, dbPath);
             console.log(`Database copied from ${oldDbPath} to ${dbPath}`);
         } catch (error) {
             console.error('Failed to copy database:', error);
-            // Se a cópia falhar, podemos decidir continuar com um DB vazio ou lançar um erro.
-            // Por enquanto, ele continuará e criará um banco de dados vazio no dbPath.
         }
     }
 
     db = new Database(dbPath, { verbose: console.log });
 
-    console.log('Initializing the database schema...');
+    console.log('Running database migrations...');
+    const migrationsPath = path.join(__dirname, 'migrations');
+    const migrationFiles = fs.readdirSync(migrationsPath).filter(file => file.endsWith('.sql'));
 
-    // Tabela de Clientes
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS clientes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            cpf_cnpj TEXT UNIQUE,
-            telefone TEXT,
-            email TEXT,
-            endereco TEXT
-        )
-    `).run();
-    try { db.prepare('ALTER TABLE clientes ADD COLUMN is_deleted INTEGER DEFAULT 0').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
+    const migrations = migrationFiles.map(file => {
+        const version = parseInt(file.split('-')[0]);
+        const up = fs.readFileSync(path.join(migrationsPath, file), 'utf-8');
+        return { version, up };
+    });
 
-    // Tabela de Veículos
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS veiculos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cliente_id INTEGER NOT NULL,
-            placa TEXT NOT NULL UNIQUE,
-            marca TEXT,
-            modelo TEXT,
-            ano TEXT,
-            cor TEXT,
-            quilometragem TEXT,
-            FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
-        )
-    `).run();
-    try { db.prepare('ALTER TABLE veiculos ADD COLUMN is_deleted INTEGER DEFAULT 0').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
+    migrate(db, migrations);
+    console.log('Migrations completed.');
 
-    // Tabela de Plano de Contas Gerencial
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS plano_contas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_conta TEXT NOT NULL,
-            tipo TEXT NOT NULL,
-            variabilidade TEXT NOT NULL,
-            id_pai INTEGER,
-            FOREIGN KEY (id_pai) REFERENCES plano_contas (id)
-        )
-    `).run();
+    // Seed initial data if necessary
+    seedPlanoContas();
 
-    // Tabela de Serviços
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS servicos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cliente_id INTEGER,
-            veiculo_id INTEGER,
-            data_entrada TEXT NOT NULL,
-            descricao_problema TEXT,
-            valor_total REAL NOT NULL,
-            status TEXT NOT NULL,
-            mecanico_responsavel TEXT,
-            data_conclusao TEXT,
-            valor_original REAL,
-            valor_desconto REAL,
-            forma_pagamento TEXT,
-            numero_parcelas INTEGER,
-            status_pagamento TEXT,
-            is_deleted INTEGER DEFAULT 0,
-            cliente_nome_manual TEXT,
-            veiculo_desc_manual TEXT,
-            data_competencia TEXT,
-            data_vencimento TEXT,
-            id_plano_contas INTEGER,
-            metodo_pagamento TEXT,
-            numero_parcelas_servico INTEGER,
-            FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE SET NULL,
-            FOREIGN KEY (veiculo_id) REFERENCES veiculos (id) ON DELETE SET NULL,
-            FOREIGN KEY (id_plano_contas) REFERENCES plano_contas (id)
-        )
-    `).run();
-    try { db.prepare('ALTER TABLE servicos RENAME COLUMN data TO data_entrada').run(); } catch (e) { if (!e.message.includes('no such column') && !e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE servicos ADD COLUMN data_competencia TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE servicos ADD COLUMN data_vencimento TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE servicos ADD COLUMN id_plano_contas INTEGER').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE servicos ADD COLUMN metodo_pagamento TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE servicos ADD COLUMN numero_parcelas_servico INTEGER').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-
-    // Tabela de Itens de Serviço/Peças
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS itens_servico (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            servico_id INTEGER NOT NULL,
-            descricao TEXT NOT NULL,
-            quantidade INTEGER NOT NULL,
-            valor_unitario REAL NOT NULL,
-            valor_custo REAL,
-            tipo TEXT,
-            FOREIGN KEY (servico_id) REFERENCES servicos (id) ON DELETE CASCADE
-        )
-    `).run();
-    try { db.prepare('ALTER TABLE itens_servico ADD COLUMN valor_custo REAL').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-
-    // Tabela de Pagamentos
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS pagamentos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            servico_id INTEGER,
-            valor REAL NOT NULL,
-            data_liquidacao TEXT,
-            metodo TEXT NOT NULL,
-            anotacao TEXT,
-            data_competencia TEXT,
-            data_vencimento TEXT,
-            id_plano_contas INTEGER,
-            FOREIGN KEY (servico_id) REFERENCES servicos (id) ON DELETE CASCADE,
-            FOREIGN KEY (id_plano_contas) REFERENCES plano_contas (id)
-        )
-    `).run();
-    try { db.prepare('ALTER TABLE pagamentos RENAME COLUMN data TO data_liquidacao').run(); } catch (e) { if (!e.message.includes('no such column') && !e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE pagamentos ADD COLUMN data_competencia TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE pagamentos ADD COLUMN data_vencimento TEXT').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-    try { db.prepare('ALTER TABLE pagamentos ADD COLUMN id_plano_contas INTEGER').run(); } catch (e) { if (!e.message.includes('duplicate column name')) throw e; }
-
-    // Tabela de Configurações (Chave-Valor)
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS configuracoes (
-            chave TEXT PRIMARY KEY NOT NULL,
-            valor TEXT
-        )
-    `).run();
-
-    seedPlanoContas(); // Seed initial plano_contas data
+    // Seed default admin user if table is empty
+    const userCount = db.prepare('SELECT count(*) as count FROM users').get().count;
+    if (userCount === 0) {
+        console.log('Seeding default admin user...');
+        const adminHash = hashPassword('admin');
+        const stmt = db.prepare('INSERT INTO users (nome, username, password_hash, role) VALUES (?, ?, ?, ?)');
+        stmt.run('Administrador', 'admin', adminHash, ROLES.ADMIN);
+    }
 
     console.log('Database initialized successfully.');
 }
@@ -710,7 +611,9 @@ function getDespesas(filtros = {}) {
             p.data_liquidacao,
             p.data_competencia,
             p.data_vencimento,
-            pc.nome_conta
+            p.data_vencimento,
+            pc.nome_conta,
+            p.id_plano_contas
         FROM pagamentos p
         JOIN plano_contas pc ON p.id_plano_contas = pc.id
     `;
@@ -750,6 +653,36 @@ function getDespesas(filtros = {}) {
 
 function deleteDespesa(id) {
     const result = db.prepare('DELETE FROM pagamentos WHERE id = ? AND servico_id IS NULL').run(id);
+    return { success: result.changes > 0 };
+}
+
+function updateDespesa(despesa) {
+    const { id, valor, anotacao, data_competencia, data_vencimento, data_liquidacao, id_plano_contas } = despesa;
+
+    // Ensure we are updating a despesa (servico_id IS NULL)
+    const checkStmt = db.prepare('SELECT id FROM pagamentos WHERE id = ? AND servico_id IS NULL');
+    const existing = checkStmt.get(id);
+
+    if (!existing) {
+        throw new Error('Despesa não encontrada ou não é uma despesa editável.');
+    }
+
+    const stmt = db.prepare(`
+        UPDATE pagamentos 
+        SET valor = ?, anotacao = ?, data_competencia = ?, data_vencimento = ?, data_liquidacao = ?, id_plano_contas = ?
+        WHERE id = ?
+    `);
+
+    const result = stmt.run(
+        valor,
+        anotacao,
+        data_competencia,
+        data_vencimento,
+        data_liquidacao === '' ? null : data_liquidacao,
+        id_plano_contas,
+        id
+    );
+
     return { success: result.changes > 0 };
 }
 
@@ -794,7 +727,7 @@ function getReceitasAvulsas(filtros = {}) {
         whereClauses.push('s.data_competencia <= ?');
         params.push(dataFim);
     }
-    
+
     if (whereClauses.length > 0) {
         query += ' WHERE ' + whereClauses.join(' AND ');
     }
@@ -876,9 +809,70 @@ function confirmarPagamento(pagamentoId) {
     }
 }
 
-module.exports = { 
-    get db() { return db; }, 
-    initDb, 
+
+// --- User Management CRUD ---
+
+function getUsers() {
+    // Return users without password hash for security
+    return db.prepare('SELECT id, nome, username, role, is_active, created_at FROM users ORDER BY nome').all();
+}
+
+function addUser(user) {
+    const { nome, username, password, role } = user;
+
+    // Check if username exists
+    const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+    if (existing) {
+        throw new Error('Nome de usuário já existe.');
+    }
+
+    const password_hash = hashPassword(password);
+
+    const stmt = db.prepare(
+        'INSERT INTO users (nome, username, password_hash, role) VALUES (?, ?, ?, ?)'
+    );
+
+    const result = stmt.run(nome, username, password_hash, role);
+    return { success: true, id: result.lastInsertRowid };
+}
+
+function updateUser(user) {
+    const { id, nome, username, password, role } = user;
+
+    // Check if username is taken by another user
+    const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, id);
+    if (existing) {
+        throw new Error('Nome de usuário já existe.');
+    }
+
+    if (password && password.trim() !== '') {
+        // Update with new password
+        const password_hash = hashPassword(password);
+        const stmt = db.prepare(
+            'UPDATE users SET nome = ?, username = ?, password_hash = ?, role = ? WHERE id = ?'
+        );
+        stmt.run(nome, username, password_hash, role, id);
+    } else {
+        // Update without changing password
+        const stmt = db.prepare(
+            'UPDATE users SET nome = ?, username = ?, role = ? WHERE id = ?'
+        );
+        stmt.run(nome, username, role, id);
+    }
+
+    return { success: true };
+}
+
+function deleteUser(id) {
+    // Prevent deleting the last admin? Not strictly required but good practice.
+    // For now, simple delete.
+    const result = db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    return { success: result.changes > 0 };
+}
+
+module.exports = {
+    get db() { return db; },
+    initDb,
     getServicosParaPagamentos,
     getServicoComPagamentos,
     adicionarPagamento,
@@ -888,7 +882,12 @@ module.exports = {
     addReceitaAvulsa,
     getDespesas,
     deleteDespesa,
+    updateDespesa,
     getReceitasAvulsas,
     deleteReceitaAvulsa,
-    confirmarPagamento
+    confirmarPagamento,
+    getUsers,
+    addUser,
+    updateUser,
+    deleteUser
 };

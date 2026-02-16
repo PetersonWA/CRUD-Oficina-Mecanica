@@ -1,9 +1,65 @@
+// Definições de função no escopo global para melhor testabilidade
+let accountsMap = new Map();
+let accountsHierarchy = new Map();
+let currentDespesas = [];
+let currentPage = 1;
+const ITENS_PER_PAGE = 10;
+
+function getRootParentId(accountId) {
+    if (!accountsMap.has(accountId)) return null;
+    let current = accountsMap.get(accountId);
+    while (current.id_pai !== null) {
+        if (!accountsMap.has(current.id_pai)) return null;
+        current = accountsMap.get(current.id_pai);
+    }
+    return current.id;
+}
+
+function _renderTableRowsSeguro(items, tableBody, formatarValor, handleExcluirDespesa, handleEditarDespesa) {
+    tableBody.innerHTML = '';
+    if (items.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum lançamento encontrado.</td></tr>';
+        return;
+    }
+    items.forEach(d => {
+        const tr = tableBody.insertRow();
+        tr.insertCell(0).textContent = d.nome_conta;
+        tr.insertCell(1).textContent = d.anotacao || '';
+        tr.insertCell(2).textContent = formatarValor(d.valor);
+        tr.insertCell(3).textContent = d.data_competencia ? new Date(d.data_competencia + 'T00:00:00').toLocaleDateString() : '';
+        tr.insertCell(4).textContent = d.data_liquidacao ? new Date(d.data_liquidacao + 'T00:00:00').toLocaleDateString() : 'Pendente';
+        const actionsCell = tr.insertCell(5);
+        actionsCell.className = "d-flex gap-2";
+        actionsCell.innerHTML = `
+            <button class="btn btn-warning btn-sm btn-editar-despesa" data-id="${d.id}" title="Editar / Dar Baixa">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm btn-excluir-despesa" data-id="${d.id}" title="Excluir">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+    });
+    document.querySelectorAll('.btn-excluir-despesa').forEach(btn => {
+        btn.addEventListener('click', handleExcluirDespesa);
+    });
+    document.querySelectorAll('.btn-editar-despesa').forEach(btn => {
+        btn.addEventListener('click', handleEditarDespesa);
+    });
+}
+
+if (typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+}
+window.testHooks.renderizarDespesas = _renderTableRowsSeguro;
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const forms = {
         deducoes: document.getElementById('form-deducoes'),
         custos: document.getElementById('form-custos'),
         despesas: document.getElementById('form-despesas'),
     };
+    if (!forms.deducoes) return; // Sai se não estiver na página certa
 
     const filtroDataInicio = document.getElementById('data-inicio-filtro');
     const filtroDataFim = document.getElementById('data-fim-filtro');
@@ -13,35 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnGerarRelatorio = document.getElementById('btn-gerar-relatorio-despesas');
     const despesasTableBody = document.getElementById('despesas-table-body');
 
-    let currentDespesas = []; // Para armazenar os dados atuais para o relatório
-
-    // Mapeia os IDs dos pais das categorias principais
     const CATEGORY_PARENTS = {
         deducoes: 2,
         custos: 3,
         despesas: 4,
     };
 
-    let accountsMap = new Map();
-    let accountsHierarchy = new Map();
-
-    // Função para encontrar a raiz de uma conta (2, 3 ou 4)
-    function getRootParentId(accountId) {
-        if (!accountsMap.has(accountId)) return null;
-        
-        let current = accountsMap.get(accountId);
-        while (current.id_pai !== null) {
-            if (!accountsMap.has(current.id_pai)) return null;
-            current = accountsMap.get(current.id_pai);
-        }
-        return current.id;
-    }
-
     async function inicializar() {
         try {
             const planoContas = await window.api.getPlanoContas();
             accountsMap = new Map(planoContas.map(acc => [acc.id, acc]));
-            
+
             planoContas.forEach(conta => {
                 const rootId = getRootParentId(conta.id);
                 if (!accountsHierarchy.has(rootId)) {
@@ -54,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
             verificarDespesaPreenchida();
             await carregarDespesas();
 
-            // Listeners para todas as checkboxes de recorrência
             for (const formId in forms) {
                 const checkRecorrencia = document.getElementById(`repetir-${formId}-check`);
                 const opcoesRecorrencia = document.getElementById(`opcoes-recorrencia-${formId}`);
@@ -78,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (select) {
                 select.innerHTML = '<option value="">Selecione o tipo...</option>';
                 const contasDaCategoria = accountsHierarchy.get(parentId) || [];
-                
+
                 contasDaCategoria.forEach(conta => {
                     if (conta.id !== parentId) {
                         const option = document.createElement('option');
@@ -97,16 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = JSON.parse(despesaPreenchida);
                 const formId = 'custos';
-
                 document.getElementById(`valor-${formId}`).value = data.valor;
                 document.getElementById(`anotacao-${formId}`).value = data.anotacao;
                 document.getElementById(`planoContas-${formId}`).value = data.id_plano_contas;
-
                 const collapseElement = document.getElementById('collapse-custos');
                 if (collapseElement) {
                     new bootstrap.Collapse(collapseElement).show();
                 }
-                
                 showAlert('Preencha as datas e salve o custo da peça.', 'info');
                 sessionStorage.removeItem('despesaPreenchida');
             } catch (e) {
@@ -117,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleFormSubmit(e, formId) {
         e.preventDefault();
-
         const checkRecorrencia = document.getElementById(`repetir-${formId}-check`);
         const isRecurring = checkRecorrencia ? checkRecorrencia.checked : false;
 
@@ -130,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
             id_plano_contas: parseInt(document.getElementById(`planoContas-${formId}`).value),
         };
 
-        // Garante que uma data de liquidação vazia seja salva como NULL
         if (baseDespesa.data_liquidacao === '') {
             baseDespesa.data_liquidacao = null;
         }
@@ -146,28 +178,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert('O número de meses a repetir deve ser maior que zero.', 'warning');
                 return;
             }
-
             const promises = [];
             for (let i = 0; i < numMeses; i++) {
                 const despesaMensal = { ...baseDespesa };
-
                 const dataCompetencia = new Date(baseDespesa.data_competencia + 'T00:00:00');
                 dataCompetencia.setMonth(dataCompetencia.getMonth() + i);
                 despesaMensal.data_competencia = dataCompetencia.toISOString().split('T')[0];
-
                 if (baseDespesa.data_vencimento) {
                     const dataVencimento = new Date(baseDespesa.data_vencimento + 'T00:00:00');
                     dataVencimento.setMonth(dataVencimento.getMonth() + i);
                     despesaMensal.data_vencimento = dataVencimento.toISOString().split('T')[0];
                 }
-                
                 if (i > 0) {
                     despesaMensal.data_liquidacao = null;
                 }
-
                 promises.push(window.api.addDespesa(despesaMensal));
             }
-
             try {
                 const results = await Promise.all(promises);
                 const successCount = results.filter(r => r.success).length;
@@ -180,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Erro ao salvar despesas recorrentes:', error);
                 showAlert('Falha ao salvar os lançamentos recorrentes.', 'danger');
             }
-
         } else {
             await salvarDespesa(baseDespesa, formId);
         }
@@ -192,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 showAlert('✅ Lançamento salvo com sucesso!', 'success');
                 forms[formId].reset();
-                await carregarDespesas(); // Atualiza a lista
+                await carregarDespesas();
             } else {
                 throw new Error(result.error || 'Erro desconhecido ao salvar.');
             }
@@ -202,61 +227,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LÓGICA DE PAGINAÇÃO ---
-    let currentPage = 1;
-    const ITENS_PER_PAGE = 10;
-
-    function renderTableRows(items) {
-        despesasTableBody.innerHTML = '';
-        if (items.length === 0) {
-            despesasTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum lançamento encontrado.</td></tr>';
-            return;
-        }
-        items.forEach(d => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${d.nome_conta}</td>
-                <td>${d.anotacao || ''}</td>
-                <td>${formatarValor(d.valor)}</td>
-                <td>${d.data_competencia ? new Date(d.data_competencia + 'T00:00:00').toLocaleDateString() : ''}</td>
-                <td>${d.data_liquidacao ? new Date(d.data_liquidacao + 'T00:00:00').toLocaleDateString() : 'Pendente'}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm btn-excluir-despesa" data-id="${d.id}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            `;
-            despesasTableBody.appendChild(tr);
-        });
-        document.querySelectorAll('.btn-excluir-despesa').forEach(btn => {
-            btn.addEventListener('click', handleExcluirDespesa);
-        });
-    }
-
     function setupPagination(items, wrapper) {
         wrapper.innerHTML = '';
         const pageCount = Math.ceil(items.length / ITENS_PER_PAGE);
-
         for (let i = 1; i <= pageCount; i++) {
             const li = document.createElement('li');
             li.classList.add('page-item');
-            if (i === currentPage) {
-                li.classList.add('active');
-            }
+            if (i === currentPage) li.classList.add('active');
             const a = document.createElement('a');
             a.classList.add('page-link');
             a.href = '#';
             a.innerText = i;
-            
             a.addEventListener('click', (e) => {
                 e.preventDefault();
                 currentPage = i;
                 displayPage(items);
-                
                 document.querySelectorAll('#pagination-controls .page-item').forEach(item => item.classList.remove('active'));
                 li.classList.add('active');
             });
-
             li.appendChild(a);
             wrapper.appendChild(li);
         }
@@ -266,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const startIndex = (currentPage - 1) * ITENS_PER_PAGE;
         const endIndex = startIndex + ITENS_PER_PAGE;
         const paginatedItems = items.slice(startIndex, endIndex);
-        renderTableRows(paginatedItems);
+        _renderTableRowsSeguro(paginatedItems, despesasTableBody, formatarValor, handleExcluirDespesa, handleEditarDespesa);
     }
 
     async function carregarDespesas(filtros = {}) {
@@ -274,14 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const despesas = await window.api.getDespesas(filtros);
             currentDespesas = despesas;
             currentPage = 1;
-
             displayPage(currentDespesas);
             const paginationWrapper = document.getElementById('pagination-controls');
             setupPagination(currentDespesas, paginationWrapper);
-
-            // Atualiza a contagem de itens
             document.getElementById('item-count').innerText = `${currentDespesas.length} itens`;
-
         } catch (error) {
             console.error("Erro ao carregar despesas:", error);
             showAlert('Falha ao carregar histórico de despesas.', 'danger');
@@ -292,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleExcluirDespesa(e) {
         const id = e.currentTarget.dataset.id;
-        if (confirm('Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.')) {
+        showConfirm('Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.', async () => {
             try {
                 const result = await window.api.deleteDespesa(id);
                 if (result.success) {
@@ -310,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Erro ao excluir despesa:", error);
                 showAlert('Falha ao excluir o lançamento.', 'danger');
             }
-        }
+        }, 'Confirmar Exclusão');
     }
 
     function handleGerarRelatorio() {
@@ -318,11 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showAlert('Nenhum dado para gerar relatório.', 'warning');
             return;
         }
-
         const dataInicio = filtroDataInicio.value;
         const dataFim = filtroDataFim.value;
         const categoriaTexto = filtroCategoria.options[filtroCategoria.selectedIndex].text;
-
         let period = `Categoria: ${categoriaTexto}`;
         if (dataInicio && dataFim) {
             period += ` de ${new Date(dataInicio + 'T00:00:00').toLocaleDateString()} a ${new Date(dataFim + 'T00:00:00').toLocaleDateString()}`;
@@ -331,9 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (dataFim) {
             period += ` até ${new Date(dataFim + 'T00:00:00').toLocaleDateString()}`;
         }
-
         const total = currentDespesas.reduce((sum, item) => sum + item.valor, 0);
-
         const reportData = {
             title: 'Relatório de Despesas',
             period: period,
@@ -347,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]),
             total: formatarValor(total)
         };
-
         window.api.printRelatorioFinanceiro(reportData);
     }
 
@@ -364,17 +343,90 @@ document.addEventListener('DOMContentLoaded', () => {
         filtroDataInicio.value = '';
         filtroDataFim.value = '';
         filtroCategoria.value = '';
-        carregarDespesas({}); // Carrega todos os dados sem filtro
+        carregarDespesas({});
     });
 
     btnGerarRelatorio.addEventListener('click', handleGerarRelatorio);
 
-    // Adiciona os listeners para cada formulário
     for (const formId in forms) {
         if (forms[formId]) {
             forms[formId].addEventListener('submit', (e) => handleFormSubmit(e, formId));
         }
     }
+
+    const modalEditar = new bootstrap.Modal(document.getElementById('modal-editar-despesa'));
+    const formEditar = document.getElementById('form-editar-despesa');
+    const selectEditPlanoContas = document.getElementById('edit-planoContas');
+
+    function handleEditarDespesa(e) {
+        const id = parseInt(e.currentTarget.dataset.id);
+        const despesa = currentDespesas.find(d => d.id === id);
+
+        if (!despesa) {
+            showAlert('Despesa não encontrada.', 'danger');
+            return;
+        }
+
+        document.getElementById('edit-id').value = despesa.id;
+        document.getElementById('edit-valor').value = despesa.valor;
+        document.getElementById('edit-anotacao').value = despesa.anotacao || '';
+        document.getElementById('edit-dataCompetencia').value = despesa.data_competencia;
+        document.getElementById('edit-dataVencimento').value = despesa.data_vencimento || '';
+        document.getElementById('edit-dataLiquidacao').value = despesa.data_liquidacao || '';
+
+        // Popular o select do modal com TODAS as despesas/custos
+        selectEditPlanoContas.innerHTML = '<option value="">Selecione...</option>';
+        // Flat list de todas as contas que não são receita
+        accountsMap.forEach(conta => {
+            // Basicamente pegar tudo que não é Pai (tem children) e que não seja do grupo RECEITAS (Id 1)
+            // Como a hierarquia está simples no map, podemos filtrar por tipo.
+            if ((conta.tipo === 'Despesa' || conta.tipo === 'Custo') && conta.id_pai !== null) {
+                // Verifica se é "folha" (não tem filhos no map de hierarchy - aproximado)
+                // Mas o `popularPlanoContasDropdowns` usa lógica de ID pai fixo.
+                // Vamos listar todas que são Despesa/Custo.
+                const option = document.createElement('option');
+                option.value = conta.id;
+                option.textContent = conta.nome_conta;
+                selectEditPlanoContas.appendChild(option);
+            }
+        });
+        selectEditPlanoContas.value = despesa.id_plano_contas;
+
+        modalEditar.show();
+    }
+
+    formEditar.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const updatedDespesa = {
+            id: parseInt(document.getElementById('edit-id').value),
+            id_plano_contas: parseInt(selectEditPlanoContas.value),
+            valor: parseFloat(document.getElementById('edit-valor').value),
+            anotacao: document.getElementById('edit-anotacao').value,
+            data_competencia: document.getElementById('edit-dataCompetencia').value,
+            data_vencimento: document.getElementById('edit-dataVencimento').value,
+            data_liquidacao: document.getElementById('edit-dataLiquidacao').value
+        };
+
+        try {
+            const result = await window.api.updateDespesa(updatedDespesa);
+            if (result.success) {
+                showAlert('✅ Despesa atualizada com sucesso!', 'success');
+                modalEditar.hide();
+                const filtrosAtuais = {
+                    dataInicio: filtroDataInicio.value,
+                    dataFim: filtroDataFim.value,
+                    categoriaId: filtroCategoria.value,
+                };
+                await carregarDespesas(filtrosAtuais);
+            } else {
+                throw new Error(result.error || 'Erro ao atualizar.');
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar despesa:', error);
+            showAlert('Falha ao atualizar despesa: ' + error.message, 'danger');
+        }
+    });
 
     inicializar();
 });

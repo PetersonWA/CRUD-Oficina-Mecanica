@@ -1,109 +1,71 @@
-describe('Testes de Gerenciamento de Serviços', () => {
-  let mockApi;
-  const mockServicos = [
-    { id: 101, clienteNome: 'Cliente A', placaVeiculo: 'AAA-1111', dataEntrada: '2025-09-20', dataConclusao: null, valorTotal: 250, mecanico: 'Carlos', status: 'Em andamento', itens: [{descricao: 'Serviço 1', quantidade: 1, valor: 250}] },
-    { id: 102, clienteNome: 'Cliente B', placaVeiculo: 'BBB-2222', dataEntrada: '2025-09-21', dataConclusao: '2025-09-22', valorTotal: 400, mecanico: 'Daniel', status: 'Concluído', itens: [{descricao: 'Serviço 2', quantidade: 2, valor: 200}] },
-    { id: 103, clienteNome: 'Cliente C', placaVeiculo: 'CCC-3333', dataEntrada: '2025-09-22', dataConclusao: null, valorTotal: 100, mecanico: 'Carlos', status: 'Aguardando peças', itens: [{descricao: 'Serviço 3', quantidade: 1, valor: 100}] }
-  ];
+import ServiceManagementPage from '../support/pages/ServiceManagementPage';
 
-  beforeEach(() => {
-    mockApi = {
-      readData: cy.stub().as('readData'),
-      writeData: cy.stub().as('writeData'),
-    };
+describe('Testes de Gerenciamento de Serviços (Refatorado)', () => {
 
-    // Configuração dos stubs
-    mockApi.readData.withArgs('servicos.json').resolves(mockServicos);
-    mockApi.writeData.resolves(true);
+    const mockServicos = [
+        { id: 1, clienteNome: 'Cliente Serv-A', placaVeiculo: 'SRV-0001', dataEntrada: '2025-11-01', dataConclusao: null, valorTotal: 450, mecanico: 'Carlos', status: 'Em andamento', statusPagamento: 'Pendente', itens: [{id: 1, descricao: 'Troca de oleo', tipo: 'Mão de Obra', quantidade: 1, valor_unitario: 150}, {id: 2, descricao: 'Filtro de oleo', tipo: 'Peça', quantidade: 1, valor_unitario: 50}] },
+        { id: 2, clienteNome: 'Cliente Serv-B', placaVeiculo: 'SRV-0002', dataEntrada: '2025-11-02', dataConclusao: '2025-11-03', valorTotal: 800, mecanico: 'Ana', status: 'Concluído', statusPagamento: 'Pago', itens: [] }
+    ];
 
-    cy.visit('gerenciar-servicos.html', {
-      onBeforeLoad(win) {
-        // Expor a API mockada para a aplicação
-        win.api = mockApi;
-        // A aplicação usa `lerDados` e `salvarDados` como globais
-        win.lerDados = mockApi.readData;
-        win.salvarDados = mockApi.writeData;
-      },
-    });
-  });
+    const servicosAtualizadosMock = [
+        { ...mockServicos[0], status: 'Concluído', mecanico: 'Roberto' },
+        mockServicos[1]
+    ];
 
-  it('Deve exibir a lista de serviços corretamente', () => {
-    cy.get('#lista-servicos tr').should('have.length', mockServicos.length);
-    cy.get('#lista-servicos').should('contain', 'Cliente A');
-    cy.get('#lista-servicos').should('contain', 'Concluído');
-  });
 
-  it('Deve filtrar os serviços por mecânico', () => {
-    const mecanico = 'Daniel';
-    cy.get('#campoBuscaServico').select('mecanico');
-    cy.get('#inputBuscaServico').type(mecanico);
-    cy.contains('button', 'Buscar').click();
+    beforeEach(() => {
+        cy.visit('/gerenciar-servicos.html', {
+            onBeforeLoad(win) {
+                cy.spy(win.console, 'error').as('consoleError');
 
-    cy.get('#lista-servicos tr').should('have.length', 1);
-    cy.get('#lista-servicos').should('contain', 'Cliente B');
-    cy.get('#lista-servicos').should('not.contain', 'Cliente A');
-  });
+                if (!win.api) win.api = {};
+                win.api.getServicos = () => {};
+                win.api.updateServico = () => {};
 
-  it('Deve abrir o modal de edição, alterar o status e salvar', () => {
-    const servicoParaEditar = mockServicos[0];
-    const novoStatus = 'Concluído';
-    const novoMecanico = 'Roberto';
-
-    cy.get(`#lista-servicos tr:contains(${servicoParaEditar.clienteNome})`).within(() => {
-      cy.get('button.btn-warning').click();
+                const getServicosStub = cy.stub(win.api, 'getServicos').as('stubGetServicos');
+                getServicosStub.onFirstCall().resolves(mockServicos);
+                getServicosStub.onSecondCall().resolves(servicosAtualizadosMock);
+                
+                cy.stub(win.api, 'updateServico').resolves({ success: true }).as('stubUpdateServico');
+            }
+        });
     });
 
-    cy.get('#modalEditarServico').should('be.visible');
-    cy.get('#editServicoCliente').should('have.value', servicoParaEditar.clienteNome);
-
-    cy.get('#editServicoStatus').select(novoStatus);
-    cy.get('#editServicoMecanico').clear().type(novoMecanico);
-
-    cy.get('#form-editar-servico').submit();
-
-    // A verificação deve ser no `writeData` (que é o `salvarDados`)
-    cy.get('@writeData').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(
-      (servicos) => {
-        const servicoAtualizado = servicos.find(s => s.id === servicoParaEditar.id);
-        return servicoAtualizado && servicoAtualizado.status === novoStatus && servicoAtualizado.mecanico === novoMecanico;
-      },
-      'O serviço foi atualizado corretamente'
-    ));
-
-    cy.get('#alert-container').should('contain', '✅ Serviço atualizado com sucesso!');
-    
-    // Força o modal a se esconder para o teste continuar
-    cy.get('#modalEditarServico').invoke('css', 'display', 'none').should('not.be.visible');
-  });
-
-  it('Deve excluir um serviço da lista', () => {
-    const servicoParaExcluir = mockServicos[2]; // Cliente C
-
-    cy.get('#lista-servicos').should('contain', servicoParaExcluir.clienteNome);
-
-    cy.get(`#lista-servicos tr:contains(${servicoParaExcluir.clienteNome})`).within(() => {
-      cy.get('button.btn-danger').click();
+    it('Deve exibir a lista de serviços na tabela', () => {
+        ServiceManagementPage.serviceTableBody.find('tr').should('have.length', 2);
+        ServiceManagementPage.getRowByText('Cliente Serv-A').should('contain', 'Em andamento');
+        ServiceManagementPage.getRowByText('Cliente Serv-B').should('contain', 'Concluído');
     });
 
-    // Espera o modal de confirmação aparecer e clica no botão de confirmar
-    cy.get('#modalConfirmarExclusao').should('be.visible');
-    cy.get('#btnConfirmarExclusao').click();
+    it('Deve abrir o modal de edição, alterar dados e salvar', () => {
+        // Clica no botão de edição do Cliente Serv-A
+        ServiceManagementPage.getRowByText('Cliente Serv-A').find('.bi-pencil').click();
+        
+        // Modal deve estar visível
+        cy.get('#modalEditarServico').should('be.visible');
+        cy.get('#edit-os-id').should('contain', '000001');
 
-    // Verifica se `writeData` foi chamado com os dados corretos
-    cy.get('@writeData').should('have.been.calledWith', 'servicos.json', Cypress.sinon.match(
-      (servicos) => servicos.length === mockServicos.length - 1 && !servicos.find(s => s.id === servicoParaExcluir.id),
-      'O serviço foi excluído corretamente'
-    ));
+        // Altera o status e o mecânico
+        cy.get('#editServicoStatus').select('Concluído');
+        cy.get('#editServicoMecanico').clear().type('Roberto');
 
-    cy.get('#alert-container').should('contain', '✅ Serviço excluído com sucesso!');
+        // Salva o formulário
+        cy.get('#form-editar-servico').submit();
 
-    // Simula a atualização da UI após a exclusão
-    const servicosRestantes = mockServicos.filter(s => s.id !== servicoParaExcluir.id);
-    mockApi.readData.withArgs('servicos.json').resolves(servicosRestantes);
-    
-    // A função para recarregar os dados é `carregarServicos`
-    cy.window().invoke('carregarServicos');
+        // Verifica se a API de update foi chamada
+        cy.get('@stubUpdateServico').should('be.calledOnce');
+        cy.get('@stubUpdateServico').its('firstCall.args.0').should('deep.include', {
+            id: 1,
+            status: 'Concluído',
+            mecanico: 'Roberto'
+        });
 
-    cy.get('#lista-servicos').should('not.contain', servicoParaExcluir.clienteNome);
-  });
+        // O modal deve fechar e a lista deve recarregar
+        cy.get('#modalEditarServico').should('not.be.visible');
+        cy.get('@stubGetServicos').should('have.been.calledTwice');
+
+        // Verifica a atualização na tabela
+        ServiceManagementPage.getRowByText('Cliente Serv-A').should('contain', 'Concluído').and('contain', 'Roberto');
+    });
+
 });

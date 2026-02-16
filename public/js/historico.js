@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
             cliente: document.getElementById('filtro-cliente').value,
             veiculo: document.getElementById('filtro-veiculo').value,
             status: document.getElementById('filtro-status').value,
-            tipoData: document.getElementById('filtro-tipo-data').value
+            tipoData: document.getElementById('filtro-tipo-data').value,
+            mecanico: document.getElementById('filtro-mecanico').value,
+            pagamento: document.getElementById('filtro-pagamento').value
         };
 
         try {
@@ -31,15 +33,39 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             allServices = servicesData;
-            atualizarDashboard(dashboardData.kpis, dashboardData.charts);
+            popularMecanicos(allServices); // Dynamically populate mechanics
+            atualizarDashboard(dashboardData.kpis, dashboardData.charts, filtros);
             filtrarServicosLocalmente();
 
         } catch (error) {
             console.error("Erro ao carregar dados do dashboard:", error);
-            // Assuming showAlert is defined globally or in another script
-            // showAlert("Falha ao carregar dados do dashboard. Verifique o console.", "danger");
         } finally {
             spinner.classList.add('d-none');
+        }
+    }
+
+    function popularMecanicos(services) {
+        const select = document.getElementById('filtro-mecanico');
+        const currentValue = select.value;
+        const mecanicos = new Set();
+
+        services.forEach(s => {
+            if (s.mecanico) mecanicos.add(s.mecanico);
+        });
+
+        // Keep 'Todos mecânicos' option
+        select.innerHTML = '<option value="">Todos mecânicos</option>';
+
+        Array.from(mecanicos).sort().forEach(m => {
+            const option = document.createElement('option');
+            option.value = m;
+            option.textContent = m;
+            select.appendChild(option);
+        });
+
+        // Restore selection if possible
+        if (currentValue && mecanicos.has(currentValue)) {
+            select.value = currentValue;
         }
     }
 
@@ -47,15 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroCliente = document.getElementById('filtro-cliente').value.toLowerCase();
         const filtroVeiculo = document.getElementById('filtro-veiculo').value.toLowerCase();
         const filtroStatus = document.getElementById('filtro-status').value;
+        const filtroMecanico = document.getElementById('filtro-mecanico').value;
+        const filtroPagamento = document.getElementById('filtro-pagamento').value;
         const filtroDataInicio = document.getElementById('filtro-data-inicio').value;
         const filtroDataFim = document.getElementById('filtro-data-fim').value;
-        const tipoData = document.getElementById('filtro-tipo-data').value; // New
+        const tipoData = document.getElementById('filtro-tipo-data').value;
 
         currentFilteredServices = allServices.filter(service => {
             const matchCliente = !filtroCliente || (service.clienteNome && service.clienteNome.toLowerCase().includes(filtroCliente));
             const matchVeiculo = !filtroVeiculo || (service.placaVeiculo && service.placaVeiculo.toLowerCase().includes(filtroVeiculo));
             const matchStatus = !filtroStatus || service.status === filtroStatus;
-            
+            const matchMecanico = !filtroMecanico || service.mecanico === filtroMecanico;
+            const matchPagamento = !filtroPagamento || service.forma_pagamento === filtroPagamento;
+
             const dataCampo = tipoData === 'data_conclusao' ? service.dataConclusao : service.dataEntrada;
             if (!dataCampo) return false; // If the required date field is null, filter it out
 
@@ -63,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchDataInicio = !filtroDataInicio || dataServico >= new Date(filtroDataInicio + 'T00:00:00');
             const matchDataFim = !filtroDataFim || dataServico <= new Date(filtroDataFim + 'T00:00:00');
 
-            return matchCliente && matchVeiculo && matchStatus && matchDataInicio && matchDataFim;
+            return matchCliente && matchVeiculo && matchStatus && matchDataInicio && matchDataFim && matchMecanico && matchPagamento;
         });
 
         document.getElementById('contador-servicos').textContent = `${currentFilteredServices.length} serviços`;
@@ -145,20 +175,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function atualizarDashboard(kpis, charts) {
-        atualizarKpis(kpis);
+    function atualizarDashboard(kpis, charts, filtros) {
+        atualizarKpis(kpis, filtros);
         renderDreChart(charts.dreChart);
         renderDfcChart(charts.dfcChart);
         renderProjectedCashFlowChart(charts.projectedCashFlowChart);
     }
 
-    function atualizarKpis(kpis) {
+    function atualizarKpis(kpis, filtros) {
         document.getElementById("kpi-lucro-liquido").textContent = `R$ ${formatarValor(kpis.lucroLiquido)}`;
         document.getElementById("kpi-caixa-gerado").textContent = `R$ ${formatarValor(kpis.caixaGerado)}`;
         document.getElementById("kpi-ticket-medio").textContent = `R$ ${formatarValor(kpis.ticketMedio)}`;
         document.getElementById("kpi-ponto-equilibrio").textContent = `R$ ${formatarValor(kpis.pontoEquilibrio)}`;
-        document.getElementById("kpi-contas-a-receber").textContent = `R$ ${formatarValor(kpis.contasAReceber)}`;
-        document.getElementById("kpi-contas-a-pagar").textContent = `R$ ${formatarValor(kpis.contasAPagar)}`;
+
+        // Hide/Show Future KPIs based on date filter
+        const isHistory = filtros && filtros.dataFim && new Date(filtros.dataFim) < new Date(new Date().setHours(0, 0, 0, 0));
+
+        const cardAReceber = document.getElementById("kpi-contas-a-receber").closest('.col-lg-4');
+        const cardAPagar = document.getElementById("kpi-contas-a-pagar").closest('.col-lg-4');
+        const chartProjecao = document.getElementById("projectedCashFlowChart").closest('.chart-container').parentElement;
+
+        if (isHistory) {
+            cardAReceber.style.display = 'none';
+            cardAPagar.style.display = 'none';
+            chartProjecao.style.display = 'none';
+        } else {
+            cardAReceber.style.display = 'block';
+            document.getElementById("kpi-contas-a-receber").textContent = `R$ ${formatarValor(kpis.contasAReceber)}`;
+            cardAPagar.style.display = 'block';
+            document.getElementById("kpi-contas-a-pagar").textContent = `R$ ${formatarValor(kpis.contasAPagar)}`;
+            chartProjecao.style.display = 'block';
+        }
     }
 
     function renderDreChart(chartData) {
@@ -206,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dfcChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartData.labels,
+                labels: chartData.labels.map(dateStr => window.formatDateForDisplay(dateStr)),
                 datasets: [
                     {
                         label: 'Entradas',
@@ -240,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectedCashFlowChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: chartData.labels,
+                labels: chartData.labels.map(dateStr => window.formatDateForDisplay(dateStr)),
                 datasets: [
                     {
                         label: 'Contas a Receber',
@@ -283,17 +330,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const kpiContasAReceber = document.getElementById("kpi-contas-a-receber").textContent;
         const kpiContasAPagar = document.getElementById("kpi-contas-a-pagar").textContent;
 
-        const dataInicio = document.getElementById("filtro-data-inicio").value || 'N/A';
-        const dataFim = document.getElementById("filtro-data-fim").value || 'N/A';
-        const totalServicos = currentFilteredServices.length;
+        let dataInicioStr = document.getElementById("filtro-data-inicio").value;
+        let dataFimStr = document.getElementById("filtro-data-fim").value;
 
+        const dataInicioFormatada = window.formatDateForDisplay(dataInicioStr) || 'N/A';
+        const dataFimFormatada = window.formatDateForDisplay(dataFimStr) || 'N/A';
+
+        const totalServicos = currentFilteredServices.length;
         const servicosConcluidos = currentFilteredServices.filter(s => s.status === 'Concluído').length;
         const servicosPagos = currentFilteredServices.filter(s => s.statusPagamento === 'Pago').length;
 
         let relatorio = `
 ## Relatório de Análise de Desempenho
 
-**Período de Análise:** de ${dataInicio} a ${dataFim}
+**Período de Análise:** de ${dataInicioFormatada} a ${dataFimFormatada}
 **Total de Serviços no Período:** ${totalServicos}
 
 ---
@@ -330,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         atualizarDashboardCompleto();
     });
-    
+
     document.getElementById('btn-limpar-filtros').addEventListener('click', (e) => {
         e.preventDefault();
         limparFiltros();
@@ -339,6 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filtro-data-inicio').addEventListener('change', atualizarDashboardCompleto);
     document.getElementById('filtro-data-fim').addEventListener('change', atualizarDashboardCompleto);
     document.getElementById('filtro-tipo-data').addEventListener('change', atualizarDashboardCompleto);
+    document.getElementById('filtro-mecanico').addEventListener('change', atualizarDashboardCompleto);
+    document.getElementById('filtro-pagamento').addEventListener('change', atualizarDashboardCompleto);
     document.querySelectorAll('input[name="groupBy"]').forEach(radio => {
         radio.addEventListener('change', atualizarDashboardCompleto);
     });
@@ -355,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.collapse-chart-btn').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const targetCanvasId = this.dataset.targetCanvas;
             const canvas = document.getElementById(targetCanvasId);
             const icon = this.querySelector('i');

@@ -1,3 +1,76 @@
+function adicionarItem() {
+    const elements = {
+        itensBody: document.getElementById('itens-os-body'),
+    };
+    if(!elements.itensBody) return;
+
+    const row = elements.itensBody.insertRow();
+    row.className = 'item-row';
+
+    const cellTipo = row.insertCell(0);
+    cellTipo.innerHTML = `
+        <select class="form-select form-select-sm" name="tipo">
+            <option value="Peça">Peça</option>
+            <option value="Mão de Obra">Mão de Obra</option>
+        </select>
+    `;
+
+    const cellDesc = row.insertCell(1);
+    const inputDesc = document.createElement('input');
+    inputDesc.type = 'text';
+    inputDesc.className = 'form-control form-control-sm';
+    inputDesc.name = 'descricao';
+    inputDesc.placeholder = 'Descrição do serviço ou peça';
+    cellDesc.appendChild(inputDesc);
+
+    const cellQtd = row.insertCell(2);
+    const inputQtd = document.createElement('input');
+    inputQtd.type = 'number';
+    inputQtd.className = 'form-control form-control-sm';
+    inputQtd.value = '1';
+    inputQtd.min = '1';
+    inputQtd.name = 'quantidade';
+    cellQtd.appendChild(inputQtd);
+
+    const cellValor = row.insertCell(3);
+    const inputValor = document.createElement('input');
+    inputValor.type = 'text';
+    inputValor.className = 'form-control form-control-sm';
+    inputValor.placeholder = 'R$ 0,00';
+    inputValor.name = 'valor';
+    cellValor.appendChild(inputValor);
+
+    const cellAcoes = row.insertCell(4);
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.className = 'btn btn-danger btn-sm';
+    btnRemover.innerHTML = '<i class="bi bi-trash"></i>';
+    btnRemover.addEventListener('click', () => removerItem(btnRemover));
+    cellAcoes.appendChild(btnRemover);
+    
+    // Adiciona ouvintes de evento para a nova linha
+    inputValor.addEventListener('input', (e) => {
+        maskCurrency(e.target);
+        calcularTotal();
+    });
+    inputQtd.addEventListener('input', calcularTotal);
+    inputDesc.addEventListener('input', calcularTotal);
+}
+
+if(typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+}
+window.testHooks.adicionarItemOsManual = adicionarItem;
+
+
+window.adicionarItem = adicionarItem;
+
+if(typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+}
+window.testHooks.adicionarItemOsManual = adicionarItem;
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('os-manual-form');
     if (!form) return;
@@ -13,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Funções globais para botões no HTML
-    window.adicionarItem = adicionarItem;
     window.removerItem = removerItem;
 
     function inicializar() {
@@ -24,31 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function vincularEventos() {
         form.addEventListener('submit', salvarServico);
         elements.descontoInput.addEventListener('input', calcularTotal);
-    }
-
-    function adicionarItem() {
-        const row = document.createElement('tr');
-        row.className = 'item-row';
-        row.innerHTML = `
-            <td>
-                <select class="form-select form-select-sm" name="tipo">
-                    <option value="Peça">Peça</option>
-                    <option value="Mão de Obra">Mão de Obra</option>
-                </select>
-            </td>
-            <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição do serviço ou peça"></td>
-            <td><input type="number" class="form-control form-control-sm" value="1" min="1" name="quantidade"></td>
-            <td><input type="text" class="form-control form-control-sm" placeholder="R$ 0,00" name="valor"></td>
-            <td><button type="button" class="btn btn-danger btn-sm" onclick="removerItem(this)"><i class="bi bi-trash"></i></button></td>
-        `;
-        elements.itensBody.appendChild(row);
-        // Adiciona ouvintes de evento para a nova linha
-        row.querySelector('[name=valor]').addEventListener('input', (e) => {
-            maskCurrency(e.target); // Assumindo que maskCurrency está em utils.js ou global
-            calcularTotal();
-        });
-        row.querySelector('[name=quantidade]').addEventListener('input', calcularTotal);
-        row.querySelector('[name=descricao]').addEventListener('input', calcularTotal);
     }
 
     function removerItem(button) {

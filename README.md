@@ -44,6 +44,14 @@ A página "Histórico" é um dashboard interativo para análise de performance, 
 - **Fluxo de Caixa Projetado:** Um "farol alto" que mostra as contas a pagar e a receber já compromissadas para os próximos 30 dias, permitindo antecipar necessidades de caixa.
 - **Gráfico "Top 10":** Análise de performance que pode ser alternada para exibir os itens mais rentáveis, os clientes que mais compram ou os mecânicos mais produtivos.
 
+### 🔒 Segurança e Controle de Acesso
+- **Autenticação Segura:** Login com senhas criptografadas (PBKDF2).
+- **Perfis de Acesso (RBAC):**
+  - **Admin:** Controle total do sistema.
+  - **Financeiro:** Gestão de fluxo de caixa, pagamentos e clientes.
+  - **Mecânico:** Foco em ordens de serviço e orçamentos, sem visualização de dados financeiros sensíveis.
+- **Gestão de Usuários:** Interface para administradores cadastrarem sua equipe e definirem permissões.
+
 ### ⚙️ Arquitetura e Configurações
 - **Banco de Dados SQLite:** Todos os dados são armazenados localmente (`oficina.db`), garantindo performance e integridade.
 - **Persistência de Dados:** O banco de dados e as imagens (logo, assinatura) são salvos de forma segura na pasta de dados do usuário (`%APPDATA%`), garantindo que não se percam em atualizações.
@@ -85,8 +93,15 @@ Siga os passos abaixo para executar o projeto em seu ambiente de desenvolvimento
 3.  **Execute a aplicação em modo de desenvolvimento:**
     Para abrir a aplicação e testar as funcionalidades.
     ```bash
+    ```bash
     npm start
     ```
+
+4.  **Login Inicial:**
+    Ao iniciar o sistema pela primeira vez, use as credenciais padrão de administrador:
+    *   **Usuário:** `admin`
+    *   **Senha:** `admin`
+    *   *Nota: Recomenda-se alterar esta senha ou criar um novo usuário admin imediatamente.*
 
 ### Scripts Disponíveis
 
@@ -105,6 +120,27 @@ Siga os passos abaixo para executar o projeto em seu ambiente de desenvolvimento
     ```bash
     npm run dist
     ```
+
+## 💡 Detalhes Técnicos Notáveis
+
+-   **Sistema de Migração Versionado:** A evolução do esquema do banco de dados é gerenciada por um sistema de migração robusto, utilizando a biblioteca `@blackglory/better-sqlite3-migrations`. As alterações no esquema são definidas em arquivos `.sql` versionados (ex: `001-initial-schema.sql`) dentro da pasta `migrations/`. Na inicialização, a aplicação lê esses arquivos e os aplica sequencialmente, garantindo que a estrutura do banco de dados seja sempre consistente e evolua de forma controlada entre diferentes versões da aplicação.
+
+-   **Arquitetura de Testes E2E com Cypress:** A suíte de testes end-to-end foi reescrita para garantir estabilidade e manutenibilidade. A arquitetura se baseia em:
+    1.  **Page Object Model (POM):** Para abstrair seletores e ações, tornando os testes mais legíveis.
+    2.  **Stubs de Duas Fases:** A API do Electron (`window.api`) é simulada no hook `onBeforeLoad`, enquanto funções da UI (como modais) são simuladas com `cy.window().then(...)` para evitar condições de corrida. Isso cria um ambiente de teste isolado e determinístico.
+    *Nota: Um bug na funcionalidade de paginação de algumas telas foi identificado e isolado, com os testes focando na lógica de negócio principal.*
+
+-   **Mitigação de Vulnerabilidades XSS:** Para prevenir ataques de Cross-Site Scripting, o uso de `innerHTML` para renderizar dados do usuário foi substituído em toda a aplicação pela manipulação segura do DOM (`document.createElement`, `element.textContent`). Testes unitários específicos em `__tests__/xss.test.js` validam que payloads maliciosos são corretamente sanitizados.
+
+-   **Lógica Financeira de Duplo Regime (Caixa e Competência):** O sistema implementa uma distinção clara entre o Regime de Caixa (focado na `data_liquidacao` dos pagamentos) e o de Competência (focado na `data_competencia` dos eventos). Isso permite a geração de relatórios DRE e DFC precisos, oferecendo uma visão completa da saúde financeira.
+
+-   **Arquitetura de Comunicação Segura (IPC):** A comunicação entre o backend (processo `main`) e o frontend (processo `renderer`) segue as melhores práticas de segurança do Electron. O `preload.js` atua como uma ponte segura (`contextBridge`), expondo apenas uma API específica e controlada, mantendo o `contextIsolation` ativado.
+
+-   **Diagnóstico de Erros em Produção:** O sistema possui um logger de arquivo (`main.log`) que captura e persiste todas as mensagens de console e exceções não tratadas que ocorrem no ambiente do usuário. Isso é crucial para diagnosticar problemas que não são reproduzíveis em desenvolvimento.
+
+-   **Sistema de Arquivamento (Soft Delete):** Nenhuma informação crítica (clientes, veículos, serviços) é excluída permanentemente. Em vez disso, os registros são marcados como arquivados (`is_deleted = 1`) e filtrados em todas as consultas. O sistema fornece uma interface na tela de "Configurações" para gerenciar, restaurar ou excluir permanentemente esses itens.
+
+-   **Inputs de Moeda Flexíveis:** Os campos de valor monetário utilizam `type="text"` para permitir a formatação de máscara em tempo real, melhorando a UX. A conversão para valores numéricos é tratada de forma robusta com funções utilitárias para garantir a integridade dos dados.
 
 ## 👨‍💻 Sobre o Autor
 

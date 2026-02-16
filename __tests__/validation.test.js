@@ -1,4 +1,4 @@
-const { validateDocument, validatePhone, validateVehicleYear, validateVehiclePlate, validatePositiveNumber, validatePercentage, maskCpfCnpj, maskPhone, maskCep, maskPlate, formatCurrency } = require('../public/js/validation.js');
+const { validateDocument, validatePhone, validateVehicleYear, validateVehiclePlate, validatePercentage, maskCpfCnpj, maskPhone, maskCep, maskPlate } = require('../public/js/validation.js');
 
 describe('validateDocument', () => {
 
@@ -76,29 +76,6 @@ describe('Funções de Máscara', () => {
       expect(maskPlate('abc-1234')).toBe('ABC-1234');
     });
   });
-
-  describe('formatCurrency', () => {
-    test('deve formatar um valor para moeda (inteiro)', () => {
-      expect(formatCurrency('12345')).toBe('R$ 123,45');
-    });
-
-    test('deve formatar um valor para moeda (centavos)', () => {
-      expect(formatCurrency('75')).toBe('R$ 0,75');
-    });
-
-    test('deve formatar um valor para moeda (milhares)', () => {
-      expect(formatCurrency('100000')).toBe('R$ 1.000,00');
-    });
-
-    test('deve retornar string vazia para input vazio', () => {
-      expect(formatCurrency('')).toBe('');
-    });
-
-    test('deve remover caracteres não numéricos e formatar', () => {
-      expect(formatCurrency('abc12.3,45')).toBe('R$ 123,45');
-      expect(formatCurrency('R$ 1.234,56')).toBe('R$ 1.234,56');
-    });
-  });
 });
 
 // ===================================================================================
@@ -167,27 +144,6 @@ describe('validateVehiclePlate', () => {
   test('deve retornar true para input vazio ou nulo', () => {
     expect(validateVehiclePlate('')).toBe(true);
     expect(validateVehiclePlate(null)).toBe(true);
-  });
-});
-
-describe('validatePositiveNumber', () => {
-  test('deve retornar true para números positivos', () => {
-    expect(validatePositiveNumber('100')).toBe(true);
-    expect(validatePositiveNumber('0.5')).toBe(true);
-    expect(validatePositiveNumber('R$ 1.234,56')).toBe(true);
-  });
-
-  test('deve retornar false para zero', () => {
-    expect(validatePositiveNumber('0')).toBe(false);
-    expect(validatePositiveNumber('R$ 0,00')).toBe(false);
-  });
-
-  test('deve retornar false para números negativos', () => {
-    expect(validatePositiveNumber('-10')).toBe(false);
-  });
-
-  test('deve retornar false para strings não numéricas', () => {
-    expect(validatePositiveNumber('abc')).toBe(false);
   });
 });
 

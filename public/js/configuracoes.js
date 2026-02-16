@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        
+
         const configData = {
             nomeOficina: document.getElementById('nomeOficina').value,
             endereco: document.getElementById('endereco').value,
@@ -261,4 +261,143 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+    // --- Lógica de Gerenciamento de Usuários ---
+
+    // Elementos
+    const modalUsuarioEl = document.getElementById('modalUsuario');
+    const modalUsuario = new bootstrap.Modal(modalUsuarioEl);
+    const formUsuario = document.getElementById('form-usuario');
+    const listaUsuariosTbody = document.getElementById('lista-usuarios');
+
+    // Funções Globais (para acesso via HTML onclick)
+    window.abrirModalUsuario = (id = null, nome = '', username = '', role = 'mecanico') => {
+        document.getElementById('usuario-id').value = id || '';
+        document.getElementById('usuario-nome').value = nome;
+        document.getElementById('usuario-username').value = username;
+        document.getElementById('usuario-role').value = role;
+        document.getElementById('usuario-senha').value = ''; // Sempre limpo
+        document.getElementById('usuario-senha').placeholder = id ? "Deixe em branco para manter a atual" : "Senha";
+        document.getElementById('usuario-senha').required = !id; // Obrigatório apenas se novo
+
+        document.getElementById('modalUsuarioLabel').textContent = id ? 'Editar Usuário' : 'Novo Usuário';
+        // Reset validation state
+        formUsuario.classList.remove('was-validated');
+    };
+
+    window.salvarUsuario = async () => {
+        if (!formUsuario.checkValidity()) {
+            formUsuario.classList.add('was-validated');
+            return;
+        }
+
+        const id = document.getElementById('usuario-id').value;
+        const usuario = {
+            id: id ? parseInt(id) : null,
+            nome: document.getElementById('usuario-nome').value,
+            username: document.getElementById('usuario-username').value,
+            password: document.getElementById('usuario-senha').value,
+            role: document.getElementById('usuario-role').value
+        };
+
+        try {
+            let result;
+            if (usuario.id) {
+                result = await window.api.updateUser(usuario);
+            } else {
+                result = await window.api.addUser(usuario);
+            }
+
+            if (result.success) {
+                showAlert('✅ Usuário salvo com sucesso!');
+                modalUsuario.hide();
+                carregarUsuarios();
+            } else {
+                alert(`Erro: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar usuário:', error);
+            alert('Erro ao salvar usuário.');
+        }
+    };
+
+    window.excluirUsuario = (id, nome) => {
+        showConfirm(`Tem certeza que deseja excluir o usuário "${nome}"?`, async () => {
+            try {
+                const result = await window.api.deleteUser(id);
+                if (result.success) {
+                    showAlert('🗑️ Usuário excluído.', 'success');
+                    carregarUsuarios();
+                } else {
+                    alert(`Erro: ${result.message}`);
+                }
+            } catch (error) {
+                console.error("Erro ao excluir usuário:", error);
+                alert('Erro ao excluir usuário.');
+            }
+        }, 'Excluir Usuário');
+    };
+
+    async function carregarUsuarios() {
+        try {
+            // Check permission/role first? Backend handles it, but UI acts nice.
+            const currentUser = await window.api.getCurrentUser();
+            if (!currentUser || currentUser.role !== 'admin') {
+                // Should hide tab or show unauthorized message
+                document.getElementById('usuarios-tab').parentElement.style.display = 'none';
+                return;
+            }
+
+            const users = await window.api.getUsers();
+            if (users.length === 0) {
+                listaUsuariosTbody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhum usuário encontrado.</td></tr>';
+                return;
+            }
+
+            const roleMap = {
+                'admin': '<span class="badge bg-danger">Administrador</span>',
+                'financeiro': '<span class="badge bg-warning text-dark">Financeiro</span>',
+                'mecanico': '<span class="badge bg-secondary">Mecânico</span>'
+            };
+
+            // Store in global scope for access
+            window.allUsers = users;
+
+            listaUsuariosTbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.nome}</td>
+                    <td>${u.username}</td>
+                    <td>${roleMap[u.role] || u.role}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" 
+                            onclick="abrirModalUsuarioFromId(${u.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        ${u.role !== 'admin' || users.filter(x => x.role === 'admin').length > 1 ? `
+                        <button class="btn btn-sm btn-danger" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">
+                            <i class="bi bi-trash"></i>
+                        </button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (error) {
+            console.error("Erro ao carregar usuários:", error);
+        }
+    }
+
+    // New helper to avoid inline object passing issues
+    window.abrirModalUsuarioFromId = (id) => {
+        const user = window.allUsers.find(u => u.id === id);
+        if (user) {
+            abrirModalUsuario(user.id, user.nome, user.username, user.role);
+            modalUsuario.show();
+        } else {
+            console.error("Usuário não encontrado para o ID:", id);
+        }
+    };
+
+
+    // Load users initially
+    carregarUsuarios();
+
 });

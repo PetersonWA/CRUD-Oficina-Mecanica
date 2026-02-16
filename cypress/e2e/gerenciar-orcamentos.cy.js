@@ -1,107 +1,142 @@
-describe('Testes de Gerenciamento de Orçamentos', () => {
-  let mockApi;
-  const mockOrcamentos = [
-    { id: 1, clienteNome: 'João da Silva', placaVeiculo: 'ABC-1234', data: '20/09/2025', valor: 150, status: 'Pendente', itens: [{descricao: 'Item 1', quantidade: 1, valor: 150}], problemaRelatado: 'Problema 1' },
-    { id: 2, clienteNome: 'Maria Oliveira', placaVeiculo: 'XYZ-5678', data: '21/09/2025', valor: 300, status: 'Aprovado', itens: [{descricao: 'Item 2', quantidade: 2, valor: 150}], problemaRelatado: 'Problema 2' },
-    { id: 3, clienteNome: 'Pedro Costa', placaVeiculo: 'QWE-9876', data: '22/09/2025', valor: 500, status: 'Pendente', itens: [{descricao: 'Item 3', quantidade: 1, valor: 500}], problemaRelatado: 'Problema 3' }
-  ];
+import BudgetManagementPage from '../support/pages/BudgetManagementPage';
 
-  beforeEach(() => {
-    mockApi = {
-      readData: cy.stub().as('readData'),
-      writeData: cy.stub().as('writeData'),
+describe('Testes de Gerenciamento de Orçamentos (Refatorado)', () => {
+    
+    const initialMockOrcamentos = [
+        { id: 1, clienteNome: 'João da Silva', veiculoPlaca: 'ABC-1234', dataEntrada: '2025-12-25T10:00:00Z', valorTotal: 550.00, status: 'Pendente' },
+        { id: 2, clienteNome: 'Maria Souza', veiculoPlaca: 'XYZ-5678', dataEntrada: '2025-12-26T11:30:00Z', valorTotal: 1200.75, status: 'Aprovado' },
+        { id: 3, clienteNome: 'Carlos Pereira', veiculoPlaca: 'QWE-9101', dataEntrada: '2025-12-27T14:00:00Z', valorTotal: 300.00, status: 'Recusado' }
+    ];
+    const orcamentosAposExclusao = initialMockOrcamentos.filter(o => o.id !== 2);
+    const orcamentoParaEditar = {
+        id: 2,
+        cliente_id: 2,
+        veiculo_id: 2,
+        data_entrada: '2025-12-26T11:30:00Z',
+        descricao_problema: 'Motor falhando em baixa rotação.',
+        status: 'Aprovado',
+        desconto_percentual: 0,
+        valor_total: 1200.75,
+        itens: [
+            { id: 1, descricao: 'Velas de ignição', tipo: 'Peça', quantidade: 4, valor_unitario: 50.00 },
+            { id: 2, descricao: 'mão de obra', tipo: 'Mão de Obra', quantidade: 1, valor_unitario: 300.00 }
+        ]
     };
+    const orcamentosAposEdicao = [
+        { id: 1, clienteNome: 'João da Silva', veiculoPlaca: 'ABC-1234', dataEntrada: '2025-12-25T10:00:00Z', valorTotal: 550.00, status: 'Pendente' },
+        { id: 2, clienteNome: 'Maria Souza', veiculoPlaca: 'XYZ-5678', dataEntrada: '2025-12-26T11:30:00Z', valorTotal: 950.00, status: 'Recusado' }, // Valor atualizado
+        { id: 3, clienteNome: 'Carlos Pereira', veiculoPlaca: 'QWE-9101', dataEntrada: '2025-12-27T14:00:00Z', valorTotal: 300.00, status: 'Recusado' }
+    ];
 
-    mockApi.readData.withArgs('orcamentos.json').resolves(mockOrcamentos);
-    mockApi.writeData.resolves(true);
+    beforeEach(() => {
+        cy.visit('/gerenciar-orcamentos.html', {
+            onBeforeLoad(win) {
+                cy.spy(win.console, 'error').as('consoleError');
+                if (!win.api) win.api = {};
 
-    cy.visit('gerenciar-orcamentos.html', {
-      onBeforeLoad(win) {
-        win.api = mockApi;
-        // A função de confirmação será mockada apenas no teste que a utiliza
-      },
-    });
-  });
-
-  it('Deve exibir a lista de orçamentos', () => {
-    cy.get('#lista-orcamentos tr').should('have.length', mockOrcamentos.length);
-    cy.get('#lista-orcamentos').should('contain', 'João da Silva');
-    cy.get('#lista-orcamentos').should('contain', 'Maria Oliveira');
-  });
-
-  it('Deve filtrar orçamentos por status', () => {
-    const status = 'Aprovado';
-    cy.get('#campoBusca').select('status');
-    cy.get('#inputBusca').type(status);
-    cy.contains('button', 'Buscar').click();
-
-    cy.get('#lista-orcamentos tr').should('have.length', 1);
-    cy.get('#lista-orcamentos').should('contain', 'Maria Oliveira');
-    cy.get('#lista-orcamentos').should('not.contain', 'João da Silva');
-  });
-
-  it('Deve abrir o modal de edição, alterar o status e salvar', () => {
-    const orcamentoParaEditar = mockOrcamentos[0];
-    const novoStatus = 'Recusado';
-
-    // Clica no botão de editar do primeiro orçamento
-    cy.get(`#lista-orcamentos tr:contains(${orcamentoParaEditar.clienteNome})`).within(() => {
-      cy.get('button.btn-primary').click();
+                // Stubs da API
+                cy.stub(win.api, 'getOrcamentos').as('getOrcamentosStub');
+                cy.stub(win.api, 'deleteOrcamento').resolves(true).as('stubDeleteOrcamento');
+                cy.stub(win.api, 'getOrcamentoById').resolves(orcamentoParaEditar).as('stubGetOrcamentoById');
+                cy.stub(win.api, 'updateOrcamento').resolves({ success: true }).as('stubUpdateOrcamento');
+                
+                // Comportamento dos stubs
+                win.api.getOrcamentos.onCall(0).resolves(initialMockOrcamentos);
+                win.api.getOrcamentos.onCall(1).resolves(orcamentosAposExclusao);
+                win.api.getOrcamentos.onCall(2).resolves(orcamentosAposEdicao);
+                win.api.getOrcamentos.onCall(3).resolves(initialMockOrcamentos); // Para o 4º teste
+            }
+        });
     });
 
-    // Modal de edição deve estar visível
-    cy.get('#modalEditarOrcamento').should('be.visible');
-    cy.get('#editClienteNome').should('have.value', orcamentoParaEditar.clienteNome);
-
-    // Altera o status
-    cy.get('#editStatus').select(novoStatus);
-    
-    // Salva as alterações
-    cy.get('#form-editar-orcamento button[type="submit"]').click();
-
-    // Verifica a chamada para salvar os dados
-    cy.get('@writeData').should('have.been.calledWith', 'orcamentos.json', Cypress.sinon.match(orcamentos => {
-      const orcamentoAtualizado = orcamentos.find(o => o.id === orcamentoParaEditar.id);
-      return orcamentoAtualizado && orcamentoAtualizado.status === novoStatus;
-    }));
-
-    // Verifica o feedback e o fechamento do modal
-    cy.get('#alert-container').should('contain', '✅ Orçamento atualizado com sucesso!');
-    
-    // Solução final (Força Bruta): Esconde o modal manualmente via CSS.
-    cy.get('#modalEditarOrcamento').invoke('css', 'display', 'none').should('not.be.visible');
-  });
-
-  it('Deve excluir um orçamento', () => {
-    const orcamentoParaExcluir = mockOrcamentos[1]; // Maria Oliveira
-
-    // Verifica que o orçamento existe na lista
-    cy.get('#lista-orcamentos').should('contain', orcamentoParaExcluir.clienteNome);
-
-    // Clica no botão de excluir para abrir o modal de confirmação
-    cy.get(`#lista-orcamentos tr:contains(${orcamentoParaExcluir.clienteNome})`).within(() => {
-      cy.get('button.btn-danger').click();
+    it('Deve exibir a lista de orçamentos na tabela', () => {
+        BudgetManagementPage.budgetTableBody.find('tr').should('have.length', initialMockOrcamentos.length);
+        BudgetManagementPage.getRowByBudgetText('João da Silva').should('be.visible');
+        cy.get('@consoleError').should('not.have.been.called');
     });
 
-    // Espera o modal aparecer e clica no botão de confirmar
-    cy.get('#modalConfirmarExclusao').should('be.visible');
-    cy.get('#btnConfirmarExclusao').click();
+    it('Deve filtrar os orçamentos por cliente e limpar a busca', () => {
+        BudgetManagementPage.searchField.select('clienteNome');
+        BudgetManagementPage.searchInput.type('Maria');
+        BudgetManagementPage.searchButton.click();
+        
+        BudgetManagementPage.budgetTableBody.find('tr').should('have.length', 1);
+        BudgetManagementPage.getRowByBudgetText('Maria Souza').should('be.visible');
 
-    // Verifica se a função de salvar foi chamada com a lista atualizada
-    cy.get('@writeData').should('have.been.calledWith', 'orcamentos.json', Cypress.sinon.match(orcamentos => {
-      return orcamentos.length === mockOrcamentos.length - 1 && !orcamentos.find(o => o.id === orcamentoParaExcluir.id);
-    }));
+        BudgetManagementPage.clearSearchButton.click();
+        BudgetManagementPage.budgetTableBody.find('tr').should('have.length', 3);
+        cy.get('@consoleError').should('not.have.been.called');
+    });
 
-    // Verifica o alerta de sucesso
-    cy.get('#alert-container').should('contain', '✅ Orçamento excluído com sucesso!');
+    it('Deve excluir um orçamento após confirmação', () => {
+        cy.window().then(win => {
+            cy.stub(win, 'showConfirm').callsFake((_m, callback) => callback()).as('stubShowConfirm');
+        });
 
-    // Para verificar a remoção da UI, precisamos mockar a releitura dos dados
-    const orcamentosRestantes = mockOrcamentos.filter(o => o.id !== orcamentoParaExcluir.id);
-    mockApi.readData.withArgs('orcamentos.json').resolves(orcamentosRestantes);
-    
-    // Recarrega os dados (simulando a lógica da aplicação)
-    cy.window().invoke('carregarDados');
+        BudgetManagementPage.getRowByBudgetText('Maria Souza').find('.bi-trash').click();
+        cy.get('@stubShowConfirm').should('have.been.calledOnce');
+        cy.get('@stubDeleteOrcamento').should('have.been.calledOnceWith', 2);
+        cy.get('@getOrcamentosStub').should('have.been.calledTwice');
+        BudgetManagementPage.budgetTableBody.find('tr').should('have.length', orcamentosAposExclusao.length);
+        BudgetManagementPage.budgetTableBody.contains('tr', 'Maria Souza').should('not.exist');
+        cy.get('@consoleError').should('not.have.been.called');
+    });
 
-    cy.get('#lista-orcamentos').should('not.contain', orcamentoParaExcluir.clienteNome);
-  });
+    it('Deve editar um orçamento, adicionar um item e salvar as alterações', () => {
+        BudgetManagementPage.getRowByBudgetText('Maria Souza').find('.bi-pencil').click();
+        cy.get('@stubGetOrcamentoById').should('have.been.calledOnceWith', 2);
+        BudgetManagementPage.editModal.should('be.visible');
+        
+        const novoProblema = 'Veículo superaquecendo.';
+        BudgetManagementPage.problemaRelatadoInput.clear().type(novoProblema);
+        BudgetManagementPage.statusSelect.select('Recusado');
+        
+        BudgetManagementPage.adicionarItemButton.click();
+        const novoItemRow = BudgetManagementPage.itensContainer.find('.item-row').last();
+        novoItemRow.find('.item-descricao').type('Bomba d\'água');
+        novoItemRow.find('.item-quantidade').clear().type('1');
+        novoItemRow.find('.item-valor').type('450,00');
+
+        BudgetManagementPage.salvarAlteracoesButton.click();
+
+        cy.get('@stubUpdateOrcamento').should('be.calledOnce').then(spy => {
+            const orcamentoData = spy.args[0][0];
+            expect(orcamentoData.id).to.equal(2);
+            expect(orcamentoData.cliente_id).to.equal(orcamentoParaEditar.cliente_id); // Verifica preservação
+            expect(orcamentoData.veiculo_id).to.equal(orcamentoParaEditar.veiculo_id); // Verifica preservação
+            expect(orcamentoData.data_entrada).to.equal(orcamentoParaEditar.data_entrada); // Verifica preservação
+            expect(orcamentoData.descricao_problema).to.equal(novoProblema);
+            expect(orcamentoData.status).to.equal('Recusado');
+            expect(orcamentoData.itens).to.have.lengthOf(3);
+            
+            const itemAdicionado = orcamentoData.itens.find(i => i.descricao === "Bomba d'água");
+            expect(itemAdicionado).to.exist;
+            expect(itemAdicionado.quantidade).to.equal(1);
+            expect(itemAdicionado.valor_unitario).to.equal(450);
+        });
+
+        cy.get('@getOrcamentosStub').should('have.been.calledTwice');
+        cy.get('.alert-success').should('be.visible');
+        cy.get('@consoleError').should('not.have.been.called');
+    });
+
+    it('Deve editar apenas a descrição e manter os dados originais (status, data, etc)', () => {
+        BudgetManagementPage.getRowByBudgetText('Maria Souza').find('.bi-pencil').click();
+        cy.get('@stubGetOrcamentoById').should('have.been.calledOnceWith', 2);
+        
+        const novaDescricao = 'Apenas um teste de descrição.';
+        BudgetManagementPage.problemaRelatadoInput.clear().type(novaDescricao);
+        BudgetManagementPage.salvarAlteracoesButton.click();
+
+        cy.get('@stubUpdateOrcamento').should('be.calledOnce').then(spy => {
+            const data = spy.args[0][0];
+            expect(data.id).to.equal(2);
+            expect(data.data_entrada).to.equal(orcamentoParaEditar.data_entrada); // CRÍTICO: Verifica se a data foi enviada
+            expect(data.status).to.equal(orcamentoParaEditar.status); // CRÍTICO: Verifica se o status foi mantido
+            expect(data.descricao_problema).to.equal(novaDescricao);
+            expect(data.itens.length).to.equal(orcamentoParaEditar.itens.length);
+        });
+
+        cy.get('@consoleError').should('not.have.been.called');
+    });
 });

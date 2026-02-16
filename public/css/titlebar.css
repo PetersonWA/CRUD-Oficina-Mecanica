@@ -1,0 +1,104 @@
+/* Custom Title Bar Styles */
+.custom-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 32px;
+    background-color: #F8F9FA;
+    /* Match body bg */
+    -webkit-app-region: drag;
+    /* Allow dragging */
+    padding-left: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    z-index: 9999;
+    /* Ensure it stays on top */
+}
+
+.custom-titlebar .window-title {
+    font-size: 13px;
+    color: #555;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.custom-titlebar .window-controls {
+    display: flex;
+    height: 100%;
+    -webkit-app-region: no-drag;
+}
+
+.custom-titlebar .control {
+    width: 46px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #333;
+    font-size: 14px;
+}
+
+.custom-titlebar .control:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.custom-titlebar .control.close-btn:hover {
+    background-color: #E81123;
+    color: white;
+}
+
+/* Body modifications when Title Bar is active */
+body.has-custom-titlebar {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: transparent !important;
+    /* Electron transparency for corners */
+    overflow: hidden;
+    /* Hide outer scrollbar */
+    border-radius: 10px;
+    /* CROSS-PLATFORM ROUNDING */
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    /* Subtle border */
+    box-sizing: border-box;
+}
+
+/* IMPORTANT: Restore background color for the content wrapper */
+/* This fills the transparent body hole */
+body.has-custom-titlebar>.d-flex {
+    flex: 1;
+    overflow: hidden;
+    /* Prevent body scroll */
+    height: calc(100vh - 32px);
+    /* Subtract titlebar height */
+    background-color: #F8F9FA;
+    /* OPAQUE BACKGROUND RESTORED */
+    width: 100%;
+    border-bottom-left-radius: 9px;
+    /* Match body radius - border */
+    border-bottom-right-radius: 9px;
+    position: relative;
+}
+
+/* Fix Sidebar height to fit new flex container */
+body.has-custom-titlebar #sidebar {
+    height: 100%;
+}
+
+/* Fix Content scroll */
+body.has-custom-titlebar #content {
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* Fallback for pages that might not use .d-flex (like simple layouts) */
+body.has-custom-titlebar> :not(.custom-titlebar):not(.d-flex):not(#alert-container):not(.modal):not(.modal-backdrop):not(script) {
+    background-color: #F8F9FA;
+}

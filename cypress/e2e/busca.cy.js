@@ -1,36 +1,42 @@
 describe('Testes de Busca', () => {
   let mockApi;
   const mockClients = [
-    { nome: 'João da Silva', documento: '111.111.111-11', email: 'joao@test.com', telefone: '1111-1111' },
-    { nome: 'Maria Oliveira', documento: '222.222.222-22', email: 'maria@test.com', telefone: '2222-2222' }
+    { id: 1, nome: 'João da Silva', cpf_cnpj: '111.111.111-11', email: 'joao@test.com', telefone: '1111-1111' },
+    { id: 2, nome: 'Maria Oliveira', cpf_cnpj: '222.222.222-22', email: 'maria@test.com', telefone: '2222-2222' }
   ];
   const mockVehicles = [
-    { cliente: 'João da Silva', marca: 'Fiat', modelo: 'Uno', ano: '2010', placa: 'ABC-1234' },
-    { cliente: 'Maria Oliveira', marca: 'Chevrolet', modelo: 'Onix', ano: '2022', placa: 'XYZ-5678' }
+    { id: 101, cliente_id: 1, cliente_nome: 'João da Silva', marca: 'Fiat', modelo: 'Uno', ano: '2010', placa: 'ABC-1234', quilometragem: '10000', cor: 'Azul' },
+    { id: 102, cliente_id: 2, cliente_nome: 'Maria Oliveira', marca: 'Chevrolet', modelo: 'Onix', ano: '2022', placa: 'XYZ-5678', quilometragem: '20000', cor: 'Preto' }
   ];
 
   beforeEach(() => {
     mockApi = {
-      readData: cy.stub().as('readData'),
-      writeData: cy.stub().as('writeData'),
-      searchData: cy.stub().as('searchData'), // Manter para evitar erros se for chamado em outro lugar
-      editData: cy.stub().as('editData'),
-      deleteData: cy.stub().as('deleteData'),
+      getClientes: cy.stub().as('getClientes'),
+      getVeiculos: cy.stub().as('getVeiculos'),
+      showAlert: cy.stub().as('showAlert'),
+      // Outros IPCs podem ser adicionados se o frontend os chamar durante a busca
     };
 
-    // Mock para carregamento inicial de dados e para as buscas
-    // A aplicação usa `readData` para buscar e depois filtra no lado do cliente
-    mockApi.readData.withArgs('clientes.json').resolves(mockClients);
-    mockApi.readData.withArgs('veiculos.json').resolves(mockVehicles);
-
-    cy.visit('clientes-veiculos.html', {
-      onBeforeLoad(win) {
-        win.api = mockApi;
-      },
-    });
+    // Configuração inicial para retornar dados mockados.
+    // Isso será sobrescrito ou usado nos beforeEach dos contextos.
+    mockApi.getClientes.resolves(mockClients);
+    mockApi.getVeiculos.resolves(mockVehicles);
   });
 
   context('Busca de Clientes e Veículos', () => {
+    beforeEach(() => {
+      // Configura os mocks para o carregamento inicial da página
+      mockApi.getClientes.resolves(mockClients);
+      mockApi.getVeiculos.resolves(mockVehicles);
+      
+      cy.visit('clientes-veiculos.html', {
+        onBeforeLoad(win) {
+          win.api = mockApi;
+          win.showAlert = mockApi.showAlert; // Injetar showAlert também
+        },
+      });
+    });
+
     it('Deve buscar um cliente pelo nome', () => {
       const searchTerm = 'João';
       const searchField = 'nome';
@@ -40,9 +46,7 @@ describe('Testes de Busca', () => {
       cy.get('#campoBusca').select(searchField);
       cy.get('button:contains("Buscar")').click();
 
-      // Verifica se a API de leitura foi chamada
-      cy.get('@readData').should('have.been.calledWith', 'clientes.json');
-      cy.get('@readData').should('have.been.calledWith', 'veiculos.json');
+      // Não há mais verificação para '@readData', pois a busca é frontend
 
       // Verifica se a tabela de clientes foi atualizada com o resultado filtrado
       cy.get('#lista-clientes').should('contain', 'João da Silva');
@@ -58,9 +62,7 @@ describe('Testes de Busca', () => {
       cy.get('#campoBusca').select(searchField);
       cy.get('button:contains("Buscar")').click();
 
-      // Verifica se a API de leitura foi chamada
-      cy.get('@readData').should('have.been.calledWith', 'clientes.json');
-      cy.get('@readData').should('have.been.calledWith', 'veiculos.json');
+      // Não há mais verificação para '@readData', pois a busca é frontend
 
       // Verifica se a tabela de veículos foi atualizada com o resultado
       cy.get('#lista-veiculos').should('contain', 'ABC-1234');

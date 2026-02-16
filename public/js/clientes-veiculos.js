@@ -1,3 +1,41 @@
+// Definições de função no escopo do arquivo para melhor testabilidade
+function _renderizarClientesSeguro(clientes, tableElement) {
+    if (!tableElement) return;
+    tableElement.innerHTML = ''; // Limpa a tabela
+    clientes.forEach(c => {
+        const row = tableElement.insertRow();
+        row.insertCell(0).textContent = c.nome;
+        row.insertCell(1).textContent = c.telefone;
+        row.insertCell(2).textContent = c.email;
+        row.insertCell(3).textContent = c.cpf_cnpj;
+        const actionsCell = row.insertCell(4);
+        actionsCell.innerHTML = `
+            <button class="btn btn-sm btn-warning" onclick="abrirModalEditarCliente(${c.id})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="excluirCliente(${c.id})"><i class="bi bi-trash"></i></button>
+        `;
+    });
+}
+
+function _renderizarVeiculosSeguro(veiculos, tableElement) {
+    if (!tableElement) return;
+    tableElement.innerHTML = ''; // Limpa a tabela
+    veiculos.forEach(v => {
+        const row = tableElement.insertRow();
+        row.insertCell(0).textContent = v.clienteNome; // Corrigido para camelCase
+        row.insertCell(1).textContent = v.marca;
+        row.insertCell(2).textContent = v.modelo;
+        row.insertCell(3).textContent = v.ano;
+        row.insertCell(4).textContent = v.placa;
+        row.insertCell(5).textContent = v.cor;
+        row.insertCell(6).textContent = v.quilometragem || 'N/A';
+        const actionsCell = row.insertCell(7);
+        actionsCell.innerHTML = `
+            <button class="btn btn-sm btn-warning" onclick="abrirModalEditarVeiculo(${v.id})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="excluirVeiculo(${v.id})"><i class="bi bi-trash"></i></button>
+        `;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const formCliente = document.getElementById('form-cliente');
     if (!formCliente) return; // Sai se não estiver na página correta
@@ -21,11 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let todosClientes = [];
     let todosVeiculos = [];
-    
+
     // Funções de confirmação e modais (simplificado)
     const modalConfirmacao = new bootstrap.Modal(document.getElementById('modalConfirmarExclusao'));
     const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
-    let confirmacaoCallback = () => {};
+    let confirmacaoCallback = () => { };
     btnConfirmarExclusao.addEventListener('click', () => {
         confirmacaoCallback();
         modalConfirmacao.hide();
@@ -48,37 +86,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderizarTabelas(clientesFiltrados = todosClientes, veiculosFiltrados = todosVeiculos) {
-        // Renderiza clientes
-        listaClientesTable.innerHTML = clientesFiltrados.map(c => `
-            <tr>
-                <td>${c.nome}</td>
-                <td>${c.telefone}</td>
-                <td>${c.email}</td>
-                <td>${c.cpf_cnpj}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="abrirModalEditarCliente(${c.id})"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="excluirCliente(${c.id})"><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+    function _renderizarVeiculosSeguro(veiculos, tableElement) {
+        if (!tableElement) return;
+        tableElement.innerHTML = ''; // Limpa a tabela
+        veiculos.forEach(v => {
+            const row = tableElement.insertRow();
+            row.insertCell(0).textContent = v.clienteNome; // Corrigido para camelCase
+            row.insertCell(1).textContent = v.marca;
+            row.insertCell(2).textContent = v.modelo;
+            row.insertCell(3).textContent = v.ano;
+            row.insertCell(4).textContent = v.placa;
+            row.insertCell(5).textContent = v.cor;
+            row.insertCell(6).textContent = v.quilometragem || 'N/A';
+            const actionsCell = row.insertCell(7);
+            actionsCell.innerHTML = `
+                <button class="btn btn-sm btn-warning" onclick="abrirModalEditarVeiculo(${v.id})"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="excluirVeiculo(${v.id})"><i class="bi bi-trash"></i></button>
+            `;
+        });
+    }
 
-        // Renderiza veículos
-        listaVeiculosTable.innerHTML = veiculosFiltrados.map(v => `
-            <tr>
-                <td>${v.cliente_nome}</td>
-                <td>${v.marca}</td>
-                <td>${v.modelo}</td>
-                <td>${v.ano}</td>
-                <td>${v.placa}</td>
-                <td>${v.cor}</td>
-                <td>${v.quilometragem || 'N/A'}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="abrirModalEditarVeiculo(${v.id})"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="excluirVeiculo(${v.id})"><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+    function renderizarTabelas(clientesFiltrados = todosClientes, veiculosFiltrados = todosVeiculos) {
+        // Renderiza clientes de forma segura
+        _renderizarClientesSeguro(clientesFiltrados, listaClientesTable);
+
+        // Renderiza veículos de forma segura
+        _renderizarVeiculosSeguro(veiculosFiltrados, listaVeiculosTable);
     }
 
     // Busca
@@ -88,14 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const clientesFiltrados = todosClientes.filter(c => {
             if (!termo) return true;
-            const valorCampo = String(c[campo] || '').toLowerCase();
+            const campoEfetivo = campo === 'documento' ? 'cpf_cnpj' : campo;
+            const valorCampo = String(c[campoEfetivo] || '').toLowerCase();
             return valorCampo.includes(termo);
         });
 
         const veiculosFiltrados = todosVeiculos.filter(v => {
             if (!termo) return true;
-            // Ajuste para buscar pelo nome do cliente na tabela de veículos
-            const valorCampo = campo === 'cliente_nome' ? String(v.cliente_nome || '').toLowerCase() : String(v[campo] || '').toLowerCase();
+            // Ajuste para buscar pelo nome do cliente na tabela de veículos (o valor do select é 'nome')
+            const valorCampo = campo === 'nome' ? String(v.clienteNome || '').toLowerCase() : String(v[campo] || '').toLowerCase();
             return valorCampo.includes(termo);
         });
 
@@ -151,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = new bootstrap.Modal(document.getElementById('modalEditarCliente'));
         modal.show();
     };
-    
+
     document.getElementById('form-editar-cliente').addEventListener('submit', async (e) => {
         e.preventDefault();
         const clienteAtualizado = {
@@ -209,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!veiculo) return;
 
         document.getElementById('editVeiculoId').value = veiculo.id;
-        document.getElementById('editVeiculoCliente').value = veiculo.cliente_nome; // Apenas para exibição
+        document.getElementById('editVeiculoCliente').value = veiculo.clienteNome; // Apenas para exibição
         document.getElementById('editMarcaVeiculo').value = veiculo.marca;
         document.getElementById('editModeloVeiculo').value = veiculo.modelo;
         document.getElementById('editAnoVeiculo').value = veiculo.ano;
@@ -284,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showAlert('Erro ao salvar veículo. A placa já pode existir.', 'danger');
         }
     });
-    
+
     // Lógica de busca de cliente para o formulário de veículo
     searchClienteInput.addEventListener('input', () => {
         const termo = searchClienteInput.value.toLowerCase();
@@ -314,3 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializa o carregamento dos dados
     carregarDados();
 });
+
+// Expor funções para testes unitários
+if (typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+}
+window.testHooks.renderizarClientes = _renderizarClientesSeguro;
+window.testHooks.renderizarVeiculos = _renderizarVeiculosSeguro;

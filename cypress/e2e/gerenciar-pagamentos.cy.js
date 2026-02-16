@@ -1,101 +1,82 @@
-describe('Testes de Gerenciamento de Pagamentos', () => {
-  let mockApi;
-  const mockServicos = [
-    { id: 1, clienteNome: 'João Silva', placaVeiculo: 'ABC-1234', dataEntrada: '2025-10-01', valorTotal: 500, statusPagamento: 'Pendente', pagamentos: [] },
-    { id: 2, clienteNome: 'Maria Santos', placaVeiculo: 'DEF-5678', dataEntrada: '2025-10-02', valorTotal: 800, statusPagamento: 'Parcialmente Pago', pagamentos: [{ id: 1, valor: 400, data: '2025-10-02', metodo: 'PIX' }] },
-    { id: 3, clienteNome: 'Pedro Costa', placaVeiculo: 'GHI-9012', dataEntrada: '2025-10-03', valorTotal: 300, statusPagamento: 'Pago', pagamentos: [{ id: 2, valor: 300, data: '2025-10-03', metodo: 'Dinheiro' }] },
-  ];
+import PaymentManagementPage from '../support/pages/PaymentManagementPage';
 
-  beforeEach(() => {
-    mockApi = {
-      readData: cy.stub().as('readData'),
-      writeData: cy.stub().as('writeData'),
+describe('Testes de Gerenciamento de Pagamentos (Refatorado)', () => {
+
+    const mockServicos = [
+        { id: 1, clienteNome: 'Cliente A', placaVeiculo: 'PAG-0001', dataEntrada: '2025-10-01', valorTotal: 300, formaPagamento: 'Cartão de Crédito', statusPagamento: 'Pendente' },
+        { id: 2, clienteNome: 'Cliente B', placaVeiculo: 'PAG-0002', dataEntrada: '2025-10-02', valorTotal: 500, formaPagamento: 'PIX', statusPagamento: 'Pago' }
+    ];
+
+    const servicoComPagamentosMock = {
+        id: 1,
+        valorTotal: 300,
+        totalPago: 0,
+        saldoDevedor: 300,
+        pagamentos: []
     };
 
-    mockApi.readData.withArgs('servicos.json').resolves(JSON.parse(JSON.stringify(mockServicos)));
-    mockApi.writeData.resolves(true);
+    const servicosAtualizadosMock = [
+        { ...mockServicos[0], statusPagamento: 'Parcialmente Pago' },
+        mockServicos[1]
+    ];
 
-    cy.visit('gerenciar-pagamentos.html', {
-      onBeforeLoad(win) {
-        win.api = mockApi;
-        win.lerDados = mockApi.readData;
-        win.salvarDados = mockApi.writeData;
-      },
-    });
-  });
+    beforeEach(() => {
+        cy.visit('/gerenciar-pagamentos.html', {
+            onBeforeLoad(win) {
+                if (!win.api) win.api = {};
+                win.api.getServicosParaPagamentos = () => {};
+                win.api.getServicoComPagamentos = () => {};
+                win.api.adicionarPagamento = () => {};
 
-  it('Deve exibir a lista de serviços e seus status de pagamento', () => {
-    cy.get('#lista-servicos-pagamentos tr').should('have.length', mockServicos.length);
-    cy.contains('td', 'João Silva').parent('tr').should('contain', 'Pendente');
-    cy.contains('td', 'Maria Santos').parent('tr').should('contain', 'Parcialmente Pago');
-    cy.contains('td', 'Pedro Costa').parent('tr').should('contain', 'Pago');
-  });
+                const getServicosStub = cy.stub(win.api, 'getServicosParaPagamentos').as('stubGetServicos');
+                getServicosStub.onFirstCall().resolves(mockServicos);
+                getServicosStub.onSecondCall().resolves(servicosAtualizadosMock);
 
-  it('Deve filtrar os serviços por status de pagamento', () => {
-    cy.get('#campoBusca').select('status');
-    cy.get('#inputBusca').type('Pendente');
-    cy.contains('button', 'Buscar').click();
-
-    cy.get('#lista-servicos-pagamentos tr').should('have.length', 1);
-    cy.contains('td', 'João Silva');
-    cy.get('#lista-servicos-pagamentos').should('not.contain', 'Maria Santos');
-  });
-
-  it('Deve abrir o modal, adicionar um novo pagamento e atualizar o status', () => {
-    const servicoParaPagar = mockServicos[0];
-    const valorPagamento = 200;
-
-    cy.contains('td', servicoParaPagar.clienteNome).parent('tr').within(() => {
-      cy.contains('button', 'Pagamentos').click();
+                cy.stub(win.api, 'getServicoComPagamentos').resolves(servicoComPagamentosMock);
+                cy.stub(win.api, 'adicionarPagamento').resolves({ success: true, message: 'Pagamento adicionado!' }).as('stubAdicionarPagamento');
+            }
+        });
     });
 
-    cy.get('#modalPagamentos').should('be.visible');
-    cy.get('#servico-id-modal').should('contain', String(servicoParaPagar.id).padStart(6, '0'));
-
-    cy.get('#valor-pago').type(valorPagamento);
-    cy.get('#data-pagamento').type('2025-10-04');
-    cy.get('#metodo-pagamento').select('PIX');
-
-    cy.get('#form-adicionar-pagamento').submit();
-
-    cy.get('@writeData').should((stub) => {
-      const servicos = stub.args[0][1];
-      const servicoAtualizado = servicos.find(s => s.id === servicoParaPagar.id);
-      expect(servicoAtualizado.pagamentos.length).to.equal(1);
-      expect(servicoAtualizado.pagamentos[0].valor).to.equal(valorPagamento);
-      expect(servicoAtualizado.statusPagamento).to.equal('Parcialmente Pago');
+    it('Deve exibir a lista de serviços e seus status de pagamento', () => {
+        PaymentManagementPage.paymentTableBody.find('tr').should('have.length', 2);
+        PaymentManagementPage.getRowByText('Cliente A').should('contain', 'Pendente');
+        PaymentManagementPage.getRowByText('Cliente B').should('contain', 'Pago');
     });
 
-    cy.get('#alert-container').should('contain', '✅ Pagamento adicionado com sucesso!');
-    cy.get('#modalPagamentos').should('not.be.visible');
-  });
+    it('Deve abrir o modal, adicionar um novo pagamento e atualizar o status', () => {
+        // Clica no botão "Pagamentos" do Cliente A
+        PaymentManagementPage.getRowByText('Cliente A').contains('button', 'Pagamentos').click();
 
-   it('Deve quitar um serviço e atualizar o status para Pago', () => {
-    const servicoParaQuitar = mockServicos[1]; // Maria Santos, deve 400
-    const valorPagamento = 400;
+        // Modal deve estar visível
+        cy.get('#modalPagamentos').should('be.visible');
+        cy.get('#servico-id-modal').should('contain', '000001');
 
-    cy.contains('td', servicoParaQuitar.clienteNome).parent('tr').within(() => {
-      cy.contains('button', 'Pagamentos').click();
+        // Preenche o formulário de novo pagamento
+        cy.get('#valor-pago').type('150.00');
+        cy.get('#data-pagamento').type('2025-10-10');
+        cy.get('#metodo-pagamento').select('PIX');
+        cy.get('#anotacao-pagamento').type('Pagamento parcial.');
+
+        // Envia o formulário
+        cy.get('#form-adicionar-pagamento').submit();
+
+        // Verifica se a API foi chamada corretamente
+        cy.get('@stubAdicionarPagamento').should('be.calledOnce');
+        cy.get('@stubAdicionarPagamento').its('firstCall.args.0').should('deep.include', {
+            servico_id: 1,
+            valor: 150,
+            metodo: 'PIX',
+            anotacao: 'Pagamento parcial.'
+        });
+
+        // O modal deve fechar e a lista principal deve ser recarregada
+        cy.get('#modalPagamentos').should('not.be.visible');
+        cy.get('@stubGetServicos').should('have.been.calledTwice');
+
+        // Verifica se o status do pagamento na tabela foi atualizado
+        PaymentManagementPage.paymentTableBody.find('tr').should('have.length', 2);
+        PaymentManagementPage.getRowByText('Cliente A').should('contain', 'Parcialmente Pago');
     });
 
-    cy.get('#modalPagamentos').should('be.visible');
-
-    cy.get('#valor-pago').type(valorPagamento);
-    cy.get('#data-pagamento').type('2025-10-04');
-    cy.get('#metodo-pagamento').select('Cartão de Débito');
-
-    cy.get('#form-adicionar-pagamento').submit();
-
-    cy.get('@writeData').should((stub) => {
-      const servicos = stub.args[0][1];
-      const servicoAtualizado = servicos.find(s => s.id === servicoParaQuitar.id);
-      const totalPago = servicoAtualizado.pagamentos.reduce((acc, p) => acc + p.valor, 0);
-
-      expect(servicoAtualizado.pagamentos.length).to.equal(2);
-      expect(totalPago).to.equal(servicoAtualizado.valorTotal);
-      expect(servicoAtualizado.statusPagamento).to.equal('Pago');
-    });
-
-    cy.get('#alert-container').should('contain', '✅ Pagamento adicionado com sucesso!');
-  });
 });

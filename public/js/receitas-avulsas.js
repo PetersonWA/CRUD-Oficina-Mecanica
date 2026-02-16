@@ -1,5 +1,38 @@
+function _renderReceitasSeguro(items, tableBody, formatarValor, handleExcluirReceita) {
+    tableBody.innerHTML = '';
+    if (items.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum lançamento encontrado.</td></tr>';
+        return;
+    }
+    items.forEach(r => {
+        const tr = tableBody.insertRow();
+        tr.insertCell(0).textContent = r.nome_conta;
+        tr.insertCell(1).textContent = r.descricao_problema || '';
+        tr.insertCell(2).textContent = formatarValor(r.valor_total);
+        tr.insertCell(3).textContent = r.data_competencia ? new Date(r.data_competencia + 'T00:00:00').toLocaleDateString() : '';
+        tr.insertCell(4).textContent = r.data_conclusao ? new Date(r.data_conclusao + 'T00:00:00').toLocaleDateString() : 'Pendente';
+
+        const actionsCell = tr.insertCell(5);
+        actionsCell.innerHTML = `
+            <button class="btn btn-danger btn-sm btn-excluir-receita" data-id="${r.id}">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+    });
+    document.querySelectorAll('.btn-excluir-receita').forEach(btn => {
+        btn.addEventListener('click', handleExcluirReceita);
+    });
+}
+
+if (typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+}
+window.testHooks.renderizarReceitas = _renderReceitasSeguro;
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-receita');
+    if (!form) return;
     const elements = {
         planoContas: document.getElementById('planoContas-receita'),
         metodoPagamento: document.getElementById('metodoPagamento-receita'),
@@ -46,10 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.api.getPlanoContas(),
                 window.api.getAllConfigs()
             ]);
-            
+
             config = appConfig;
             accountsMap = new Map(planoContas.map(acc => [acc.id, acc]));
-            
+
             popularPlanoContasDropdown(planoContas);
             configurarParcelas();
             await carregarReceitas();
@@ -157,30 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTableRows(items) {
-        receitasTableBody.innerHTML = '';
-        if (items.length === 0) {
-            receitasTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum lançamento encontrado.</td></tr>';
-            return;
-        }
-        items.forEach(r => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${r.nome_conta}</td>
-                <td>${r.descricao_problema || ''}</td>
-                <td>${formatarValor(r.valor_total)}</td>
-                <td>${r.data_competencia ? new Date(r.data_competencia + 'T00:00:00').toLocaleDateString() : ''}</td>
-                <td>${r.data_conclusao ? new Date(r.data_conclusao + 'T00:00:00').toLocaleDateString() : 'Pendente'}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm btn-excluir-receita" data-id="${r.id}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            `;
-            receitasTableBody.appendChild(tr);
-        });
-        document.querySelectorAll('.btn-excluir-receita').forEach(btn => {
-            btn.addEventListener('click', handleExcluirReceita);
-        });
+        _renderReceitasSeguro(items, receitasTableBody, formatarValor, handleExcluirReceita);
     }
 
     function setupPagination(items, wrapper) {
@@ -197,12 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
             a.classList.add('page-link');
             a.href = '#';
             a.innerText = i;
-            
+
             a.addEventListener('click', (e) => {
                 e.preventDefault();
                 currentPage = i;
                 displayPage(items);
-                
+
                 document.querySelectorAll('#pagination-controls .page-item').forEach(item => item.classList.remove('active'));
                 li.classList.add('active');
             });
@@ -240,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleExcluirReceita(e) {
         const id = e.currentTarget.dataset.id;
-        if (confirm('Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.')) {
+        showConfirm('Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.', async () => {
             try {
                 const result = await window.api.deleteReceitaAvulsa(id);
                 if (result.success) {
@@ -258,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Erro ao excluir receita:", error);
                 showAlert('Falha ao excluir o lançamento.', 'danger');
             }
-        }
+        }, 'Confirmar Exclusão');
     }
 
     function handleGerarRelatorio() {
@@ -304,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const metodoPagamento = elements.metodoPagamento.value;
         const numeroParcelas = metodoPagamento === 'Cartão de Crédito' ? parseInt(elements.numeroParcelas.value) : 1;
-        
+
         const selectedOption = elements.numeroParcelas.options[elements.numeroParcelas.selectedIndex];
         const totalComJuros = metodoPagamento === 'Cartão de Crédito' ? parseFloat(selectedOption.dataset.totalComJuros) : parseFloat(elements.valor.value);
 
@@ -314,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             descricao_problema: elements.descricao.value,
             data_competencia: elements.dataCompetencia.value,
             data_vencimento: elements.dataVencimento.value,
-            data_entrada: elements.dataCompetencia.value, 
+            data_entrada: elements.dataCompetencia.value,
             data_conclusao: metodoPagamento !== 'Cartão de Crédito' ? (elements.dataLiquidacao.value || null) : null,
             status: 'Concluído',
             metodo_pagamento: metodoPagamento,

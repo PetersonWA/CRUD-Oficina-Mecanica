@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   // Manter saveFile se ainda for útil para imagens, etc.
   saveFile: (fileBuffer, destinationFilename) => ipcRenderer.invoke('save-file', fileBuffer, destinationFilename),
-  
+
   // CRUD Clientes
   getClientes: () => ipcRenderer.invoke('get-clientes'),
   addCliente: (cliente) => ipcRenderer.invoke('add-cliente', cliente),
@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('api', {
   addDespesa: (despesa) => ipcRenderer.invoke('add-despesa', despesa),
 
   getDespesas: (filtros) => ipcRenderer.invoke('get-despesas', filtros),
+  updateDespesa: (despesa) => ipcRenderer.invoke('update-despesa', despesa),
   deleteDespesa: (id) => ipcRenderer.invoke('delete-despesa', id),
 
   addReceitaAvulsa: (receita) => ipcRenderer.invoke('add-receita-avulsa', receita),
@@ -73,6 +74,24 @@ contextBridge.exposeInMainWorld('api', {
   getArchivedServicos: () => ipcRenderer.invoke('get-archived-servicos'),
   restoreServico: (id) => ipcRenderer.invoke('restore-servico', id),
   permanentlyDeleteServico: (id) => ipcRenderer.invoke('permanently-delete-servico', id),
+
+  // Auth
+  login: (credentials) => ipcRenderer.invoke('login', credentials),
+  logout: () => ipcRenderer.invoke('logout'),
+  getCurrentUser: () => ipcRenderer.invoke('get-current-user'),
+
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  // Window Controls
+  minimizeApp: () => ipcRenderer.invoke('minimize-app'),
+  maximizeApp: () => ipcRenderer.invoke('maximize-app'), // Toggle maximize/restore
+  closeApp: () => ipcRenderer.invoke('close-app'),
+
+  // User Management
+  getUsers: () => ipcRenderer.invoke('get-users'),
+  addUser: (user) => ipcRenderer.invoke('add-user', user),
+  updateUser: (user) => ipcRenderer.invoke('update-user', user),
+  deleteUser: (id) => ipcRenderer.invoke('delete-user', id),
 
   // Adicionar um placeholder para Buffer se necessário em algum outro lugar
   Buffer: Buffer

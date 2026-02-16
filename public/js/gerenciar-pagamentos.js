@@ -1,3 +1,38 @@
+function _renderizarPagamentosSeguro(servicosPagina, tableElement, getStatusPagamentoBadge, formatarValor) {
+  if (!tableElement) return;
+  tableElement.innerHTML = "";
+  servicosPagina.forEach((s) => {
+    const row = tableElement.insertRow();
+    const dataServico = s.dataEntrada
+      ? new Date(s.dataEntrada).toLocaleDateString("pt-BR", {
+          timeZone: "UTC",
+        })
+      : "N/A";
+
+    row.insertCell(0).textContent = String(s.id).padStart(6, "0");
+    row.insertCell(1).textContent = s.clienteNome || '';
+    row.insertCell(2).textContent = s.placaVeiculo || '';
+    row.insertCell(3).textContent = dataServico;
+    row.insertCell(4).textContent = `R$ ${formatarValor(s.valorTotal || 0)}`;
+    row.insertCell(5).textContent = s.formaPagamento || 'N/A';
+    row.insertCell(6).innerHTML = getStatusPagamentoBadge(s.statusPagamento);
+    
+    const actionsCell = row.insertCell(7);
+    actionsCell.innerHTML = `
+      <button class="btn btn-sm btn-primary" onclick="abrirModalPagamentos(${s.id})">
+        <i class="bi bi-cash-coin"></i> Pagamentos
+      </button>
+    `;
+  });
+}
+
+// Expor para testes
+if (typeof window.testHooks === 'undefined') {
+  window.testHooks = {};
+}
+window.testHooks.renderizarPagamentos = _renderizarPagamentosSeguro;
+
+
 /* Scripts específicos para a página de Gerenciar Pagamentos */
 document.addEventListener("DOMContentLoaded", () => {
   const listaServicosTable = document.getElementById(
@@ -21,6 +56,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.abrirModalPagamentos = abrirModalPagamentos;
   window.mudarPagina = mudarPagina;
   window.handleConfirmarPagamento = handleConfirmarPagamento; // Expose to global scope
+  window.carregarDados = carregarDados; // Expor para testes
+  
+  function renderizarServicos() {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const servicosPagina = servicosFiltrados.slice(inicio, fim);
+    _renderizarPagamentosSeguro(servicosPagina, listaServicosTable, getStatusPagamentoBadge, window.formatarValor);
+  }
+  window.renderizarServicosPagamentos = renderizarServicos; // Expor para testes
 
   async function handleConfirmarPagamento(e) {
     const pagamentoId = parseInt(e.currentTarget.dataset.id);
@@ -103,39 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function renderizarServicos() {
-    const inicio = (paginaAtual - 1) * itensPorPagina;
-    const fim = inicio + itensPorPagina;
-    const servicosPagina = servicosFiltrados.slice(inicio, fim);
-
-    listaServicosTable.innerHTML = servicosPagina
-      .map((s) => {
-        const dataServico = s.dataEntrada
-          ? new Date(s.dataEntrada).toLocaleDateString("pt-BR", {
-              timeZone: "UTC",
-            })
-          : "N/A";
-
-        return `
-      <tr>
-        <td>${String(s.id).padStart(6, "0")}</td>
-        <td>${s.clienteNome}</td>
-        <td>${s.placaVeiculo}</td>
-        <td>${dataServico}</td>
-        <td>R$ ${formatarValor(s.valorTotal)}</td>
-        <td>${s.formaPagamento || 'N/A'}</td>
-        <td>${getStatusPagamentoBadge(s.statusPagamento)}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="abrirModalPagamentos(${
-            s.id
-          })"><i class="bi bi-cash-coin"></i> Pagamentos</button>
-        </td>
-      </tr>
-    `;
-      })
-      .join("");
-  }
-
   function renderizarPaginacao() {
     const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
     const paginacaoEl = document.getElementById("paginacao-servicos");
@@ -148,35 +159,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     paginacaoEl.style.display = "flex";
 
-    const prevLi = document.createElement("li");
-    prevLi.className = `page-item ${paginaAtual === 1 ? "disabled" : ""}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${
-      paginaAtual - 1
-    })">&laquo;</a>`;
-    paginacaoEl.appendChild(prevLi);
+    // Função auxiliar para criar um item de paginação
+    const criarItemPaginacao = (texto, pagina, desabilitado = false, ativo = false) => {
+        const li = document.createElement("li");
+        li.className = `page-item ${desabilitado ? "disabled" : ""} ${ativo ? "active" : ""}`;
+        
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "#";
+        a.innerHTML = texto;
+        if (!desabilitado) {
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                mudarPagina(pagina);
+            });
+        }
+        li.appendChild(a);
+        return li;
+    };
 
+    // Botão Anterior
+    paginacaoEl.appendChild(criarItemPaginacao('&laquo;', paginaAtual - 1, paginaAtual === 1));
+
+    // Links das páginas
     for (let i = 1; i <= totalPaginas; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${i === paginaAtual ? "active" : ""}`;
-      li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
-      paginacaoEl.appendChild(li);
+      paginacaoEl.appendChild(criarItemPaginacao(i, i, false, i === paginaAtual));
     }
 
-    const nextLi = document.createElement("li");
-    nextLi.className = `page-item ${
-      paginaAtual === totalPaginas ? "disabled" : ""
-    }`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${
-      paginaAtual + 1
-    })">&raquo;</a>`;
-    paginacaoEl.appendChild(nextLi);
+    // Botão Próximo
+    paginacaoEl.appendChild(criarItemPaginacao('&raquo;', paginaAtual + 1, paginaAtual === totalPaginas));
   }
 
   function mudarPagina(pagina) {
     const totalPaginas = Math.ceil(servicosFiltrados.length / itensPorPagina);
     if (pagina < 1 || pagina > totalPaginas) return;
     paginaAtual = pagina;
-    renderizarServicos(); // Apenas renderiza a nova página, não recarrega os dados
+    renderizarPagina(); 
   }
 
   function realizarBusca() {

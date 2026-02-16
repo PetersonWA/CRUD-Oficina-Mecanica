@@ -1,4 +1,56 @@
 /* Scripts específicos para a página de Gerenciar Serviços */
+
+function _renderizarServicosSeguro(servicosPagina, tableElement, getStatusPagamentoBadge, formatarValor) {
+  if (!tableElement) return;
+  tableElement.innerHTML = "";
+  servicosPagina.forEach((s) => {
+    const row = tableElement.insertRow();
+    const valorServico = s.valorTotal || 0;
+
+    let lancarCustoBtnHtml = '';
+    if (s.status === 'Concluído') {
+      const custoTotalPecas = (s.itens || [])
+        .filter(item => item.tipo === 'Peça' && item.valor_custo > 0)
+        .reduce((acc, item) => acc + (item.valor_custo * item.quantidade), 0);
+
+      if (custoTotalPecas > 0) {
+        lancarCustoBtnHtml = `
+                    <button 
+                        class="btn btn-sm btn-success mt-1" 
+                        onclick='lancarCustoComoDespesa(${s.id}, ${custoTotalPecas})' 
+                        title="Lançar Custo de peças referente à OS #${String(s.id).padStart(6, "0")}">
+                        <i class="bi bi-currency-dollar"></i> Lançar Custo
+                    </button>`;
+      }
+    }
+
+    row.insertCell(0).textContent = String(s.id).padStart(6, "0");
+    row.insertCell(1).textContent = s.clienteNome || '';
+    row.insertCell(2).textContent = s.placaVeiculo || '';
+    row.insertCell(3).textContent = s.dataEntrada ? new Date(s.dataEntrada + "T00:00:00").toLocaleDateString("pt-BR") : '';
+    row.insertCell(4).textContent = s.dataConclusao ? new Date(s.dataConclusao + "T00:00:00").toLocaleDateString("pt-BR") : "-";
+    row.insertCell(5).textContent = `R$ ${formatarValor(valorServico)}`;
+    row.insertCell(6).textContent = s.mecanico || '';
+    row.insertCell(7).textContent = s.status;
+    row.insertCell(8).innerHTML = getStatusPagamentoBadge(s.statusPagamento);
+
+    const actionsCell = row.insertCell(9);
+    actionsCell.classList.add('text-center');
+    actionsCell.innerHTML = `
+          <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${s.id})"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-warning" onclick="abrirModalEditarServico(${s.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="excluirServico(${s.id})"><i class="bi bi-trash"></i></button>
+          ${lancarCustoBtnHtml}
+        `;
+  });
+}
+
+// Expor para testes
+if (typeof window.testHooks === 'undefined') {
+  window.testHooks = {};
+}
+window.testHooks.renderizarServicos = _renderizarServicosSeguro;
+
 document.addEventListener("DOMContentLoaded", () => {
   const listaServicosTable = document.getElementById("lista-servicos");
   if (!listaServicosTable) return; // Exit if not on the right page
@@ -29,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let servicosFiltrados = [];
   let paginaAtual = 1;
   const itensPorPagina = 10;
-  let confirmacaoCallback = () => {};
+  let confirmacaoCallback = () => { };
   let editModalInstance = null;
 
   let sortKey = 'id';
@@ -50,14 +102,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.excluirServico = excluirServico;
   window.mudarPagina = mudarPagina;
   window.editRemoverItem = editRemoverItem;
-
-  window.showConfirm = showConfirm;
+  window.carregarServicos = carregarServicos; // Já exposta, mas para clareza
+  window.renderizarServicos = renderizarServicos; // Expor para testes
+  window.editCalcularTotal = editCalcularTotal; // Expor para testes
 
   function lancarCustoComoDespesa(servicoId, custoTotal) {
     const despesaData = {
-        valor: custoTotal.toFixed(2),
-        anotacao: `Custo de peças referente à OS #${String(servicoId).padStart(6, "0")}`,
-        id_plano_contas: 311 // ID para "Custo das Peças Vendidas (CMV)"
+      valor: custoTotal.toFixed(2),
+      anotacao: `Custo de peças referente à OS #${String(servicoId).padStart(6, "0")}`,
+      id_plano_contas: 311 // ID para "Custo das Peças Vendidas (CMV)"
     };
 
     sessionStorage.setItem('despesaPreenchida', JSON.stringify(despesaData));
@@ -71,6 +124,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return '<span class="badge bg-success">Pago</span>';
       case "Parcialmente Pago":
         return '<span class="badge bg-info">Parcialmente Pago</span>';
+      case "Aguardando Liquidação":
+        return '<span class="badge bg-primary">Aguardando Liquidação</span>';
       case "Pendente":
       default:
         return '<span class="badge bg-warning text-dark">Pendente</span>';
@@ -92,31 +147,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function ordenarErenderizar() {
     servicosFiltrados.sort((a, b) => {
-        const valA = a[sortKey];
-        const valB = b[sortKey];
+      const valA = a[sortKey];
+      const valB = b[sortKey];
 
-        if (valA == null) return 1;
-        if (valB == null) return -1;
+      if (valA == null) return 1;
+      if (valB == null) return -1;
 
-        let comparison = 0;
-        if (sortKey === 'dataEntrada' || sortKey === 'dataConclusao') {
-            try {
-                const dateA = new Date(valA);
-                const dateB = new Date(valB);
-                if (isNaN(dateA.getTime())) return 1;
-                if (isNaN(dateB.getTime())) return -1;
-                comparison = dateA.getTime() - dateB.getTime();
-            } catch (e) {
-                console.error("Erro ao ordenar por data:", e);
-                return 0;
-            }
-        } else if (typeof valA === 'number' && typeof valB === 'number') {
-            comparison = valA - valB;
-        } else {
-            comparison = String(valA).localeCompare(String(valB));
+      let comparison = 0;
+      if (sortKey === 'dataEntrada' || sortKey === 'dataConclusao') {
+        try {
+          const dateA = new Date(valA);
+          const dateB = new Date(valB);
+          if (isNaN(dateA.getTime())) return 1;
+          if (isNaN(dateB.getTime())) return -1;
+          comparison = dateA.getTime() - dateB.getTime();
+        } catch (e) {
+          console.error("Erro ao ordenar por data:", e);
+          return 0;
         }
+      } else if (typeof valA === 'number' && typeof valB === 'number') {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB));
+      }
 
-        return sortOrder === 'asc' ? comparison : -comparison;
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
     updateHeaderSortUI();
     renderizarPagina();
@@ -124,19 +179,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHeaderSortUI() {
     document.querySelectorAll('.sortable-header').forEach(header => {
-        header.classList.remove('sort-asc', 'sort-desc');
-        if (header.dataset.sortKey === sortKey) {
-            header.classList.add(`sort-${sortOrder}`);
-        }
+      header.classList.remove('sort-asc', 'sort-desc');
+      if (header.dataset.sortKey === sortKey) {
+        header.classList.add(`sort-${sortOrder}`);
+      }
     });
   }
 
   function handleSort(key) {
     if (sortKey === key) {
-        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-        sortKey = key;
-        sortOrder = 'asc';
+      sortKey = key;
+      sortOrder = 'asc';
     }
     paginaAtual = 1;
     ordenarErenderizar();
@@ -144,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll('.sortable-header').forEach(header => {
     header.addEventListener('click', () => {
-        handleSort(header.dataset.sortKey);
+      handleSort(header.dataset.sortKey);
     });
   });
 
@@ -157,63 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const inicio = (paginaAtual - 1) * itensPorPagina;
     const fim = inicio + itensPorPagina;
     const servicosPagina = servicosFiltrados.slice(inicio, fim);
-
-    listaServicosTable.innerHTML = servicosPagina
-      .map((s) => {
-        const valorServico = s.valor !== undefined ? s.valor : s.valorTotal;
-
-        let lancarCustoBtnHtml = '';
-        if (s.status === 'Concluído') {
-            const custoTotalPecas = s.itens
-                .filter(item => item.tipo === 'Peça' && item.valor_custo > 0)
-                .reduce((acc, item) => acc + (item.valor_custo * item.quantidade), 0);
-
-            if (custoTotalPecas > 0) {
-                lancarCustoBtnHtml = `
-                    <button 
-                        class="btn btn-sm btn-success mt-1" 
-                        onclick='lancarCustoComoDespesa(${s.id}, ${custoTotalPecas})' 
-                        title="Lançar Custo das Peças como Despesa">
-                        <i class="bi bi-currency-dollar"></i> Lançar Custo
-                    </button>`;
-            }
-        }
-
-        return `
-      <tr>
-        <td>${String(s.id).padStart(6, "0")}</td>
-        <td>${s.clienteNome}</td>
-        <td>${s.placaVeiculo}</td>
-        <td>${new Date(s.dataEntrada + "T00:00:00").toLocaleDateString(
-          "pt-BR"
-        )}</td>
-        <td>${
-          s.dataConclusao
-            ? new Date(s.dataConclusao + "T00:00:00").toLocaleDateString(
-                "pt-BR"
-              )
-            : "-"
-        }</td>
-        <td>R$ ${formatarValor(valorServico)}</td>
-        <td>${s.mecanico}</td>
-        <td>${s.status}</td>
-        <td>${getStatusPagamentoBadge(s.statusPagamento)}</td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-info" onclick="abrirModalVerItens(${
-            s.id
-          })"><i class="bi bi-eye"></i></button>
-          <button class="btn btn-sm btn-warning" onclick="abrirModalEditarServico(${
-            s.id
-          })"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-danger" onclick="excluirServico(${
-            s.id
-          })"><i class="bi bi-trash"></i></button>
-          ${lancarCustoBtnHtml}
-        </td>
-      </tr>
-    `;
-      })
-      .join("");
+    _renderizarServicosSeguro(servicosPagina, listaServicosTable, getStatusPagamentoBadge, window.formatarValor);
   }
 
   function renderizarPaginacao() {
@@ -230,28 +229,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     paginacaoEl.style.display = "flex";
 
-    const prevLi = document.createElement("li");
-    prevLi.className = `page-item ${paginaAtual === 1 ? "disabled" : ""}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous" onclick="mudarPagina(${
-      paginaAtual - 1
-    })"><span aria-hidden="true">&laquo;</span></a>`;
-    paginacaoEl.appendChild(prevLi);
+    const criarItemPaginacao = (texto, pagina, desabilitado = false, ativo = false) => {
+      const li = document.createElement("li");
+      li.className = `page-item ${desabilitado ? "disabled" : ""} ${ativo ? "active" : ""}`;
+
+      const a = document.createElement("a");
+      a.className = "page-link";
+      a.href = "#";
+      a.innerHTML = texto;
+      if (!desabilitado) {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          mudarPagina(pagina);
+        });
+      }
+      li.appendChild(a);
+      return li;
+    };
+
+    paginacaoEl.appendChild(criarItemPaginacao('&laquo;', paginaAtual - 1, paginaAtual === 1));
 
     for (let i = 1; i <= totalPaginas; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${i === paginaAtual ? "active" : ""}`;
-      li.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
-      paginacaoEl.appendChild(li);
+      paginacaoEl.appendChild(criarItemPaginacao(i, i, false, i === paginaAtual));
     }
 
-    const nextLi = document.createElement("li");
-    nextLi.className = `page-item ${
-      paginaAtual === totalPaginas ? "disabled" : ""
-    }`;
-    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next" onclick="mudarPagina(${
-      paginaAtual + 1
-    })"><span aria-hidden="true">&raquo;</span></a>`;
-    paginacaoEl.appendChild(nextLi);
+    paginacaoEl.appendChild(criarItemPaginacao('&raquo;', paginaAtual + 1, paginaAtual === totalPaginas));
   }
 
   function mudarPagina(pagina) {
@@ -324,8 +326,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (servico) {
       editOsId.textContent = String(id).padStart(6, "0");
       editServicoId.value = servico.id;
-      editServicoCliente.value = servico.clienteNome;
-      editServicoVeiculo.value = servico.placaVeiculo;
+      editServicoCliente.value = servico.clienteNome || '';
+      editServicoVeiculo.value = servico.placaVeiculo || '';
       editServicoDataEntrada.value = servico.dataEntrada;
       editServicoMecanico.value = servico.mecanico;
       editServicoStatus.value = servico.status;
@@ -347,25 +349,20 @@ document.addEventListener("DOMContentLoaded", () => {
     row.classList.add("item-row");
     const tipoSelecionado = (item && item.tipo) || "Mão de Obra";
     row.innerHTML = `
-        <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição do item" value="${
-          item ? item.descricao : ""
-        }" required></td>
+        <td><input type="text" class="form-control form-control-sm" name="descricao" placeholder="Descrição do item" value="${item ? item.descricao : ""
+      }" required></td>
         <td>
           <select class="form-select form-select-sm" name="tipo">
-            <option value="Mão de Obra" ${
-              tipoSelecionado === "Mão de Obra" ? "selected" : ""
-            }>Mão de Obra</option>
-            <option value="Peça" ${
-              tipoSelecionado === "Peça" ? "selected" : ""
-            }>Peça</option>
+            <option value="Mão de Obra" ${tipoSelecionado === "Mão de Obra" ? "selected" : ""
+      }>Mão de Obra</option>
+            <option value="Peça" ${tipoSelecionado === "Peça" ? "selected" : ""
+      }>Peça</option>
           </select>
         </td>
-        <td><input type="number" class="form-control form-control-sm" name="quantidade" value="${
-          item ? item.quantidade : 1
-        }" min="1" step="1" required></td>
-        <td><input type="number" class="form-control form-control-sm" name="valor_unitario" placeholder="0.00" value="${
-          item ? item.valor_unitario.toFixed(2) : "0.00"
-        }" min="0" step="0.01" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="quantidade" value="${item ? item.quantidade : 1
+      }" min="1" step="1" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="valor_unitario" placeholder="0.00" value="${item ? item.valor_unitario.toFixed(2) : "0.00"
+      }" min="0" step="0.01" required></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="editRemoverItem(this)"><i class="bi bi-trash"></i></button></td>
     `;
     editItensBody.appendChild(row);
@@ -430,15 +427,15 @@ document.addEventListener("DOMContentLoaded", () => {
       mecanico: editServicoMecanico.value,
       status: editServicoStatus.value,
       itens: itens,
-      valorTotal: valorTotal,
+      valor_total: valorTotal,
       dataConclusao: document.getElementById('editServicoDataConclusao').value,
     };
 
     if (
       servicoAtualizado.status === "Concluído" &&
-      !servicoOriginal.dataConclusao
+      !servicoOriginal.data_conclusao
     ) {
-      servicoAtualizado.dataConclusao = getLocalDateAsString(new Date());
+      servicoAtualizado.data_conclusao = getLocalDateAsString(new Date());
     }
 
     try {
@@ -494,4 +491,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   carregarServicos();
+
+  // Expor para testes
+  if (typeof window.testHooks === 'undefined') {
+    window.testHooks = {};
+  }
+  window.testHooks.renderizarServicos = _renderizarServicosSeguro;
 });
